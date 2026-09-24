@@ -1,0 +1,11 @@
+node_modules
+.next
+pnpm-lock.yaml
+src/lib/database.types.ts
+src/components/ui
+supabase
+docs
+screenshots
+playwright-report
+test-results
+*.md
