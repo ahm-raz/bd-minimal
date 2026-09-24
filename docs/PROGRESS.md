@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M0 done. Next: M1 (auth pages, app layout, team, profile).
+**Status:** M1 done. Next: M2 (settings).
 
 ## Milestones
 
@@ -26,12 +26,12 @@
 - [x] Verify: lint, typecheck, test, db:test, test:e2e, build
 
 ### M1: Auth, team, profile
-- [ ] /setup (404 once a profile exists)
-- [ ] /login, /accept-invite, /reset-password with docs/07 §1 copy
-- [ ] (app) layout: sidebar, role-aware nav, ProfileProvider, Toaster
-- [ ] /team: statuses, invite, resend, edit, deactivate/reactivate, dialog copy
-- [ ] /profile: name, time zone with local time preview
-- [ ] e2e: setup then 404; invite link → My Day; BD blocked from /team; deactivated BD can't sign in; time zone changes date
+- [x] /setup (404 once a profile exists)
+- [x] /login, /accept-invite, /reset-password with docs/07 §1 copy
+- [x] (app) layout: sidebar, role-aware nav, ProfileProvider, Toaster
+- [x] /team: statuses, invite, resend, edit, deactivate/reactivate, dialog copy
+- [x] /profile: name, time zone with local time preview
+- [x] e2e: setup then 404; invite link → My Day; BD blocked from /team; deactivated BD can't sign in; time zone changes date
 
 ### M2: Settings
 - [ ] Lists (add, rename inline, reorder, hide/show)
@@ -93,7 +93,16 @@
 - 2026-09-24: /healthz route (public) used as the Playwright web-server readiness URL.
 - 2026-09-24: Local auth rate limits raised (sign-ins, emails) so e2e runs don't trip them. Local only.
 
+- 2026-09-24: Team reads `last_sign_in_at` through the Auth admin API (after the founder check) to show Invited vs Active; docs/03 defines Invited that way and auth.users isn't readable any other way. Read-only use.
+- 2026-09-24: Deactivate dialog uses "their/they" instead of "his/he" (docs/07 §11 copy), because the app doesn't know anyone's pronouns.
+- 2026-09-24: Signed-in sessions whose profile is deactivated are sent to /auth/signout?reason=deactivated, which clears cookies and shows the turned-off message on /login.
+- 2026-09-24: "Set targets now" is a toast action after inviting; it opens Settings → Targets for that person.
+- 2026-09-24: Profile "Change password" sends a reset link to the user's own email (reuses the reset flow).
+
 ## Deviations
+- Supabase CLI: `[auth.email] enable_signup` also switches off email *sign-in*, so it stays `true`; public sign-up is disabled with the top-level `[auth] enable_signup = false` (verified: /auth/v1/signup returns signup_disabled).
+- `typecheck` runs `next typegen` first, because Next 16 route types (PageProps/LayoutProps) are generated.
+- Next dev indicator turned off (next.config.ts): it covered the sidebar user menu.
 - Next.js 16.3 scaffold; `create-next-app` refuses names starting with a dot, so the scaffold used `tmp-app` instead of `.tmp-app`.
 - Next.js 16 renamed middleware to proxy: route guards live in src/proxy.ts.
 - shadcn 4.x generated components import `cn` from the `cn` package and use `radix-ui`; next-themes was removed (light only).

@@ -2,7 +2,7 @@
  * Visual self-review: captures pages at 1440×900 as the founder and as a BD into ./screenshots/.
  *
  *   pnpm screenshots                       # every page, demo logins
- *   pnpm screenshots /my-day /leads        # only these paths
+ *   pnpm screenshots my-day leads          # only these paths (leading slash optional)
  *
  * Env: BASE_URL (default http://localhost:3000), FOUNDER_EMAIL, BD_EMAIL, SCREENSHOT_PASSWORD.
  * Defaults match `pnpm seed:demo`.
@@ -42,7 +42,11 @@ async function capture(page: Page, route: string, file: string) {
 }
 
 async function main() {
-  const only = process.argv.slice(2).filter((a) => a.startsWith("/"));
+  // Accept "my-day" or "/my-day" (Git Bash may rewrite a leading slash into a Windows path).
+  const only = process.argv
+    .slice(2)
+    .filter((a) => !a.startsWith("-"))
+    .map((a) => `/${a.replace(/^[A-Za-z]:[\/].*?Git[\/]/, "").replace(/^\/+/, "")}`);
   const pick = (list: string[]) => (only.length ? list.filter((p) => only.some((o) => p === o || o.startsWith(`${p}/`) || p.startsWith(o))) : list);
   const extra = only.filter((o) => ![...PUBLIC_PAGES, ...FOUNDER_PAGES, ...BD_PAGES].includes(o));
 
