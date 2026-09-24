@@ -14,6 +14,7 @@ import {
 import { ArrowDown, ArrowUp, ChevronDown, Columns3, Flag, ListFilter, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { RelativeTime } from "@/components/common/relative-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,7 +46,7 @@ import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadStatus } from "@/lib/domain";
 import { completenessTone } from "@/lib/completeness";
-import { dueLabel, dueState, formatRelative, formatLocalDate, todayIn } from "@/lib/dates";
+import { dueLabel, dueState, formatLocalDate, todayIn } from "@/lib/dates";
 import { contactName, formatNumber, initials } from "@/lib/format";
 import {
   activeFilterCount,
@@ -267,7 +268,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
           header: () => COLUMN_LABELS.last_activity,
           cell: ({ row }) =>
             row.original.last_activity_at ? (
-              <span className="text-ink-muted">{formatRelative(row.original.last_activity_at, profile.timezone)}</span>
+              <RelativeTime at={row.original.last_activity_at} tz={profile.timezone} className="text-ink-muted" />
             ) : (
               <span className="text-ink-faint">None</span>
             ),
@@ -284,7 +285,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         helper.display({
           id: "created",
           header: () => COLUMN_LABELS.created,
-          cell: ({ row }) => <span className="text-ink-muted">{formatRelative(row.original.created_at, profile.timezone)}</span>,
+          cell: ({ row }) => <RelativeTime at={row.original.created_at} tz={profile.timezone} className="text-ink-muted" />,
         }),
       ]),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- lists and tz are stable for the page

@@ -1,5 +1,6 @@
 "use client";
 
+import { RelativeTime } from "@/components/common/relative-time";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -33,7 +34,6 @@ import { TimezoneSelect } from "@/components/common/timezone-select";
 import { useProfile } from "@/components/app/profile-provider";
 import { ROLE_LABELS } from "@/lib/domain";
 import { formatNumber, firstName } from "@/lib/format";
-import { formatRelative } from "@/lib/dates";
 import { applyFieldErrors } from "@/lib/forms";
 import { inviteSchema, memberEditSchema, type InviteInput, type MemberEditInput } from "@/lib/validation/auth";
 import {
@@ -126,7 +126,7 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
                     </TableCell>
                     <TableCell className="num text-right">{formatNumber(r.openLeads)}</TableCell>
                     <TableCell className="text-ink-muted">
-                      {r.lastActive ? formatRelative(r.lastActive, timezone) : "No activity yet"}
+                      {r.lastActive ? <RelativeTime at={r.lastActive} tz={timezone} /> : "No activity yet"}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

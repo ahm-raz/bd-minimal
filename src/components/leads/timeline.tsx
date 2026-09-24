@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { RelativeTime } from "@/components/common/relative-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +24,7 @@ import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
 import { useNow } from "@/lib/use-now";
 import type { Tables } from "@/lib/domain";
-import { formatRelative, MAX_BACKDATE_DAYS, toLocalDateTimeInput } from "@/lib/dates";
+import { MAX_BACKDATE_DAYS, toLocalDateTimeInput } from "@/lib/dates";
 import { contactName, initials } from "@/lib/format";
 import { BD_EDIT_WINDOW_MS, outcomesFor } from "@/lib/validation/activity";
 import { deleteActivity, updateActivity } from "@/server/actions/activities";
@@ -120,7 +121,7 @@ export function Timeline({
       />
       <ol className="divide-y divide-line" data-testid="timeline">
         {shown.map((i) => {
-          const time = <span className="num w-32 shrink-0 text-small text-ink-muted">{formatRelative(i.at, profile.timezone)}</span>;
+          const time = <RelativeTime at={i.at} tz={profile.timezone} className="num w-32 shrink-0 text-small text-ink-muted" />;
           if (i.kind === "activity") {
             const a = i.a;
             const who = contact(a.contact_id);

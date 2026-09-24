@@ -1,5 +1,6 @@
 "use client";
 
+import { RelativeTime } from "@/components/common/relative-time";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +8,6 @@ import { EmptyState, ErrorState } from "@/components/common/empty-state";
 import { FormSheet } from "@/components/common/form-sheet";
 import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
-import { formatRelative } from "@/lib/dates";
 import { formatMoney, formatNumber, initials } from "@/lib/format";
 import { drilldown, type DrillInput, type DrillRow } from "@/server/actions/drilldown";
 
@@ -70,8 +70,10 @@ function DrilldownBody({ request, onClose }: { request: DrillRequest; onClose: (
                 {r.detail && <div className="truncate text-small text-ink-muted">{r.detail}</div>}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-0.5">
-                {r.value !== undefined && r.value !== null && <span className="num text-body">{formatMoney(r.value)}</span>}
-                <span className="num text-small text-ink-muted">{formatRelative(r.at, timezone)}</span>
+                {r.value !== undefined && r.value !== null && (
+                  <span className="num text-body">{formatMoney(r.value)}</span>
+                )}
+                <RelativeTime at={r.at} tz={timezone} className="num text-small text-ink-muted" />
                 {r.userId && (
                   <span className="num text-micro text-ink-muted" title={member(r.userId)}>
                     {initials(member(r.userId))}

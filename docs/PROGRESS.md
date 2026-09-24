@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M6 done. Next: M7 (feed).
+**Status:** M7 done. Next: M8 (performance).
 
 ## Milestones
 
@@ -69,8 +69,8 @@
 - [x] e2e: repeating Mon–Fri; auto-complete + feed; flag → fix → badge clears
 
 ### M7: Feed
-- [ ] Realtime feed, filters, N new pill, infinite scroll, hover actions
-- [ ] e2e: BD event appears live; BD gets no feed rows
+- [x] Realtime feed, filters, N new pill, infinite scroll, hover actions
+- [x] e2e: BD event appears live; BD gets no feed rows
 
 ### M8: Performance
 - [ ] lib/metrics.ts with unit tests
@@ -121,8 +121,13 @@
 - 2026-09-25: BDs can untick a checklist/lead-fix task only on the day they ticked it (docs/01); the founder can always untick.
 - 2026-09-25: Lead-fix task title is "Fix lead: <note>" (first 60 characters); the full note is kept in the task note.
 - 2026-09-25: T (new task) opens the panel on /tasks, or goes to /tasks?new=1 from elsewhere.
+- 2026-09-25: Feed event groups: "Pipeline" covers stage changes and lead reassignments; the other five groups map one-to-one to feed kinds.
+- 2026-09-25: The person filter on the feed matches events where the person is either the subject or the actor.
+- 2026-09-25: Relative timestamps render through <RelativeTime> with suppressHydrationWarning, because server and browser can land on different sides of a "Just now" / "1 min ago" boundary.
 
 ## Deviations
+- @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.
+- e2e global setup waits for PostgREST, Auth and Realtime to answer after `db reset` (Realtime restarts and briefly returns 502 on the socket).
 - TanStack Table installed as v9 (`useTable` + `tableFeatures`, `table.FlexRender`) instead of v8's `useReactTable`; column visibility and row selection are registered features.
 - Supabase CLI: `[auth.email] enable_signup` also switches off email *sign-in*, so it stays `true`; public sign-up is disabled with the top-level `[auth] enable_signup = false` (verified: /auth/v1/signup returns signup_disabled).
 - `typecheck` runs `next typegen` first, because Next 16 route types (PageProps/LayoutProps) are generated.
