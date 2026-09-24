@@ -148,3 +148,61 @@ export async function deleteOpportunity(input: { id: string }): Promise<ActionRe
   revalidateOpp(data[0]!.lead_id);
   return ok();
 }
+
+export type OpportunityDetail = {
+  id: string;
+  leadId: string;
+  company: string;
+  title: string;
+  stage: string;
+  ownerId: string;
+  estimatedValue: number;
+  expectedCloseDate: string | null;
+  notes: string | null;
+  wonValue: number | null;
+  contractType: "one_time" | "monthly" | null;
+  monthlyAmount: number;
+  wonAt: string | null;
+  contractEndedAt: string | null;
+  lostReason: string | null;
+  lostNote: string | null;
+  lostAt: string | null;
+  history: { id: number; from: string | null; to: string; at: string; by: string | null }[];
+};
+
+/** One opportunity with its stage history, for the side panel. */
+export async function getOpportunityDetail(id: string): Promise<ActionResult<OpportunityDetail>> {
+  if (!z.uuid().safeParse(id).success) return fail("That opportunity wasn't found.");
+  const supabase = await createClient();
+  const { data: o } = await supabase
+    .from("opportunities")
+    .select("*, leads!inner(company_name), lost_reasons(name)")
+    .eq("id", id)
+    .maybeSingle();
+  if (!o) return fail("That opportunity wasn't found.");
+  const { data: events } = await supabase
+    .from("opportunity_stage_events")
+    .select("id, from_stage, to_stage, changed_at, changed_by")
+    .eq("opportunity_id", id)
+    .order("changed_at", { ascending: false });
+  return ok({
+    id: o.id,
+    leadId: o.lead_id,
+    company: o.leads.company_name,
+    title: o.title,
+    stage: o.stage_key,
+    ownerId: o.owner_id,
+    estimatedValue: Number(o.estimated_value),
+    expectedCloseDate: o.expected_close_date,
+    notes: o.notes,
+    wonValue: o.won_value === null ? null : Number(o.won_value),
+    contractType: o.contract_type,
+    monthlyAmount: Number(o.monthly_amount),
+    wonAt: o.won_at,
+    contractEndedAt: o.contract_ended_at,
+    lostReason: o.lost_reasons?.name ?? null,
+    lostNote: o.lost_note,
+    lostAt: o.lost_at,
+    history: (events ?? []).map((e) => ({ id: e.id, from: e.from_stage, to: e.to_stage, at: e.changed_at, by: e.changed_by })),
+  });
+}

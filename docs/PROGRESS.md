@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M4 done. Next: M5 (pipeline).
+**Status:** M5 done. Next: M6 (tasks).
 
 ## Milestones
 
@@ -57,9 +57,9 @@
 - [x] e2e: status transitions; Berlin overdue logic; backdating limit
 
 ### M5: Pipeline
-- [ ] dnd-kit board, Won/Lost dialogs, optimistic + rollback
-- [ ] Opportunity side panel with history, list view, lead page stage dropdown, owner filter
-- [ ] e2e: won/lost flows; reassign moves open opp only
+- [x] dnd-kit board, Won/Lost dialogs, optimistic + rollback
+- [x] Opportunity side panel with history, list view, lead page stage dropdown, owner filter
+- [x] e2e: won/lost flows; reassign moves open opp only
 
 ### M6: Tasks
 - [ ] Founder tasks page, new task panel, common tasks, templates tab
@@ -113,6 +113,9 @@
 - 2026-09-25: The Proposal sent prompt appears only when the lead's single open opportunity is still before Proposal sent (Qualified or Meeting done).
 - 2026-09-25: My Day shows pace bars for leads added, outreach and follow-ups when a target exists (plain counts otherwise); replies and meetings booked are always plain counts, as in the docs/07 sketch.
 - 2026-09-25: The L shortcut logs against the focused My Day row (rows are focusable) or the open lead page.
+- 2026-09-25: Pipeline top-bar totals (open value, weighted, stuck count) come from pipeline_summary for the owner filter; column headers sum the cards shown (a view of the loaded cards, including the niche filter and 30-day window).
+- 2026-09-25: Moving a Lost card back to an open stage asks "This reopens it and clears the lost reason." (docs/07 gives only the Won wording).
+- 2026-09-25: Board cards are keyboard-draggable (dnd-kit keyboard sensor); Enter opens the side panel.
 
 ## Deviations
 - TanStack Table installed as v9 (`useTable` + `tableFeatures`, `table.FlexRender`) instead of v8's `useReactTable`; column visibility and row selection are registered features.

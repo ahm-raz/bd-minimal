@@ -36,6 +36,8 @@ import { NextActionBox } from "@/components/leads/next-action-box";
 import { LeadLocalTime } from "@/components/leads/lead-local-time";
 import { Timeline } from "@/components/leads/timeline";
 import { CreateOpportunityDialog } from "@/components/activities/opportunity-prompts";
+import { OpportunitySheet } from "@/components/pipeline/opportunity-sheet";
+import { useStageChange } from "@/components/pipeline/stage-change";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadPriority, type LeadStatus } from "@/lib/domain";
 import { completenessTone } from "@/lib/completeness";
 import { formatDateTime } from "@/lib/dates";
@@ -59,6 +61,8 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
     return () => setCurrentLeadId(null);
   }, [lead.id, setCurrentLeadId]);
   const logActivity = () => openLogActivity({ leadId: lead.id });
+  const stageChange = useStageChange();
+  const [openOpp, setOpenOpp] = useState<string | null>(null);
 
   const nameOf = (list: { id: string; name: string }[], id: string | null) => list.find((x) => x.id === id)?.name ?? "";
   const memberName = (id: string | null) => lists.members.find((m) => m.id === id)?.full_name || "Someone";
@@ -229,9 +233,26 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
             ) : (
               <ul className="divide-y divide-line">
                 {opportunities.map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-2 px-4 py-2.5">
-                    <span className="min-w-0 truncate">{o.title}</span>
-                    <span className="num text-ink-muted">{formatMoney(o.estimated_value)}</span>
+                  <li key={o.id} className="flex items-center gap-2 px-4 py-2" data-testid={`opp-${o.title}`}>
+                    <button type="button" className="min-w-0 flex-1 truncate text-left hover:underline" onClick={() => setOpenOpp(o.id)}>
+                      {o.title}
+                    </button>
+                    <span className="num text-ink-muted">{formatMoney(o.stage_key === "won" ? o.won_value : o.estimated_value)}</span>
+                    <div className="w-36">
+                      <SelectField
+                        aria-label={`Stage of ${o.title}`}
+                        value={o.stage_key}
+                        className="h-8"
+                        onChange={(v) =>
+                          v &&
+                          stageChange.request(
+                            { id: o.id, title: o.title, company: lead.company_name, stage: o.stage_key, estimatedValue: Number(o.estimated_value) },
+                            v,
+                          )
+                        }
+                        options={lists.stages.map((s) => ({ value: s.key, label: s.label }))}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -279,6 +300,8 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
         </div>
       </div>
 
+      {stageChange.dialogs}
+      <OpportunitySheet id={openOpp} onClose={() => setOpenOpp(null)} />
       {dialog === "opportunity" && (
         <CreateOpportunityDialog
           leadId={lead.id}
