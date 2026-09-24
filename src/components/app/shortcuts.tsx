@@ -22,7 +22,7 @@ function overlayOpen(): boolean {
  * N new lead, L log activity (lead page or focused My Day row), / focus search,
  * T new task (founder), G then M / L / P to go to My Day / Leads / Pipeline. Esc closes panels (Radix).
  */
-export function Shortcuts({ onNewTask }: { onNewTask?: () => void }) {
+export function Shortcuts() {
   const router = useRouter();
   const { openNewLead, openLogActivity, currentLeadId } = useApp();
   const { role } = useProfile();
@@ -68,16 +68,17 @@ export function Shortcuts({ onNewTask }: { onNewTask?: () => void }) {
           return;
         }
         case "t":
-          if (role === "founder" && onNewTask) {
+          if (role === "founder") {
             e.preventDefault();
-            onNewTask();
+            if (window.location.pathname === "/tasks") window.dispatchEvent(new Event("cao:new-task"));
+            else router.push("/tasks?new=1");
           }
           return;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, openNewLead, openLogActivity, currentLeadId, role, onNewTask]);
+  }, [router, openNewLead, openLogActivity, currentLeadId, role]);
 
   return null;
 }

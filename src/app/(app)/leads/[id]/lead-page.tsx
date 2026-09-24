@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,7 @@ import { formatDateTime } from "@/lib/dates";
 import { formatMoney, formatPhone } from "@/lib/format";
 import type { LeadFormValues } from "@/lib/validation/lead";
 import { deleteLead, reassignLeads, setLeadPriority, setLeadStatus } from "@/server/actions/leads";
+import { flagLead } from "@/server/actions/tasks";
 import type { LeadDetail } from "@/server/queries/lead-detail";
 
 export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValues: LeadFormValues }) {
@@ -53,7 +55,7 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
   const isFounder = profile.role === "founder";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [dialog, setDialog] = useState<null | "reassign" | "delete" | "opportunity">(null);
+  const [dialog, setDialog] = useState<null | "reassign" | "delete" | "opportunity" | "flag">(null);
 
   // The L shortcut logs against this lead while the page is open.
   useEffect(() => {
@@ -157,6 +159,7 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
                 <DropdownMenuItem onSelect={openEdit}>Edit</DropdownMenuItem>
                 {isFounder && (
                   <>
+                    <DropdownMenuItem onSelect={() => setDialog("flag")}>Flag lead</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => setDialog("reassign")}>Reassign</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onSelect={() => setDialog("delete")}>
@@ -302,6 +305,26 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
 
       {stageChange.dialogs}
       <OpportunitySheet id={openOpp} onClose={() => setOpenOpp(null)} />
+      {dialog === "flag" && (
+        <FlagDialog
+          companyName={lead.company_name}
+          ownerName={memberName(lead.owner_id)}
+          onClose={() => setDialog(null)}
+          onConfirm={(note, setError) =>
+            startTransition(async () => {
+              const res = await flagLead({ leadId: lead.id, note });
+              if (!res.ok) {
+                setError(res.fieldErrors?.note ?? res.error);
+                return;
+              }
+              toast.success(`Lead flagged. ${memberName(lead.owner_id)} has a fix task for today.`);
+              setDialog(null);
+              router.refresh();
+            })
+          }
+          pending={pending}
+        />
+      )}
       {dialog === "opportunity" && (
         <CreateOpportunityDialog
           leadId={lead.id}
@@ -445,6 +468,53 @@ function DeleteDialog({
             </Button>
             <Button type="submit" variant="destructive" disabled={pending || value.trim() !== companyName.trim()}>
               Delete lead
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FlagDialog({
+  companyName,
+  ownerName,
+  onClose,
+  onConfirm,
+  pending,
+}: {
+  companyName: string;
+  ownerName: string;
+  onClose: () => void;
+  onConfirm: (note: string, setError: (e: string) => void) => void;
+  pending: boolean;
+}) {
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Flag {companyName}</DialogTitle>
+          <DialogDescription>{ownerName} gets a lead-fix task due today. The lead shows a red flag until it&apos;s done.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (note.trim().length < 3) return setError("Say what needs fixing.");
+            onConfirm(note, setError);
+          }}
+        >
+          <FormField label="What needs fixing" htmlFor="flag-note" required error={error}>
+            <Textarea id="flag-note" rows={3} autoFocus value={note} placeholder="Need the owner's name and direct email." onChange={(e) => setNote(e.target.value)} aria-invalid={!!error} />
+          </FormField>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              Flag lead
             </Button>
           </DialogFooter>
         </form>

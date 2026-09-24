@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M5 done. Next: M6 (tasks).
+**Status:** M6 done. Next: M7 (feed).
 
 ## Milestones
 
@@ -62,11 +62,11 @@
 - [x] e2e: won/lost flows; reassign moves open opp only
 
 ### M6: Tasks
-- [ ] Founder tasks page, new task panel, common tasks, templates tab
-- [ ] BD read-only view with ticking
-- [ ] My Day tasks block
-- [ ] Flag lead + badge
-- [ ] e2e: repeating Mon–Fri; auto-complete + feed; flag → fix → badge clears
+- [x] Founder tasks page, new task panel, common tasks, templates tab
+- [x] BD read-only view with ticking
+- [x] My Day tasks block
+- [x] Flag lead + badge
+- [x] e2e: repeating Mon–Fri; auto-complete + feed; flag → fix → badge clears
 
 ### M7: Feed
 - [ ] Realtime feed, filters, N new pill, infinite scroll, hover actions
@@ -116,6 +116,11 @@
 - 2026-09-25: Pipeline top-bar totals (open value, weighted, stuck count) come from pipeline_summary for the owner filter; column headers sum the cards shown (a view of the loaded cards, including the niche filter and 30-day window).
 - 2026-09-25: Moving a Lost card back to an open stage asks "This reopens it and clears the lost reason." (docs/07 gives only the Won wording).
 - 2026-09-25: Board cards are keyboard-draggable (dnd-kit keyboard sensor); Enter opens the side panel.
+- 2026-09-25: Common tasks 7 and 8 (clean up leads with no next action, update stuck deals) are checklist tasks recognised by their title; expanding the row lists the matching leads or stuck deals. The schema has no task "type" field, so no migration was added for this.
+- 2026-09-25: A new repeating task stores a template starting on the chosen due date and creates that day's task at once (if it's a weekday) through ensure_recurring_tasks.
+- 2026-09-25: BDs can untick a checklist/lead-fix task only on the day they ticked it (docs/01); the founder can always untick.
+- 2026-09-25: Lead-fix task title is "Fix lead: <note>" (first 60 characters); the full note is kept in the task note.
+- 2026-09-25: T (new task) opens the panel on /tasks, or goes to /tasks?new=1 from elsewhere.
 
 ## Deviations
 - TanStack Table installed as v9 (`useTable` + `tableFeatures`, `table.FlexRender`) instead of v8's `useReactTable`; column visibility and row selection are registered features.
