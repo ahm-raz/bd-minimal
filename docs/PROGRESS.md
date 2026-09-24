@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M1 done. Next: M2 (settings).
+**Status:** M2 done. Next: M3 (leads).
 
 ## Milestones
 
@@ -34,12 +34,12 @@
 - [x] e2e: setup then 404; invite link → My Day; BD blocked from /team; deactivated BD can't sign in; time zone changes date
 
 ### M2: Settings
-- [ ] Lists (add, rename inline, reorder, hide/show)
-- [ ] Activity types with category help
-- [ ] Outcome labels; stage labels + probabilities
-- [ ] Campaigns table
-- [ ] Targets grid (save on blur, daily equivalent)
-- [ ] e2e: hidden item gone from dropdowns but kept on records; BD settings action rejected by DB
+- [x] Lists (add, rename inline, reorder, hide/show)
+- [x] Activity types with category help
+- [x] Outcome labels; stage labels + probabilities
+- [x] Campaigns table
+- [x] Targets grid (save on blur, daily equivalent)
+- [x] e2e: hidden item gone from dropdowns but kept on records; BD settings action rejected by DB
 
 ### M3: Leads
 - [ ] Zod schemas + normalisers with exhaustive tests
@@ -98,6 +98,10 @@
 - 2026-09-24: Signed-in sessions whose profile is deactivated are sent to /auth/signout?reason=deactivated, which clears cookies and shows the turned-off message on /login.
 - 2026-09-24: "Set targets now" is a toast action after inviting; it opens Settings → Targets for that person.
 - 2026-09-24: Profile "Change password" sends a reset link to the user's own email (reuses the reset flow).
+- 2026-09-24: Settings actions don't pre-check the role in TypeScript; they run as the caller and treat an RLS error or a zero-row update as "no permission". This is what makes "BD requests are rejected by the database" literally true. The BD-rejection e2e test performs the same writes the actions do, with a BD session (supabase-js), and checks nothing changed.
+- 2026-09-24: Won and Lost probabilities are shown read-only (100% / 0%); docs/07 §12 only asks for open-stage probabilities.
+- 2026-09-24: "Hidden items stay on existing records" is verified with profile niches in M2 (leads come in M3); lead forms use the same rule: hidden items are offered only when already selected.
+- 2026-09-24: Settings is split into sub-routes (/settings/lists, /activity-types, /outcomes, /campaigns, /targets) shown as tabs, so each tab is linkable (Team's "Set targets now" opens /settings/targets?person=…).
 
 ## Deviations
 - Supabase CLI: `[auth.email] enable_signup` also switches off email *sign-in*, so it stays `true`; public sign-up is disabled with the top-level `[auth] enable_signup = false` (verified: /auth/v1/signup returns signup_disabled).

@@ -120,15 +120,17 @@ export function Sidebar() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r border-line bg-surface lg:flex">
-        <div className="px-5 pt-5 pb-4 text-section text-ink">Client Acquisition OS</div>
-        <div className="flex-1 overflow-y-auto">
-          <NavLinks />
-        </div>
-        <div className="border-t border-line p-3">
-          <UserMenu />
-        </div>
-      </aside>
+      <div className="hidden w-[232px] shrink-0 border-r border-line bg-surface lg:block">
+        <aside className="sticky top-0 flex h-screen flex-col">
+          <div className="px-5 pt-5 pb-4 text-section text-ink">Client Acquisition OS</div>
+          <div className="flex-1 overflow-y-auto">
+            <NavLinks />
+          </div>
+          <div className="border-t border-line p-3">
+            <UserMenu />
+          </div>
+        </aside>
+      </div>
 
       <div className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-line bg-surface px-3 lg:hidden">
         <Button variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
