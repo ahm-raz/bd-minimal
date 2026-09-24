@@ -257,7 +257,8 @@ test("founder: reassign from the lead page and delete with the company name type
   await pick(page, "New owner", "Sara Iqbal");
   await page.getByRole("button", { name: "Reassign lead" }).click();
   await expect(page.getByText("Lead reassigned to Sara Iqbal")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Ownership history" }).or(page.getByText("Ahmed Khan to Sara Iqbal"))).toBeVisible();
+  await expect(page.getByText("Ahmed Khan to Sara Iqbal", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("timeline")).toContainText("Reassigned from Ahmed Khan to Sara Iqbal");
 
   const { data: after } = await admin().from("leads").select("owner_id, created_by").eq("id", lead!.id).single();
   expect(after!.owner_id).toBe(ids.sara);

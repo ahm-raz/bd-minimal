@@ -6,6 +6,8 @@ import { ProfileProvider } from "@/components/app/profile-provider";
 import { Sidebar } from "@/components/app/sidebar";
 import { RouteNotice } from "@/components/app/route-notice";
 import { LeadSheet } from "@/components/leads/lead-sheet";
+import { LogActivitySheet } from "@/components/activities/log-activity-sheet";
+import { Shortcuts } from "@/components/app/shortcuts";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireViewer();
@@ -21,6 +23,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </main>
         </div>
         <LeadSheet />
+        <LogActivitySheet />
+        <Shortcuts />
         <Suspense>
           <RouteNotice />
         </Suspense>

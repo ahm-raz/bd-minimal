@@ -204,3 +204,15 @@ describe("local clock and workday share", () => {
     expect(workdayElapsedShare(tz, new Date("2026-09-24T20:00:00Z"))).toBe(1);
   });
 });
+
+describe("local date-time inputs", () => {
+  it("round-trips in the viewer's zone", async () => {
+    const { localDateTimeToUtc, toLocalDateTimeInput } = await import("@/lib/dates");
+    const utc = localDateTimeToUtc("2026-09-24T16:40", "Asia/Karachi");
+    expect(utc?.toISOString()).toBe("2026-09-24T11:40:00.000Z");
+    expect(toLocalDateTimeInput(utc!, "Asia/Karachi")).toBe("2026-09-24T16:40");
+    expect(localDateTimeToUtc("2026-03-29T03:30", "Europe/Berlin")?.toISOString()).toBe("2026-03-29T01:30:00.000Z");
+    expect(localDateTimeToUtc("nope", "UTC")).toBeNull();
+    expect(localDateTimeToUtc("2026-13-01T10:00", "UTC")).toBeNull();
+  });
+});

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Flag, MapPin, MoreHorizontal, Star } from "lucide-react";
+import { ArrowLeft, ExternalLink, Flag, MapPin, MoreHorizontal, Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ import { useProfile } from "@/components/app/profile-provider";
 import { ContactsPanel } from "@/components/leads/contacts-panel";
 import { NextActionBox } from "@/components/leads/next-action-box";
 import { LeadLocalTime } from "@/components/leads/lead-local-time";
+import { Timeline } from "@/components/leads/timeline";
+import { CreateOpportunityDialog } from "@/components/activities/opportunity-prompts";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadPriority, type LeadStatus } from "@/lib/domain";
 import { completenessTone } from "@/lib/completeness";
 import { formatDateTime } from "@/lib/dates";
@@ -43,13 +45,20 @@ import { deleteLead, reassignLeads, setLeadPriority, setLeadStatus } from "@/ser
 import type { LeadDetail } from "@/server/queries/lead-detail";
 
 export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValues: LeadFormValues }) {
-  const { lead, contacts, ownerEvents, openFlags, opportunities } = detail;
-  const { lists, openEditLead } = useApp();
+  const { lead, contacts, ownerEvents, openFlags, opportunities, activities, stageEvents } = detail;
+  const { lists, openEditLead, openLogActivity, setCurrentLeadId } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [dialog, setDialog] = useState<null | "reassign" | "delete">(null);
+  const [dialog, setDialog] = useState<null | "reassign" | "delete" | "opportunity">(null);
+
+  // The L shortcut logs against this lead while the page is open.
+  useEffect(() => {
+    setCurrentLeadId(lead.id);
+    return () => setCurrentLeadId(null);
+  }, [lead.id, setCurrentLeadId]);
+  const logActivity = () => openLogActivity({ leadId: lead.id });
 
   const nameOf = (list: { id: string; name: string }[], id: string | null) => list.find((x) => x.id === id)?.name ?? "";
   const memberName = (id: string | null) => lists.members.find((m) => m.id === id)?.full_name || "Someone";
@@ -131,6 +140,9 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
           )}
           <div className="ml-auto flex items-center gap-3">
             {lead.lead_timezone && <LeadLocalTime tz={lead.lead_timezone} city={lead.city} />}
+            <Button onClick={logActivity}>
+              Log activity <kbd className="ml-1 font-mono text-micro font-normal opacity-80">L</kbd>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon" aria-label="More actions">
@@ -189,23 +201,29 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex min-w-0 flex-col gap-6">
-          <NextActionBox leadId={lead.id} nextAction={lead.next_action} nextActionDue={lead.next_action_due} />
-          <Panel>
-            <PanelHeader title="Timeline" />
-            <ol className="p-4 text-body">
-              <li className="flex gap-3">
-                <span className="num w-28 shrink-0 text-small text-ink-muted">{formatDateTime(lead.created_at, profile.timezone)}</span>
-                <span>Lead added by {memberName(lead.created_by)}</span>
-              </li>
-            </ol>
-          </Panel>
+          <NextActionBox leadId={lead.id} nextAction={lead.next_action} nextActionDue={lead.next_action_due} onLog={logActivity} />
+          <Timeline
+            lead={lead}
+            activities={activities}
+            stageEvents={stageEvents}
+            ownerEvents={ownerEvents}
+            opportunities={opportunities}
+            contacts={contacts}
+          />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
           <ContactsPanel leadId={lead.id} contacts={contacts} country={lead.country} />
 
           <Panel>
-            <PanelHeader title="Opportunities" />
+            <PanelHeader
+              title="Opportunities"
+              actions={
+                <Button variant="ghost" size="sm" aria-label="New opportunity" onClick={() => setDialog("opportunity")}>
+                  <Plus aria-hidden /> New
+                </Button>
+              }
+            />
             {opportunities.length === 0 ? (
               <p className="px-4 py-3 text-small text-ink-muted">No opportunities yet.</p>
             ) : (
@@ -261,6 +279,14 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
         </div>
       </div>
 
+      {dialog === "opportunity" && (
+        <CreateOpportunityDialog
+          leadId={lead.id}
+          companyName={lead.company_name}
+          title="New opportunity"
+          onClose={() => setDialog(null)}
+        />
+      )}
       {dialog === "reassign" && (
         <ReassignDialog
           currentOwner={lead.owner_id}

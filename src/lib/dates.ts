@@ -314,3 +314,23 @@ export function workdayElapsedShare(tz: string, now: Date = new Date()): number 
   const share = (minutes - 9 * 60) / (9 * 60);
   return Math.min(1, Math.max(0, share));
 }
+
+// ---------- Local date-time inputs ------------------------------------------
+
+const DATETIME_RE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/** "2026-09-24T16:40" in `tz` → UTC instant. Null if malformed. */
+export function localDateTimeToUtc(value: string, tz: string): Date | null {
+  const m = DATETIME_RE.exec(value);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number) as [number, number, number, number, number];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+  return new Date(new TZDate(y, mo - 1, d, h, mi, 0, tz).getTime());
+}
+
+/** UTC instant → "2026-09-24T16:40" in `tz`, for datetime-local inputs. */
+export function toLocalDateTimeInput(instant: Date | string, tz: string): string {
+  return dfFormat(inTz(instant, tz), "yyyy-MM-dd'T'HH:mm");
+}
+
+export const MAX_BACKDATE_DAYS = 7;

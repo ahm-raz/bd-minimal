@@ -9,6 +9,8 @@ export type LeadDetail = {
   ownerEvents: Tables<"lead_owner_events">[];
   openFlags: { id: string; note: string | null; created_at: string }[];
   opportunities: Tables<"opportunities">[];
+  activities: Tables<"activities">[];
+  stageEvents: Tables<"opportunity_stage_events">[];
 };
 
 /** Everything the lead page needs. Returns null when RLS hides the lead (the page 404s). */
@@ -23,12 +25,21 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
     supabase.from("tasks").select("id, note, created_at").eq("lead_id", id).eq("kind", "lead_fix").is("completed_at", null),
     supabase.from("opportunities").select("*").eq("lead_id", id).order("created_at", { ascending: false }),
   ]);
+  const oppIds = (opportunities.data ?? []).map((o) => o.id);
+  const [activities, stageEvents] = await Promise.all([
+    supabase.from("activities").select("*").eq("lead_id", id).order("occurred_at", { ascending: false }).limit(500),
+    oppIds.length
+      ? supabase.from("opportunity_stage_events").select("*").in("opportunity_id", oppIds).order("changed_at", { ascending: false })
+      : Promise.resolve({ data: [] as Tables<"opportunity_stage_events">[] }),
+  ]);
   return {
     lead,
     contacts: contacts.data ?? [],
     ownerEvents: ownerEvents.data ?? [],
     openFlags: flags.data ?? [],
     opportunities: opportunities.data ?? [],
+    activities: activities.data ?? [],
+    stageEvents: stageEvents.data ?? [],
   };
 }
 

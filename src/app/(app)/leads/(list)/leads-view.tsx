@@ -139,6 +139,17 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
     startTransition(() => router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false }));
   };
 
+  // "/" from another page lands here with ?focus=search
+  useEffect(() => {
+    if (params.get("focus") === "search") {
+      document.getElementById("lead-search")?.focus();
+      const next = new URLSearchParams(params.toString());
+      next.delete("focus");
+      router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on arrival
+  }, []);
+
   // Debounced search into the URL
   useEffect(() => {
     if (search.trim() === filters.q) return;

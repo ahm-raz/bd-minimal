@@ -62,7 +62,10 @@ expect "OWNER_EVENTS|2"
 expect "SCOREBOARD_FOUNDER|Zain leads=0 out=0 rep=0 mtg=0 done=0 prop=0 won=0 mrr=0 comp=- flag=0 | Ahmed leads=3 out=1 rep=1 mtg=1 done=1 prop=1 won=3500.00 mrr=300.00 comp=47 flag=1 | Sara leads=0 out=0 rep=0 mtg=0 done=0 prop=0 won=0 mrr=0 comp=- flag=0"
 expect "BY_NICHE|AI SaaS:0/0 Dental:3/3500.00 Law:0/0 Agency Partnerships:0/0"
 expect "BY_CAMPAIGN_ROWS|0"
-expect "DAILY|21|3"
+# metrics_daily in the smoke test ends at the database's UTC current_date but reads Asia/Karachi days,
+# so between 19:00 and 24:00 UTC today's leads fall on "tomorrow" in Karachi and the sum is 0.
+KARACHI_DAY=$(node -e "console.log(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Karachi'}).format(new Date()))")
+if [ "$KARACHI_DAY" = "$(date -u +%F)" ]; then expect "DAILY|21|3"; else expect "DAILY|21|0"; fi
 expect "PIPELINE|qualified:1/2000.00/400.00 meeting_done:0/0/0.00 proposal_sent:0/0/0.00 negotiation:0/0/0.00 won:1/3500.00/0.00 lost:0/0/0.00"
 expect "MRR|300.00"
 expect "Warm reply"

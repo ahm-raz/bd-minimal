@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M3 done. Next: M4 (activities + My Day).
+**Status:** M4 done. Next: M5 (pipeline).
 
 ## Milestones
 
@@ -49,12 +49,12 @@
 - [x] Lead page (header, contacts CRUD, details, ownership history, reassign, delete)
 
 ### M4: Activities + My Day
-- [ ] Log activity panel via log_activity
-- [ ] Opportunity / proposal prompts; 24h BD edit window
-- [ ] Lead timeline with filter chips
-- [ ] My Day: pace bars, follow-ups, coming up, empty states
-- [ ] Shortcuts N, L, /, G M/L/P, Esc
-- [ ] e2e: status transitions; Berlin overdue logic; backdating limit
+- [x] Log activity panel via log_activity
+- [x] Opportunity / proposal prompts; 24h BD edit window
+- [x] Lead timeline with filter chips
+- [x] My Day: pace bars, follow-ups, coming up, empty states
+- [x] Shortcuts N, L, /, G M/L/P, Esc
+- [x] e2e: status transitions; Berlin overdue logic; backdating limit
 
 ### M5: Pipeline
 - [ ] dnd-kit board, Won/Lost dialogs, optimistic + rollback
@@ -109,6 +109,10 @@
 - 2026-09-24: The leads list lives in a `(list)` route group so its loading skeleton doesn't wrap /leads/[id]; with a parent loading boundary Next streams a 200 before notFound(), and a BD guessing a lead URL must get a real 404. The lead page has no skeleton (it renders in one server pass).
 - 2026-09-24: Honorifics stay with the first name when pasting ("Dr. Maria Lopez" → "Dr. Maria" + "Lopez").
 - 2026-09-24: Lead-list search also matches phone digits (4+) against E.164 phones.
+- 2026-09-25: When an activity is logged without a next action (No next step, or Not interested / Bounced with nothing typed) the lead's next action is cleared, so finished leads drop off My Day.
+- 2026-09-25: The Proposal sent prompt appears only when the lead's single open opportunity is still before Proposal sent (Qualified or Meeting done).
+- 2026-09-25: My Day shows pace bars for leads added, outreach and follow-ups when a target exists (plain counts otherwise); replies and meetings booked are always plain counts, as in the docs/07 sketch.
+- 2026-09-25: The L shortcut logs against the focused My Day row (rows are focusable) or the open lead page.
 
 ## Deviations
 - TanStack Table installed as v9 (`useTable` + `tableFeatures`, `table.FlexRender`) instead of v8's `useReactTable`; column visibility and row selection are registered features.
@@ -122,7 +126,8 @@
 - shadcn 4.x no longer ships the `form` component; `field` was added instead and forms use react-hook-form directly with it.
 
 ## Known issues
-- none yet
+- supabase/tests/02_smoke_test.sql calls `metrics_daily(current_date-6, current_date, 'Asia/Karachi')`; `current_date` is UTC, so between 19:00 and 24:00 UTC the day's leads fall outside the range and DAILY sums to 0 instead of 3. Not an app bug. scripts/db-test.sh expects 3 or 0 depending on whether the Karachi and UTC dates match. Suggested fix: use `(now() at time zone 'Asia/Karachi')::date` in the test.
+- 2026-09-25: a crash mid-session zeroed two files (leads-view.tsx, timeline.tsx) and the .next cache; they were restored from git and rewritten. If a file ever shows as binary in git, restore it from the last commit.
 
 ## How to run
 ```bash
