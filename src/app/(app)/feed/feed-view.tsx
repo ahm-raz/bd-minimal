@@ -61,6 +61,7 @@ export function FeedView({
   const [done, setDone] = useState(initial.length < 50);
   const [loadingMore, setLoadingMore] = useState(false);
   const [flagging, setFlagging] = useState<FeedEvent | null>(null);
+  const [live, setLive] = useState(false);
   const [synced, setSynced] = useState(initial);
   if (synced !== initial) {
     setSynced(initial);
@@ -110,7 +111,13 @@ export function FeedView({
             setFreshIds((s) => new Set(s).add(e.id));
           }
         })
-        .subscribe();
+        // Postgres changes are flowing only once Realtime says so on the system channel.
+        .on("system", {}, (msg: { extension?: string; status?: string }) => {
+          if (msg.extension === "postgres_changes") setLive(msg.status === "ok");
+        })
+        .subscribe((status) => {
+          if (status !== "SUBSCRIBED") setLive(false);
+        });
     })();
     return () => {
       cancelled = true;
@@ -161,8 +168,9 @@ export function FeedView({
       <PageHeader
         title="Feed"
         meta={
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-ok" aria-hidden /> Live
+          <span className="inline-flex items-center gap-1.5" data-testid="feed-status" data-live={live ? "1" : "0"} aria-live="polite">
+            <span className={cn("size-2 rounded-full", live ? "bg-ok" : "bg-ink-faint")} aria-hidden />
+            {live ? "Live" : "Connecting"}
           </span>
         }
         actions={

@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M7 done. Next: M8 (performance).
+**Status:** M8 done. Next: M9 (polish).
 
 ## Milestones
 
@@ -73,9 +73,9 @@
 - [x] e2e: BD event appears live; BD gets no feed rows
 
 ### M8: Performance
-- [ ] lib/metrics.ts with unit tests
-- [ ] Page: all blocks, compare toggle, drill-downs
-- [ ] e2e: scoreboard numbers; BD isolation
+- [x] lib/metrics.ts with unit tests
+- [x] Page: all blocks, compare toggle, drill-downs
+- [x] e2e: scoreboard numbers; BD isolation
 
 ### M9: Polish
 - [ ] Command menu
@@ -124,6 +124,12 @@
 - 2026-09-25: Feed event groups: "Pipeline" covers stage changes and lead reassignments; the other five groups map one-to-one to feed kinds.
 - 2026-09-25: The person filter on the feed matches events where the person is either the subject or the actor.
 - 2026-09-25: Relative timestamps render through <RelativeTime> with suppressHydrationWarning, because server and browser can land on different sides of a "Just now" / "1 min ago" boundary.
+- 2026-09-25: Performance "All" totals are sums of the per-person rows returned by metrics_scoreboard (average completeness is weighted by leads added); no KPI is computed from raw rows.
+- 2026-09-25: Pace markers appear for Today and This week only (docs/05 defines pace for those); other ranges show actual vs range target without a marker.
+- 2026-09-25: Compare to previous period shows deltas on the summary stat blocks; the previous period has the same number of days, immediately before.
+- 2026-09-25: The consistency grid shows at most the last 31 days of a longer range, and says so.
+- 2026-09-25: Chart follows the dataviz guidance: a single series in the accent colour, no legend (the caption names it), rounded bar ends, hover tooltip; the table beside it is the table view. Grid shades are one teal ramp, and every cell prints its value.
+- 2026-09-25: The Feed's "Live" label turns on only when Realtime confirms Postgres changes are flowing (system message), not at socket SUBSCRIBED; e2e waits for it.
 
 ## Deviations
 - @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.

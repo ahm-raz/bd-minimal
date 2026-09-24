@@ -25,7 +25,7 @@ test("a BD's event appears on the founder's open feed within seconds, without re
   await signIn(page, "zain");
   await page.goto("/feed");
   await expect(page.getByRole("heading", { name: "Feed" })).toBeVisible();
-  await page.waitForTimeout(1500); // let the Realtime channel subscribe
+  await expect(page.getByTestId("feed-status")).toHaveAttribute("data-live", "1", { timeout: 15000 });
   await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
 
   const company = `Live Feed Dental ${RUN}`;
@@ -43,7 +43,7 @@ test("new events while scrolled down show an N new pill", async ({ page }) => {
   for (let i = 0; i < 25; i++) await addLead("sara", `Scroll Law ${RUN}-${i}`);
   await signIn(page, "zain");
   await page.goto("/feed");
-  await page.waitForTimeout(1500);
+  await expect(page.getByTestId("feed-status")).toHaveAttribute("data-live", "1", { timeout: 15000 });
   await page.mouse.wheel(0, 2000);
   await page.waitForFunction(() => window.scrollY > 200);
   await addLead("ahmed", `Pill Dental ${RUN}`);
