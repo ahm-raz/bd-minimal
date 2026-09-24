@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M2 done. Next: M3 (leads).
+**Status:** M3 done. Next: M4 (activities + My Day).
 
 ## Milestones
 
@@ -42,11 +42,11 @@
 - [x] e2e: hidden item gone from dropdowns but kept on records; BD settings action rejected by DB
 
 ### M3: Leads
-- [ ] Zod schemas + normalisers with exhaustive tests
-- [ ] lib/completeness.ts equals DB on 10 fixtures
-- [ ] Add/edit lead panel (8 sections, reach rule, paste helpers, meter, duplicate notice)
-- [ ] Leads list (table, column visibility, search, URL filters, views, bulk actions)
-- [ ] Lead page (header, contacts CRUD, details, ownership history, reassign, delete)
+- [x] Zod schemas + normalisers with exhaustive tests
+- [x] lib/completeness.ts equals DB on 10 fixtures
+- [x] Add/edit lead panel (8 sections, reach rule, paste helpers, meter, duplicate notice)
+- [x] Leads list (table, column visibility, search, URL filters, views, bulk actions)
+- [x] Lead page (header, contacts CRUD, details, ownership history, reassign, delete)
 
 ### M4: Activities + My Day
 - [ ] Log activity panel via log_activity
@@ -102,8 +102,16 @@
 - 2026-09-24: Won and Lost probabilities are shown read-only (100% / 0%); docs/07 §12 only asks for open-stage probabilities.
 - 2026-09-24: "Hidden items stay on existing records" is verified with profile niches in M2 (leads come in M3); lead forms use the same rule: hidden items are offered only when already selected.
 - 2026-09-24: Settings is split into sub-routes (/settings/lists, /activity-types, /outcomes, /campaigns, /targets) shown as tabs, so each tab is linkable (Team's "Set targets now" opens /settings/targets?person=…).
+- 2026-09-24: Upwork exception to the reach rule finds the Upwork channel by name (case-insensitive "upwork"); channels have no fixed key in the schema.
+- 2026-09-24: Lead + contacts are two inserts (no RPC) to avoid a schema change; if the contacts insert fails the user is told to add them on the lead page. Validation runs before either insert.
+- 2026-09-24: Duplicate check for the founder is limited to the founder's own leads (docs/04: "the user's own leads").
+- 2026-09-24: In the form, the first contact is always the primary; "Make primary" moves a contact to the top.
+- 2026-09-24: The leads list lives in a `(list)` route group so its loading skeleton doesn't wrap /leads/[id]; with a parent loading boundary Next streams a 200 before notFound(), and a BD guessing a lead URL must get a real 404. The lead page has no skeleton (it renders in one server pass).
+- 2026-09-24: Honorifics stay with the first name when pasting ("Dr. Maria Lopez" → "Dr. Maria" + "Lopez").
+- 2026-09-24: Lead-list search also matches phone digits (4+) against E.164 phones.
 
 ## Deviations
+- TanStack Table installed as v9 (`useTable` + `tableFeatures`, `table.FlexRender`) instead of v8's `useReactTable`; column visibility and row selection are registered features.
 - Supabase CLI: `[auth.email] enable_signup` also switches off email *sign-in*, so it stays `true`; public sign-up is disabled with the top-level `[auth] enable_signup = false` (verified: /auth/v1/signup returns signup_disabled).
 - `typecheck` runs `next typegen` first, because Next 16 route types (PageProps/LayoutProps) are generated.
 - Next dev indicator turned off (next.config.ts): it covered the sidebar user menu.
