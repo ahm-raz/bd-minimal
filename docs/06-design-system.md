@@ -58,6 +58,21 @@ Rules:
 - Nurture: warn-soft
 - Not interested, Lost and Bad fit: muted, with the text struck through for Bad fit only
 
+### Dark theme
+
+Each person picks **Light**, **Dark** or **Same as system** in the user menu (bottom of the sidebar). The choice is saved per browser. The same token names switch to black shades, so components never hard-code colors. Every text/background pair meets AA.
+
+| Token | Dark value | | Token | Dark value |
+|---|---|---|---|---|
+| canvas | `#0A0A0B` | | accent | `#4FB3C2` |
+| surface | `#141416` | | accent-soft | `#12292D` |
+| surface-muted | `#1D1D21` | | ok / ok-soft | `#5CC28A` / `#10261A` |
+| line | `#2A2A30` | | warn / warn-soft | `#E0A24A` / `#2A1F0E` |
+| ink | `#EDEDF0` | | bad / bad-soft | `#F07A70` / `#2E1513` |
+| ink-muted | `#A3A3AD` | | on-accent, on-bad (text on solid fills) | `#0A0A0B` |
+
+In dark mode, text on solid accent and bad fills turns black (`on-accent`, `on-bad`), because the fills get lighter. Backdrops behind panels and dialogs are black at 60%.
+
 ## 3. Typography
 
 - **Family:** IBM Plex Sans (400, 500, 600) via `next/font/google`, with `font-feature-settings: "tnum"` on numbers (a `.num` utility). Fallback: `system-ui, sans-serif`.

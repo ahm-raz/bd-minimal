@@ -12,7 +12,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/my-day"
-          className="mt-4 inline-flex h-8 items-center rounded-md bg-accent-strong px-3 text-body font-medium text-white hover:bg-accent-hover"
+          className="mt-4 inline-flex h-8 items-center rounded-md bg-accent-strong px-3 text-body font-medium text-on-accent hover:bg-accent-hover"
         >
           Go to My Day
         </Link>

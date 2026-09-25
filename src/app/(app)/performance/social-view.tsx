@@ -25,9 +25,9 @@ const PRESETS: RangePreset[] = ["today", "yesterday", "this_week", "last_week", 
 
 const SHADE: Record<ReturnType<typeof gridShade>, string> = {
   empty: "bg-surface text-ink-muted",
-  light: "bg-[#d3e7ea] text-ink",
-  medium: "bg-[#8fc0c8] text-ink",
-  full: "bg-accent-strong text-white",
+  light: "bg-heat-light text-ink",
+  medium: "bg-heat-medium text-ink",
+  full: "bg-accent-strong text-on-accent",
 };
 
 type Drill = "all" | "on_time" | "late" | "missed";

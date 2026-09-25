@@ -2,7 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Design tokens: docs/06-design-system.md, section 2. Light theme only. */
+/* Dark mode follows the .dark class on <html> (set before paint by the theme script), not the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens: docs/06-design-system.md, section 2. Light theme here; the dark theme overrides below. */
 :root {
   --canvas: #f5f6f8;
   --surface: #ffffff;
@@ -24,6 +27,15 @@
   --ok-ink: #276b43;
   --warn-ink: #93590a;
   --lost-ink: #76605d;
+  /* Text on solid accent / bad fills (buttons, today markers) */
+  --on-accent: #ffffff;
+  --on-bad: #ffffff;
+  --bad-hover: #9a2922;
+  /* Info chip, and the consistency heatmap's lighter steps */
+  --info-bg: #e6eef6;
+  --info-fg: #2f5a85;
+  --heat-light: #d3e7ea;
+  --heat-medium: #8fc0c8;
 
   /* stage chips */
   --stage-qualified-bg: #eef0f3;
@@ -50,7 +62,7 @@
   --popover: var(--surface);
   --popover-foreground: var(--ink);
   --primary: var(--accent);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--on-accent);
   --secondary: var(--surface);
   --secondary-foreground: var(--ink);
   --muted: var(--surface-muted);
@@ -69,11 +81,59 @@
   --sidebar: var(--surface);
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: var(--on-accent);
   --sidebar-accent: var(--accent-soft);
   --sidebar-accent-foreground: var(--accent);
   --sidebar-border: var(--line);
   --sidebar-ring: var(--accent);
+}
+
+/* Dark theme: black shades. Every text/background pair meets WCAG AA (4.5:1). */
+.dark {
+  color-scheme: dark;
+  --canvas: #0a0a0b;
+  --surface: #141416;
+  --surface-muted: #1d1d21;
+  --line: #2a2a30;
+  --ink: #ededf0;
+  --ink-muted: #a3a3ad;
+  --ink-faint: #6e6e78;
+  --accent: #4fb3c2;
+  --accent-hover: #6cc3d0;
+  --accent-soft: #12292d;
+  --ok: #5cc28a;
+  --ok-soft: #10261a;
+  --warn: #e0a24a;
+  --warn-soft: #2a1f0e;
+  --bad: #f07a70;
+  --bad-soft: #2e1513;
+  --ok-ink: #5cc28a;
+  --warn-ink: #e0a24a;
+  --lost-ink: #b3a4a1;
+  --on-accent: #0a0a0b;
+  --on-bad: #0a0a0b;
+  --bad-hover: #f4958d;
+  --info-bg: #14202d;
+  --info-fg: #8db8e6;
+  --heat-light: #173236;
+  --heat-medium: #2a6a74;
+
+  --stage-qualified-bg: #1d1d21;
+  --stage-qualified-fg: #a3a3ad;
+  --stage-meeting-bg: #14202d;
+  --stage-meeting-fg: #8db8e6;
+  --stage-proposal-bg: #12292d;
+  --stage-proposal-fg: #4fb3c2;
+  --stage-negotiation-bg: #10251f;
+  --stage-negotiation-fg: #6fcbb0;
+  --stage-won-bg: #10261a;
+  --stage-won-fg: #5cc28a;
+  --stage-lost-bg: #1f1c1c;
+  --stage-lost-fg: #b3a4a1;
+
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --chart-2: #8db8e6;
+  --chart-3: #6fcbb0;
 }
 
 @theme inline {
@@ -96,6 +156,13 @@
   --color-ok-ink: var(--ok-ink);
   --color-warn-ink: var(--warn-ink);
   --color-lost-ink: var(--lost-ink);
+  --color-on-accent: var(--on-accent);
+  --color-on-bad: var(--on-bad);
+  --color-bad-hover: var(--bad-hover);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
+  --color-heat-light: var(--heat-light);
+  --color-heat-medium: var(--heat-medium);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

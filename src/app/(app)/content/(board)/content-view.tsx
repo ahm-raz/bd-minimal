@@ -460,7 +460,7 @@ function MonthView({
                 <span
                   className={cn(
                     "num text-small",
-                    d === today ? "rounded-full bg-accent-strong px-1.5 font-medium text-white" : inMonth ? "text-ink" : "text-ink-muted",
+                    d === today ? "rounded-full bg-accent-strong px-1.5 font-medium text-on-accent" : inMonth ? "text-ink" : "text-ink-muted",
                   )}
                 >
                   {Number(d.slice(8))}

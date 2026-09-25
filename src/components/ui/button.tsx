@@ -10,12 +10,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-accent-strong text-white hover:bg-accent-hover",
-        primary: "bg-accent-strong text-white hover:bg-accent-hover",
+        default: "bg-accent-strong text-on-accent hover:bg-accent-hover",
+        primary: "bg-accent-strong text-on-accent hover:bg-accent-hover",
         secondary: "border-line bg-surface text-ink hover:bg-surface-muted aria-expanded:bg-surface-muted",
         outline: "border-line bg-surface text-ink hover:bg-surface-muted aria-expanded:bg-surface-muted",
         ghost: "text-ink hover:bg-surface-muted aria-expanded:bg-surface-muted",
-        destructive: "bg-bad text-white hover:bg-[#9a2922]",
+        destructive: "bg-bad text-on-bad hover:bg-bad-hover",
         link: "h-auto! px-0! text-accent-strong underline-offset-4 hover:underline",
       },
       size: {

@@ -178,6 +178,7 @@
 - 2026-09-25 (M10): Cancel keeps the post on the calendar, struck through; nothing deletes posts from the app.
 - 2026-09-25 (M10): Performance → Social counts posts by their scheduled time (docs/09 §5); the Posts list under it is the drill-down (All, On time, Late, Missed).
 - 2026-09-25 (M10): "Posts published" count tasks count posts marked posted on that day in the assignee's time zone; check_count_tasks runs from the posts after-trigger.
+- 2026-09-25: Dark mode added at the owner's request (it was out of scope in docs/01; removed from that list). No new library: an inline script in the root layout sets the `.dark` class before paint from localStorage (`cao:theme`); Tailwind's `dark` variant follows that class, not the OS. Picker in the sidebar user menu: Light / Dark / Same as system. Black-shade tokens in globals.css and docs/06; hard-coded hexes (info chip, heatmap steps, button text on solid fills) became tokens.
 
 ## Deviations
 - @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.

@@ -10,7 +10,7 @@ const TONES: Record<Tone, string> = {
   warn: "bg-warn-soft text-warn-ink",
   bad: "bg-bad-soft text-bad",
   muted: "bg-[var(--stage-lost-bg)] text-lost-ink",
-  info: "bg-[#e6eef6] text-[#2f5a85]",
+  info: "bg-info-bg text-info-fg",
   meeting: "bg-[var(--stage-meeting-bg)] text-[var(--stage-meeting-fg)]",
 };
 

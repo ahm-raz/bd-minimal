@@ -519,7 +519,7 @@ function Breakdown({ data, onDrill }: { data: PerformanceData; onDrill: (m: Dril
                         const p = item.payload as { rate: number; replies: number; outreach: number };
                         return [`${formatRatio(p.rate / 100)} (${p.replies} of ${p.outreach})`, "Reply rate"];
                       }}
-                      contentStyle={{ borderRadius: 10, border: "1px solid var(--line)", boxShadow: "var(--shadow-overlay)", fontSize: 13 }}
+                      contentStyle={{ background: "var(--surface)", color: "var(--ink)", borderRadius: 10, border: "1px solid var(--line)", boxShadow: "var(--shadow-overlay)", fontSize: 13 }}
                     />
                     <Bar dataKey="rate" radius={[0, 4, 4, 0]} isAnimationActive={false}>
                       {chart.map((c) => (
@@ -541,9 +541,9 @@ const GRID_METRICS = ["leads_added", "outreach", "follow_ups", "replies", "meeti
 type GridMetric = (typeof GRID_METRICS)[number];
 const SHADE: Record<ReturnType<typeof gridShade>, string> = {
   empty: "bg-surface text-ink-muted",
-  light: "bg-[#d3e7ea] text-ink",
-  medium: "bg-[#8fc0c8] text-ink",
-  full: "bg-accent-strong text-white",
+  light: "bg-heat-light text-ink",
+  medium: "bg-heat-medium text-ink",
+  full: "bg-accent-strong text-on-accent",
 };
 
 function ConsistencyGrid({ data }: { data: PerformanceData }) {
@@ -613,8 +613,8 @@ function ConsistencyGrid({ data }: { data: PerformanceData }) {
           </table>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-micro font-normal text-ink-muted" aria-hidden>
             <span className="flex items-center gap-1"><span className="size-3 rounded-sm border border-line bg-surface" /> 0</span>
-            <span className="flex items-center gap-1"><span className="size-3 rounded-sm bg-[#d3e7ea]" /> Under 50% of daily target</span>
-            <span className="flex items-center gap-1"><span className="size-3 rounded-sm bg-[#8fc0c8]" /> 50–99%</span>
+            <span className="flex items-center gap-1"><span className="size-3 rounded-sm bg-heat-light" /> Under 50% of daily target</span>
+            <span className="flex items-center gap-1"><span className="size-3 rounded-sm bg-heat-medium" /> 50–99%</span>
             <span className="flex items-center gap-1"><span className="size-3 rounded-sm bg-accent-strong" /> Target met</span>
           </div>
         </div>

@@ -68,7 +68,7 @@ Example team used across these docs:
 
 ### Out of scope for v1
 
-Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app; email or push reminders; payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; dark mode; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), browser/push/email notifications, multi-step or client approvals, AI caption generation.
+Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app; email or push reminders; payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), browser/push/email notifications, multi-step or client approvals, AI caption generation.
 
 ## 5. User stories and acceptance criteria
 

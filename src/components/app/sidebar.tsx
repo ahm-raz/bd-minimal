@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -21,11 +21,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS, type Role } from "@/lib/domain";
+import { THEMES, THEME_KEY, THEME_LABELS, applyTheme, readTheme, type Theme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -93,9 +97,28 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
   );
 }
 
+/** Light / dark / system, remembered per browser. "Same as system" follows OS changes live. */
+function useTheme() {
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  useEffect(() => {
+    applyTheme(theme);
+    if (theme !== "system") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => applyTheme("system");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [theme]);
+  const choose = (t: Theme) => {
+    window.localStorage.setItem(THEME_KEY, t);
+    setTheme(t);
+  };
+  return [theme, choose] as const;
+}
+
 function UserMenu() {
   const { fullName, role, timezone } = useProfile();
   const router = useRouter();
+  const [theme, setTheme] = useTheme();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -118,6 +141,15 @@ function UserMenu() {
             <UserRound aria-hidden /> Profile
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-small font-normal text-ink-muted">Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(v as Theme)}>
+          {THEMES.map((t) => (
+            <DropdownMenuRadioItem key={t} value={t}>
+              {THEME_LABELS[t]}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={async () => {
