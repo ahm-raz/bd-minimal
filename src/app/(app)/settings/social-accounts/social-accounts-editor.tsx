@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,36 @@ import { zoneCity } from "@/lib/dates";
 import { PLATFORMS, PLATFORM_LABELS } from "@/lib/social";
 import { socialAccountSchema, type SocialAccountValues } from "@/lib/validation/social";
 import { saveSocialAccount } from "@/server/actions/schedules";
+import { reorderList } from "@/server/actions/settings";
 import type { SocialAccountItem } from "@/server/queries/lists";
 
-/** Settings → Social accounts (docs/09 section 2): the brand accounts posts go to. Hide, don't delete. */
+/** Settings → Social accounts (docs/09 section 2): add, rename, reorder, hide. Never deleted. */
 export function SocialAccountsEditor({ accounts }: { accounts: SocialAccountItem[] }) {
+  const router = useRouter();
   const [editing, setEditing] = useState<SocialAccountItem | "new" | null>(null);
+  const [order, setOrder] = useState(accounts);
+  const [synced, setSynced] = useState(accounts);
+  const [pending, startTransition] = useTransition();
+  if (synced !== accounts) {
+    setSynced(accounts);
+    setOrder(accounts);
+  }
+  const move = (index: number, by: -1 | 1) => {
+    const next = [...order];
+    const [item] = next.splice(index, 1);
+    next.splice(index + by, 0, item!);
+    setOrder(next);
+    startTransition(async () => {
+      const res = await reorderList({ table: "social_accounts", ids: next.map((a) => a.id) });
+      if (!res.ok) {
+        setOrder(order);
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Order saved");
+      router.refresh();
+    });
+  };
   return (
     <>
       <p className="prose-width mb-4 text-small text-ink-muted">
@@ -48,8 +73,22 @@ export function SocialAccountsEditor({ accounts }: { accounts: SocialAccountItem
           <EmptyState>No accounts yet. Add the LinkedIn page or profile you post to.</EmptyState>
         ) : (
           <ul className="divide-y divide-line" data-testid="social-accounts">
-            {accounts.map((a) => (
+            {order.map((a, i) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <span className="flex flex-col">
+                  <Button variant="ghost" size="icon-xs" disabled={pending || i === 0} onClick={() => move(i, -1)} aria-label={`Move ${a.name} up`}>
+                    <ArrowUp />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    disabled={pending || i === order.length - 1}
+                    onClick={() => move(i, 1)}
+                    aria-label={`Move ${a.name} down`}
+                  >
+                    <ArrowDown />
+                  </Button>
+                </span>
                 <PlatformChip platform={a.platform} />
                 <span className="min-w-0 flex-1 truncate font-medium text-ink">{a.name}</span>
                 <span className="text-small text-ink-muted">{PLATFORM_LABELS[a.platform]}</span>

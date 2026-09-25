@@ -105,8 +105,10 @@
 - [x] Final run, screenshots, report
 
 ### Results (M10)
-- Final run: lint 0, typecheck, 187 unit (24 new), db:test (02 smoke + 03 social: 40 checks, 11 + 18 expected errors), 63/63 e2e (5 new), production build.
+- Final run (`pnpm lint && pnpm typecheck && pnpm test && pnpm db:test && pnpm test:e2e && pnpm build`): lint 0, typecheck, 187 unit (24 new), db:test (02 smoke + 03 social: 40 checks, 11 + 18 expected errors), 63/63 e2e (5 new) in 9.8 min on a freshly started dev server, production build.
 - Demo data reloaded (`pnpm db:reset && pnpm seed:demo`): Hina with 18 posts across two LinkedIn accounts; screenshots in ./screenshots/ now include founder-content*, founder-performance-tab-social, founder-settings-social-accounts / -pillars and smm-*.
+- E2E flow 1 goes through the real invite email: the SMM opens the inbox link, sets a password, lands on My Day and is redirected from /leads with "That page isn't part of your role."
+- Settings → Social accounts follows the list pattern: add, rename (Edit), reorder (move up / down), hide.
 - Bug found by the new e2e and fixed: the post panel reloads after an action, which wiped text typed right after it; confirmations now appear once the panel has reloaded.
 
 ## Decisions
@@ -191,6 +193,7 @@
 - shadcn 4.x no longer ships the `form` component; `field` was added instead and forms use react-hook-form directly with it.
 
 ## Known issues
+- 2026-09-25 (M10): running `pnpm build` while `pnpm dev` is running rewrites .next under the dev server; later requests failed with "Jest worker encountered 2 child process exceptions" and one e2e run had 8 failures, all timeouts or 500s. Stopping the dev server, deleting .next and starting it again fixed it (63/63). Stop `pnpm dev` before `pnpm build`.
 - supabase/tests/02_smoke_test.sql calls `metrics_daily(current_date-6, current_date, 'Asia/Karachi')`; `current_date` is UTC, so between 19:00 and 24:00 UTC the day's leads fall outside the range and DAILY sums to 0 instead of 3. Not an app bug. scripts/db-test.sh expects 3 or 0 depending on whether the Karachi and UTC dates match. Suggested fix: use `(now() at time zone 'Asia/Karachi')::date` in the test.
 - 2026-09-25: a crash mid-session zeroed two files (leads-view.tsx, timeline.tsx) and the .next cache; they were restored from git and rewritten. If a file ever shows as binary in git, restore it from the last commit.
 
