@@ -76,9 +76,9 @@ export function CampaignsEditor({
                 {campaigns.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell>{nameOf(niches, c.niche_id) || <span className="text-ink-faint">Any</span>}</TableCell>
-                    <TableCell>{nameOf(channels, c.channel_id) || <span className="text-ink-faint">Any</span>}</TableCell>
-                    <TableCell>{nameOf(members, c.owner_id) || <span className="text-ink-faint">Anyone</span>}</TableCell>
+                    <TableCell>{nameOf(niches, c.niche_id) || <span className="text-ink-muted">Any</span>}</TableCell>
+                    <TableCell>{nameOf(channels, c.channel_id) || <span className="text-ink-muted">Any</span>}</TableCell>
+                    <TableCell>{nameOf(members, c.owner_id) || <span className="text-ink-muted">Anyone</span>}</TableCell>
                     <TableCell>
                       <Chip tone={STATUS_TONE[c.status]}>{CAMPAIGN_STATUS_LABELS[c.status]}</Chip>
                     </TableCell>

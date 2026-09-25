@@ -209,7 +209,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
                 {row.original.contact.job_title && <div className="text-small text-ink-muted">{row.original.contact.job_title}</div>}
               </div>
             ) : (
-              <span className="text-ink-faint">None</span>
+              <span className="text-ink-muted">None</span>
             ),
         }),
         helper.display({ id: "status", header: () => COLUMN_LABELS.status, cell: ({ row }) => <StatusChip status={row.original.status} /> }),
@@ -218,7 +218,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         helper.display({
           id: "campaign",
           header: () => COLUMN_LABELS.campaign,
-          cell: ({ row }) => nameOf(lists.campaigns, row.original.campaign_id) || <span className="text-ink-faint">None</span>,
+          cell: ({ row }) => nameOf(lists.campaigns, row.original.campaign_id) || <span className="text-ink-muted">None</span>,
         }),
         helper.display({
           id: "next_action",
@@ -227,7 +227,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
             row.original.next_action ? (
               <span className="block max-w-56 truncate">{row.original.next_action}</span>
             ) : (
-              <span className="text-ink-faint">None</span>
+              <span className="text-ink-muted">None</span>
             ),
         }),
         helper.display({
@@ -270,7 +270,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
             row.original.last_activity_at ? (
               <RelativeTime at={row.original.last_activity_at} tz={profile.timezone} className="text-ink-muted" />
             ) : (
-              <span className="text-ink-faint">None</span>
+              <span className="text-ink-muted">None</span>
             ),
         }),
         helper.display({
@@ -339,7 +339,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative w-full max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-faint" aria-hidden />
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-muted" aria-hidden />
           <Input
             id="lead-search"
             type="search"

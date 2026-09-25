@@ -363,7 +363,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   return (
     <>
       <dt className="text-small text-ink-muted">{label}</dt>
-      <dd className={cn("min-w-0 break-words", empty && "text-ink-faint")}>{empty ? "Not set" : children}</dd>
+      <dd className={cn("min-w-0 break-words", empty && "text-ink-muted")}>{empty ? "Not set" : children}</dd>
     </>
   );
 }

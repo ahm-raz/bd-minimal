@@ -235,10 +235,12 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
   );
 }
 
-function NumButton({ value, label, onClick, className }: { value: React.ReactNode; label: string; onClick: () => void; className?: string }) {
+/** A clickable number. Its accessible name starts with the number shown, then says what it is. */
+function NumButton({ value, label, onClick, className }: { value: string; label: string; onClick: () => void; className?: string }) {
   return (
-    <button type="button" onClick={onClick} className={cn("num rounded-sm px-1 hover:bg-accent-soft hover:text-accent-strong", className)} aria-label={label}>
-      {value}
+    <button type="button" onClick={onClick} className={cn("num rounded-sm px-1 hover:bg-accent-soft hover:text-accent-strong", className)}>
+      <span data-value>{value}</span>
+      <span className="sr-only">, {label}. Show the list</span>
     </button>
   );
 }
@@ -317,7 +319,7 @@ function Scoreboard({
                   return (
                     <td key={String(c.key)} className="num px-2 py-2 text-right" data-testid={`cell-${String(c.key)}`}>
                       {c.metric ? (
-                        <NumButton value={display} label={`${name(r.user_id)}, ${c.label}: ${display}. Show the list`} onClick={() => onDrill(c.metric!, `${possessive(firstName(name(r.user_id)))} ${c.label.toLowerCase()}`, r.user_id)} />
+                        <NumButton value={display} label={`${name(r.user_id)}, ${c.label}`} onClick={() => onDrill(c.metric!, `${possessive(firstName(name(r.user_id)))} ${c.label.toLowerCase()}`, r.user_id)} />
                       ) : (
                         display
                       )}
@@ -364,8 +366,11 @@ function Funnel({ totals, onDrill }: { totals: Totals; onDrill: (m: DrillMetric,
                 type="button"
                 onClick={() => onDrill(s.metric, s.label)}
                 className="group h-5 rounded-sm text-left"
-                aria-label={`${s.label}: ${s.value}${prev ? `, ${formatRatio(rate(s.value, prev.value))} of ${prev.label.toLowerCase()}` : ""}. Show the list`}
               >
+                <span className="sr-only">
+                  {s.label}: {s.value}
+                  {prev ? `, ${formatRatio(rate(s.value, prev.value))} of ${prev.label.toLowerCase()}` : ""}. Show the list
+                </span>
                 <span
                   className="block h-full rounded-r-[4px] bg-accent-strong transition-[width] duration-300 group-hover:bg-accent-hover"
                   style={{ width: `${Math.max(s.value ? 1.5 : 0, (s.value / max) * 100)}%` }}
@@ -533,7 +538,7 @@ function Breakdown({ data, onDrill }: { data: PerformanceData; onDrill: (m: Dril
 const GRID_METRICS = ["leads_added", "outreach", "follow_ups", "replies", "meetings_booked"] as const;
 type GridMetric = (typeof GRID_METRICS)[number];
 const SHADE: Record<ReturnType<typeof gridShade>, string> = {
-  empty: "bg-surface text-ink-faint",
+  empty: "bg-surface text-ink-muted",
   light: "bg-[#d3e7ea] text-ink",
   medium: "bg-[#8fc0c8] text-ink",
   full: "bg-accent-strong text-white",
@@ -593,7 +598,7 @@ function ConsistencyGrid({ data }: { data: PerformanceData }) {
                         title={`${name(u)}, ${d}: ${v} ${METRIC_LABELS[metric].toLowerCase()}${daily(u) ? ` (daily target ${daily(u)})` : ""}`}
                         className={cn(
                           "num h-8 rounded-sm border border-line text-center text-micro",
-                          weekend ? "w-4 bg-surface-muted text-ink-faint" : cn("w-9", SHADE[shade]),
+                          weekend ? "w-4 bg-surface-muted text-ink-muted" : cn("w-9", SHADE[shade]),
                         )}
                       >
                         {v > 0 ? v : ""}

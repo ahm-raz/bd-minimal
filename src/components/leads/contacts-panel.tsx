@@ -91,7 +91,7 @@ export function ContactsPanel({ leadId, contacts, country }: { leadId: string; c
                   <div className="mt-1 flex flex-col gap-0.5 text-small">
                     {c.email && (
                       <span className="flex items-center gap-1.5">
-                        <Mail className="size-3.5 text-ink-faint" aria-hidden />
+                        <Mail className="size-3.5 text-ink-muted" aria-hidden />
                         <a href={`mailto:${c.email}`} className="truncate hover:underline">
                           {c.email}
                         </a>
@@ -103,7 +103,7 @@ export function ContactsPanel({ leadId, contacts, country }: { leadId: string; c
                     )}
                     {[c.phone, c.mobile_phone].filter(Boolean).map((p, i) => (
                       <span key={p} className="flex items-center gap-1.5">
-                        <Phone className="size-3.5 text-ink-faint" aria-hidden />
+                        <Phone className="size-3.5 text-ink-muted" aria-hidden />
                         <a href={`tel:${p}`} className="num hover:underline">
                           {formatPhone(p)}
                         </a>

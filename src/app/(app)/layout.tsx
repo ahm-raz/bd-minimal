@@ -8,6 +8,7 @@ import { RouteNotice } from "@/components/app/route-notice";
 import { LeadSheet } from "@/components/leads/lead-sheet";
 import { LogActivitySheet } from "@/components/activities/log-activity-sheet";
 import { Shortcuts } from "@/components/app/shortcuts";
+import { CommandMenu } from "@/components/app/command-menu";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireViewer();
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <LeadSheet />
         <LogActivitySheet />
         <Shortcuts />
+        <CommandMenu />
         <Suspense>
           <RouteNotice />
         </Suspense>

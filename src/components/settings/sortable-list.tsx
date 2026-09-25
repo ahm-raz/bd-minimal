@@ -200,7 +200,7 @@ function Row({
     >
       <button
         type="button"
-        className="flex size-7 cursor-grab items-center justify-center rounded-md text-ink-faint hover:bg-surface-muted hover:text-ink"
+        className="flex size-7 cursor-grab items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
         aria-label={`Reorder ${item.name}`}
         {...attributes}
         {...listeners}

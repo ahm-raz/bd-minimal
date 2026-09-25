@@ -57,7 +57,7 @@ export function Combobox({
           disabled={disabled}
           className={cn(
             "w-full justify-between px-3 font-normal aria-invalid:border-bad",
-            !selected && "text-ink-faint",
+            !selected && "text-ink-muted",
             className,
           )}
         >

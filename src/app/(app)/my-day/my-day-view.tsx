@@ -18,11 +18,13 @@ import { formatNumber } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 import type { DrillMetric } from "@/server/actions/drilldown";
 import type { FollowUp, MyDayData } from "@/server/queries/my-day";
+import type { TaskItem } from "@/server/queries/tasks";
+import { MyDayTasks } from "./my-day-tasks";
 
 const BAR_METRICS: TargetMetric[] = ["leads_added", "outreach", "follow_ups"];
 const SHORT: Partial<Record<TargetMetric, string>> = { leads_added: "Leads", outreach: "Outreach", follow_ups: "Follow-ups" };
 
-export function MyDayView({ data, tasks }: { data: MyDayData; tasks?: React.ReactNode }) {
+export function MyDayView({ data, tasks, founderName }: { data: MyDayData; tasks: TaskItem[]; founderName: string }) {
   const { openNewLead } = useApp();
   const profile = useProfile();
   const now = useNow();
@@ -65,10 +67,10 @@ export function MyDayView({ data, tasks }: { data: MyDayData; tasks?: React.Reac
                 type="button"
                 onClick={() => open(m, METRIC_LABELS[m])}
                 className="rounded-md p-1 text-left transition-colors hover:bg-surface-muted"
-                aria-label={`${METRIC_LABELS[m]}: ${actual} of ${daily}. Show the list`}
                 data-testid={`counter-${m}`}
               >
                 <PaceBar label={SHORT[m]} actual={actual} target={daily} pace={now ? dayPaceMarker(daily, profile.timezone, now) : null} />
+                <span className="sr-only">Show the list</span>
               </button>
             );
           })}
@@ -87,7 +89,7 @@ export function MyDayView({ data, tasks }: { data: MyDayData; tasks?: React.Reac
         </div>
       </Panel>
 
-      {tasks}
+      <MyDayTasks today={data.today} tasks={tasks} founderName={founderName} />
 
       <Panel aria-label="Follow-ups">
         <PanelHeader
@@ -145,10 +147,10 @@ function CountButton({ label, value, onClick, inline }: { label: string; value: 
       type="button"
       onClick={onClick}
       className={cn("rounded-md p-1 text-left transition-colors hover:bg-surface-muted", inline && "inline-flex items-baseline gap-2")}
-      aria-label={`${label}: ${value}. Show the list`}
     >
       <span className="text-small text-ink-muted">{label}</span>
       <span className={cn("num text-ink", inline ? "text-body font-medium" : "block text-section")}>{formatNumber(value)}</span>
+      <span className="sr-only">Show the list</span>
     </button>
   );
 }

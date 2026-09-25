@@ -3,7 +3,6 @@ import { requireViewer } from "@/server/auth";
 import { getMyDay } from "@/server/queries/my-day";
 import { getMyDayTasks } from "@/server/queries/tasks";
 import { getLists } from "@/server/queries/lists";
-import { MyDayTasks } from "./my-day-tasks";
 import { MyDayView } from "./my-day-view";
 
 export const metadata: Metadata = { title: "My Day" };
@@ -15,9 +14,6 @@ export default async function MyDayPage() {
   const [data, lists] = await Promise.all([getMyDay(viewer), getLists()]);
   const founder = lists.members.find((m) => m.role === "founder");
   return (
-    <MyDayView
-      data={data}
-      tasks={<MyDayTasks today={tasks.today} tasks={tasks.tasks} founderName={founder?.full_name?.split(" ")[0] || "the founder"} />}
-    />
+    <MyDayView data={data} tasks={tasks.tasks} founderName={founder?.full_name?.split(" ")[0] || "the founder"} />
   );
 }

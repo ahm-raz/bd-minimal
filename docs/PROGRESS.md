@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M8 done. Next: M9 (polish).
+**Status:** All milestones M0–M9 done. Final run green (lint 0, typecheck, 163 unit, db:test, 58/58 e2e, build); demo data loaded; screenshots in ./screenshots/.
 
 ## Milestones
 
@@ -78,12 +78,17 @@
 - [x] e2e: scoreboard numbers; BD isolation
 
 ### M9: Polish
-- [ ] Command menu
-- [ ] Copy review, accessibility, Lighthouse ≥ 95
-- [ ] Error boundaries, 404, skeletons
-- [ ] seed-demo.ts
-- [ ] README
-- [ ] Final full run + screenshots
+- [x] Command menu
+- [x] Copy review, accessibility, Lighthouse ≥ 95
+- [x] Error boundaries, 404, skeletons
+- [x] seed-demo.ts
+- [x] README
+- [x] Final full run + screenshots
+
+### Results (M9)
+- Lighthouse accessibility (production build, demo data, founder): My Day 100, Leads 100, Performance 100 (`pnpm lighthouse`, reports in screenshots/lighthouse-*.json). Before the fixes: 96 / 96 / 97 (faint text contrast, label-in-name).
+- Performance page load with demo data (production build, median of 3): This week 0.58 s, This month 0.83 s. My Day 0.29 s, Leads (all) 0.80 s, Pipeline 0.30 s.
+- 390 px wide: no page-level horizontal overflow on My Day, Leads, Pipeline; sidebar becomes a menu button.
 
 ## Decisions
 - 2026-09-24: Local Supabase uses ports 55420–55429 (API 55421, DB 55422, Studio 55423, Mailpit 55424). Another local Supabase project ("bdms") already occupies 5432x; stopping someone else's stack would be destructive.
@@ -130,6 +135,12 @@
 - 2026-09-25: The consistency grid shows at most the last 31 days of a longer range, and says so.
 - 2026-09-25: Chart follows the dataviz guidance: a single series in the accent colour, no legend (the caption names it), rounded bar ends, hover tooltip; the table beside it is the table view. Grid shades are one teal ramp, and every cell prints its value.
 - 2026-09-25: The Feed's "Live" label turns on only when Realtime confirms Postgres changes are flowing (system message), not at socket SUBSCRIBED; e2e waits for it.
+- 2026-09-25: Visible secondary text never uses --ink-faint (3.1:1); it's kept for placeholders and disabled states, as docs/06 says. Everything else uses --ink-muted.
+- 2026-09-25: Clickable numbers put the visible value first in their accessible name (WCAG label-in-name); the extra context is visually hidden text.
+- 2026-09-25: Demo seed writes rows with the admin client and explicit created_by / user_id / timestamps, then back-dates stage history and feed events so the 21 days look real. It refuses to run on a non-local URL or a database that already has users. About 2.4 activities per lead.
+- 2026-09-25: Lighthouse runs via `pnpm dlx lighthouse@12` (not a dependency) against a Chrome started by scripts/lighthouse.ts, signed in over CDP, so no session cookie is passed on a command line.
+- 2026-09-25: The command menu's "Log activity" asks for the lead in the same search box (the input remounts with focus).
+- 2026-09-25: My Day receives task data (not a pre-rendered element) from the server page; passing a server-created element as a prop into the client view produced an intermittent React key warning.
 
 ## Deviations
 - @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.

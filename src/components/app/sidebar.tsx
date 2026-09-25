@@ -66,7 +66,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             <Icon className="size-4 shrink-0" aria-hidden />
             <span className="flex-1">{item.label}</span>
             {item.shortcut && (
-              <kbd className="hidden font-mono text-micro font-normal text-ink-faint lg:inline">{item.shortcut}</kbd>
+              <kbd className="hidden font-mono text-micro font-normal text-ink-muted lg:inline">{item.shortcut}</kbd>
             )}
           </Link>
         );

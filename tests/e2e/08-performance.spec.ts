@@ -91,7 +91,10 @@ test("the scoreboard shows exactly the seeded numbers", async ({ page }) => {
     flagged_leads: "1",
   };
   for (const [key, value] of Object.entries(expected)) {
-    await expect(row.getByTestId(`cell-${key}`), key).toHaveText(value);
+    const cell = row.getByTestId(`cell-${key}`);
+    // clickable numbers carry visually hidden context; compare the visible value
+    const shown = (await cell.locator("[data-value]").count()) ? cell.locator("[data-value]") : cell;
+    await expect(shown, key).toHaveText(value);
   }
 
   // Every number drills down to its records

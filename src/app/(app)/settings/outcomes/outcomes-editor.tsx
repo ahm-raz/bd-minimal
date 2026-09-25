@@ -12,7 +12,7 @@ import { renameOutcome, saveStage } from "@/server/actions/settings";
 import type { OutcomeItem, StageItem } from "@/server/queries/lists";
 
 function yes(v: boolean) {
-  return v ? "Yes" : <span className="text-ink-faint">No</span>;
+  return v ? "Yes" : <span className="text-ink-muted">No</span>;
 }
 
 export function OutcomesEditor({ outcomes, stages }: { outcomes: OutcomeItem[]; stages: StageItem[] }) {

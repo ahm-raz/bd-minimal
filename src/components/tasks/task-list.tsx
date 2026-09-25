@@ -134,10 +134,10 @@ function TaskRow({
           />
         )}
         {t.kind === "lead_fix" && <Flag className="size-3.5 shrink-0 text-bad" aria-label="Lead fix" />}
-        <span className={cn("min-w-0 flex-1 truncate text-body", done ? "text-ink-muted line-through" : "text-ink")}>{t.title}</span>
+        <span className={cn("min-w-40 flex-1 truncate text-body", done ? "text-ink-muted line-through" : "text-ink")}>{t.title}</span>
 
         {t.kind === "count" && t.targetCount !== null && (
-          <div className="flex w-64 items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-64">
             <PaceBar
               compact
               actual={t.progress ?? 0}
