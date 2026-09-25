@@ -1,7 +1,9 @@
 /**
- * Demo data (docs/08 "Demo data"). Local only.
+ * Demo data (docs/08 "Demo data").
  *
- *   pnpm db:reset && pnpm seed:demo
+ *   pnpm db:reset && pnpm seed:demo     LOCAL (refuses unless the database is empty)
+ *   pnpm cloud:seed                     CLOUD: erases the linked Supabase Cloud project, then seeds it;
+ *                                       Zain, Ahmed and Hina get their real emails (scripts/target.ts)
  *
  * Creates the demo team, targets, campaigns, ~60 leads per BD over the last 21 days, ~3 activities
  * per lead, 12 opportunities (2 won, 2 lost), tasks and one flagged lead. Rows are written with the
@@ -10,33 +12,15 @@
  * Social media module (docs/09 section 8): Hina (social media manager), two LinkedIn accounts, two
  * posting schedules and their posts from two weeks back to a week ahead, in every status.
  */
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import fs from "node:fs";
-import path from "node:path";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { TZDate } from "@date-fns/tz";
 import type { Database } from "../src/lib/database.types";
+import { CLOUD, CORE_EMAILS, PASSWORD, adminClient, appUrl, resetDatabase } from "./target";
 
-const env: Record<string, string> = { ...process.env } as Record<string, string>;
-const envFile = path.resolve(process.cwd(), ".env.local");
-if (fs.existsSync(envFile)) {
-  for (const line of fs.readFileSync(envFile, "utf8").split(/\r?\n/)) {
-    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (m && !env[m[1]!]) env[m[1]!] = m[2]!;
-  }
-}
-const URL_ = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const KEY = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(URL_)) {
-  console.error(`Refusing to seed: NEXT_PUBLIC_SUPABASE_URL (${URL_ || "not set"}) is not a local Supabase.`);
-  process.exit(1);
-}
-if (!KEY) {
-  console.error("Set SUPABASE_SERVICE_ROLE_KEY in .env.local first.");
-  process.exit(1);
-}
+const RESET_FIRST = CLOUD || process.argv.includes("--reset");
+const emailOf = (m: { key: string; email: string }) => (m.key in CORE_EMAILS ? CORE_EMAILS[m.key as keyof typeof CORE_EMAILS] : m.email);
 
-const db: SupabaseClient<Database> = createClient<Database>(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-const PASSWORD = "demo-password-123";
+const db: SupabaseClient<Database> = adminClient();
 const DAY = 86_400_000;
 
 // Deterministic randomness so every seed looks the same.
@@ -109,6 +93,7 @@ const FIRST = ["Maria", "James", "Priya", "David", "Laura", "Kevin", "Aisha", "D
 const LAST = ["Lopez", "Patel", "Nguyen", "Smith", "Garcia", "Johnson", "Kim", "Brown", "Rossi", "Chen", "Walker", "Hughes", "Reed", "Foster", "Ward", "Bennett"];
 
 async function main() {
+  if (RESET_FIRST) await resetDatabase();
   const { count } = await db.from("profiles").select("id", { count: "exact", head: true });
   if ((count ?? 0) > 0) {
     console.error("The database already has users. Run `pnpm db:reset` first, then `pnpm seed:demo`.");
@@ -129,7 +114,7 @@ async function main() {
   // Users: the first created becomes the founder (trigger).
   const ids: Record<string, string> = {};
   for (const m of TEAM) {
-    const created = await db.auth.admin.createUser({ email: m.email, password: PASSWORD, email_confirm: true, user_metadata: { full_name: m.name } });
+    const created = await db.auth.admin.createUser({ email: emailOf(m), password: PASSWORD, email_confirm: true, user_metadata: { full_name: m.name } });
     if (created.error || !created.data.user) throw new Error(`user ${m.key}: ${created.error?.message}`);
     const user = created.data.user;
     ids[m.key] = user.id;
@@ -420,8 +405,8 @@ async function main() {
   }
 
   console.log(`Done: ${seeded.length} leads, ${plan.length} opportunities.`);
-  console.log("Sign in at http://localhost:3000/login with any of:");
-  for (const m of TEAM) console.log(`  ${m.email} / ${PASSWORD}  (${ROLE_OF[m.key] ?? "BD"})`);
+  console.log(`Sign in at ${appUrl}/login with any of:`);
+  for (const m of TEAM) console.log(`  ${emailOf(m)} / ${PASSWORD}  (${ROLE_OF[m.key] ?? "BD"})`);
 }
 
 // ---------- Social media module ------------------------------------------------------------

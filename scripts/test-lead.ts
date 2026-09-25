@@ -1,40 +1,25 @@
 /**
  * The clean three-account database plus one fresh lead, as a BD would have just added it. Local only.
  *
- *   pnpm dev:reset-lead
+ *   pnpm dev:reset-lead          LOCAL
+ *   pnpm cloud:reset-lead        CLOUD (linked Supabase Cloud project)
  *
  * Runs `pnpm dev:reset` (wipes the LOCAL database, creates zain / ahmed / hina), then signs in as Ahmed
  * and adds "Smile Dental Austin" through the same schema and RLS path as the New lead form:
  * status New, completeness 100%, next action "Send connection request" due tomorrow (Ahmed's time zone).
  */
 import { execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
 import { addDays, todayIn } from "../src/lib/dates";
 import { emptyContact, makeLeadSchema } from "../src/lib/validation/lead";
-
-const env: Record<string, string> = { ...process.env } as Record<string, string>;
-const envFile = path.resolve(process.cwd(), ".env.local");
-if (fs.existsSync(envFile)) {
-  for (const line of fs.readFileSync(envFile, "utf8").split(/\r?\n/)) {
-    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (m && !env[m[1]!]) env[m[1]!] = m[2]!;
-  }
-}
-const URL_ = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(URL_)) {
-  console.error(`Refusing to run: NEXT_PUBLIC_SUPABASE_URL (${URL_ || "not set"}) is not a local Supabase.`);
-  process.exit(1);
-}
+import { ANON, CLOUD, CORE_EMAILS, PASSWORD, URL_, appUrl } from "./target";
 
 async function main() {
-  execSync("pnpm dev:reset", { stdio: "inherit" });
+  execSync(`pnpm exec tsx scripts/test-users.ts${CLOUD ? " --cloud" : ""}`, { stdio: "inherit" });
 
   const db = createClient<Database>(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error: authErr } = await db.auth.signInWithPassword({ email: "ahmed@example.com", password: "demo-password-123" });
+  const { error: authErr } = await db.auth.signInWithPassword({ email: CORE_EMAILS.ahmed, password: PASSWORD });
   if (authErr) throw new Error(`Signing in as Ahmed failed: ${authErr.message}`);
   const { data: me } = await db.auth.getUser();
   const { data: profile } = await db.from("profiles").select("id, timezone").eq("id", me.user!.id).single();
@@ -107,7 +92,7 @@ async function main() {
     .select("id")
     .single();
   if (error) throw new Error(`Adding the lead failed: ${error.message}`);
-  const { error: cErr } = await db.from("contacts").insert(contacts.map(({ id: _cid, ...c }) => ({ ...c, lead_id: row.id })));
+  const { error: cErr } = await db.from("contacts").insert(contacts.map(({ id, ...c }) => (void id, { ...c, lead_id: row.id })));
   if (cErr) throw new Error(`Adding Sarah failed: ${cErr.message}`);
 
   const { data: saved } = await db.from("leads").select("status, completeness, next_action, next_action_due").eq("id", row.id).single();
@@ -115,7 +100,7 @@ async function main() {
     `Added Smile Dental Austin as Ahmed: status ${saved!.status}, completeness ${saved!.completeness}%, ` +
       `next action "${saved!.next_action}" due ${saved!.next_action_due}.`,
   );
-  console.log(`Open it: http://localhost:3000/leads/${row.id}`);
+  console.log(`Open it: ${appUrl}/leads/${row.id}`);
 }
 
 main().catch((e) => {

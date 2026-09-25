@@ -1,93 +1,80 @@
 /**
- * A clean local database with three accounts and nothing else. Local only.
+ * The three permanent accounts, nothing else.
  *
- *   pnpm dev:test-users
+ *   pnpm dev:reset             LOCAL: erase everything, then create the three accounts
+ *   pnpm cloud:reset           CLOUD: same, on the linked Supabase Cloud project
+ *   pnpm cloud:users           CLOUD: keep all data; create the three accounts if missing and put their
+ *                              email, password, name, role and time zone back to the originals
  *
- * Wipes the LOCAL database (`supabase db reset`), then creates:
- *   zain@example.com   founder                 Asia/Karachi
- *   ahmed@example.com  BD (primary niche Dental) Asia/Karachi
- *   hina@example.com   social media manager    Asia/Karachi
- * All with the password demo-password-123. No leads, posts, tasks, targets or social accounts:
- * add those yourself. The default settings lists from the migration (niches, channels, sources,
- * lost reasons, activity types, outcomes, stages, content pillars) stay, because the forms need them.
+ * Accounts (password demo-password-123, all Asia/Karachi):
+ *   founder              Zain Malik   local zain@example.com   cloud zainfours@gmail.com
+ *   BD (Dental)          Ahmed Khan   local ahmed@example.com  cloud ahmrazsal7@gmail.com
+ *   social media manager Hina Raza    local hina@example.com   cloud ahmraz125@gmail.com
+ * The default settings lists from the migrations (niches, channels, sources, stages, pillars…) stay.
  */
-import { execSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../src/lib/database.types";
+import { CORE_EMAILS, PASSWORD, adminClient, appUrl, resetDatabase, where } from "./target";
 
-const env: Record<string, string> = { ...process.env } as Record<string, string>;
-const envFile = path.resolve(process.cwd(), ".env.local");
-if (fs.existsSync(envFile)) {
-  for (const line of fs.readFileSync(envFile, "utf8").split(/\r?\n/)) {
-    const m = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
-    if (m && !env[m[1]!]) env[m[1]!] = m[2]!;
-  }
-}
-const URL_ = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const KEY = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-// Checked BEFORE anything is erased: this script never touches a remote project.
-if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(URL_)) {
-  console.error(`Refusing to run: NEXT_PUBLIC_SUPABASE_URL (${URL_ || "not set"}) is not a local Supabase.`);
-  process.exit(1);
-}
-if (!KEY) {
-  console.error("Set SUPABASE_SERVICE_ROLE_KEY in .env.local first.");
-  process.exit(1);
-}
+const ENSURE_ONLY = process.argv.includes("--ensure");
 
-const PASSWORD = "demo-password-123";
 const USERS = [
-  // The first user created becomes the founder (trigger); keep Zain first.
-  { key: "zain", name: "Zain Malik", email: "zain@example.com", tz: "Asia/Karachi", niche: null, role: null, label: "founder" },
-  { key: "ahmed", name: "Ahmed Khan", email: "ahmed@example.com", tz: "Asia/Karachi", niche: "Dental", role: null, label: "BD" },
-  { key: "hina", name: "Hina Raza", email: "hina@example.com", tz: "Asia/Karachi", niche: null, role: "social", label: "social media manager" },
+  // The first account created becomes the founder (database trigger); keep Zain first.
+  { key: "zain", name: "Zain Malik", niche: null, role: "founder", label: "founder" },
+  { key: "ahmed", name: "Ahmed Khan", niche: "Dental", role: "bd", label: "BD" },
+  { key: "hina", name: "Hina Raza", niche: null, role: "social", label: "social media manager" },
 ] as const;
-
-async function waitForServices() {
-  const probes = [`${URL_}/rest/v1/stages?select=key`, `${URL_}/auth/v1/health`];
-  for (let i = 0; i < 60; i++) {
-    const ok = await Promise.all(probes.map((u) => fetch(u, { headers: { apikey: ANON || KEY } }).then((r) => r.ok).catch(() => false)));
-    if (ok.every(Boolean)) return;
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  throw new Error("Local Supabase didn't come back after the reset. Is Docker running? Try pnpm db:start.");
-}
+const TZ = "Asia/Karachi";
 
 async function main() {
-  console.log("Erasing the local database (supabase db reset)…");
-  const bin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "supabase.cmd" : "supabase");
-  execSync(`"${bin}" db reset`, { stdio: "ignore" });
-  await waitForServices();
-
-  const db = createClient<Database>(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (!ENSURE_ONLY) await resetDatabase();
+  const db = adminClient();
   const { data: niches } = await db.from("niches").select("id, name");
-  const nicheId = (name: string | null) => (name ? (niches ?? []).find((n) => n.name === name)?.id ?? null : null);
+  const nicheId = (name: string | null) => (name ? ((niches ?? []).find((n) => n.name === name)?.id ?? null) : null);
+
+  const { data: list, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (listErr) throw new Error(`Listing accounts failed: ${listErr.message}`);
+  const { data: profiles } = await db.from("profiles").select("id, full_name, role");
 
   for (const u of USERS) {
-    const { data, error } = await db.auth.admin.createUser({
-      email: u.email,
-      password: PASSWORD,
-      email_confirm: true,
-      user_metadata: { full_name: u.name },
-    });
-    if (error || !data.user) throw new Error(`Creating ${u.email} failed: ${error?.message}`);
+    const email = CORE_EMAILS[u.key];
+    // Find the account by its email, or (for --ensure) by name + role if the email was changed.
+    const existing =
+      list.users.find((a) => a.email?.toLowerCase() === email) ??
+      list.users.find((a) => profiles?.some((p) => p.id === a.id && p.full_name === u.name && p.role === u.role));
+    let id: string;
+    if (existing) {
+      const { error } = await db.auth.admin.updateUserById(existing.id, {
+        email,
+        password: PASSWORD,
+        email_confirm: true,
+        ban_duration: "none",
+        user_metadata: { full_name: u.name },
+      });
+      if (error) throw new Error(`Restoring ${email} failed: ${error.message}`);
+      id = existing.id;
+    } else {
+      const { data, error } = await db.auth.admin.createUser({
+        email,
+        password: PASSWORD,
+        email_confirm: true,
+        user_metadata: { full_name: u.name },
+      });
+      if (error || !data.user) throw new Error(`Creating ${email} failed: ${error?.message}`);
+      id = data.user.id;
+    }
     const { error: upErr } = await db
       .from("profiles")
-      .update({ timezone: u.tz, primary_niche_id: nicheId(u.niche), ...(u.role ? { role: u.role } : {}) })
-      .eq("id", data.user.id);
-    if (upErr) throw new Error(`Setting up ${u.email} failed: ${upErr.message}`);
+      .update({ full_name: u.name, email, timezone: TZ, primary_niche_id: nicheId(u.niche), role: u.role, is_active: true, deactivated_at: null })
+      .eq("id", id);
+    if (upErr) throw new Error(`Setting up ${email} failed: ${upErr.message}`);
   }
 
-  const { data: profiles } = await db.from("profiles").select("email, role").order("role");
-  console.log("Done. The database is empty apart from these accounts:");
+  const { data: after } = await db.from("profiles").select("email, role");
+  console.log(ENSURE_ONLY ? `Done. The three accounts in ${where} are back to their originals:` : `Done. ${where} is empty apart from these accounts:`);
   for (const u of USERS) {
-    const role = profiles?.find((p) => p.email === u.email)?.role;
-    console.log(`  ${u.email} / ${PASSWORD}  (${u.label}; role in database: ${role})`);
+    const email = CORE_EMAILS[u.key];
+    console.log(`  ${email} / ${PASSWORD}  (${u.label}; role in database: ${after?.find((p) => p.email === email)?.role})`);
   }
-  console.log("Sign in at http://localhost:3000/login");
+  console.log(`Sign in at ${appUrl}/login`);
 }
 
 main().catch((e) => {

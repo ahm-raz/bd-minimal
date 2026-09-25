@@ -21,7 +21,11 @@
     "dev:reset": "tsx scripts/test-users.ts",
     "dev:reset-lead": "tsx scripts/test-lead.ts",
     "screenshots": "tsx scripts/screenshots.ts",
-    "lighthouse": "tsx scripts/lighthouse.ts"
+    "lighthouse": "tsx scripts/lighthouse.ts",
+    "cloud:seed": "tsx scripts/seed-demo.ts --cloud",
+    "cloud:reset": "tsx scripts/test-users.ts --cloud",
+    "cloud:users": "tsx scripts/test-users.ts --cloud --ensure",
+    "cloud:reset-lead": "tsx scripts/test-lead.ts --cloud"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

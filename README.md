@@ -86,6 +86,10 @@ another local Supabase project on the default 5432x ports.
 | `pnpm seed:demo` | Demo team and ~200 leads (refuses unless Supabase is local and empty) |
 | `pnpm dev:test-users` (or `pnpm dev:reset`) | Erases the local database and creates only zain@ (founder), ahmed@ (BD) and hina@ (social media manager), password `demo-password-123`; no other data (local only) |
 | `pnpm dev:reset-lead` | Same as `pnpm dev:reset`, then adds one fresh BD lead as Ahmed (Smile Dental Austin, status New, next action due tomorrow) (local only) |
+| `pnpm cloud:seed` | **CLOUD.** Erases the linked Supabase Cloud project, then loads the full demo data; Zain, Ahmed and Hina use their real emails |
+| `pnpm cloud:reset` | **CLOUD.** Erases everything; only Zain (founder), Ahmed (BD) and Hina (SMM) come back, password `demo-password-123` |
+| `pnpm cloud:users` | **CLOUD.** Keeps all data; restores the three accounts' email, password, role and name to the originals |
+| `pnpm cloud:reset-lead` | **CLOUD.** `cloud:reset` plus the fresh Smile Dental Austin lead for Ahmed |
 | `pnpm screenshots [page …]` | Capture pages at 1440×900 as founder and BD into `./screenshots/` |
 
 ## Running the tests
