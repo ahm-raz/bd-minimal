@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ACTIVITY_CATEGORIES, TARGET_METRICS } from "@/lib/domain";
 
-export const LIST_TABLES = ["niches", "channels", "lead_sources", "lost_reasons"] as const;
+export const LIST_TABLES = ["niches", "channels", "lead_sources", "lost_reasons", "content_pillars"] as const;
 export type ListTable = (typeof LIST_TABLES)[number];
 
 export const LIST_LABELS: Record<ListTable, { title: string; singular: string }> = {
@@ -9,6 +9,7 @@ export const LIST_LABELS: Record<ListTable, { title: string; singular: string }>
   channels: { title: "Channels", singular: "channel" },
   lead_sources: { title: "Lead sources", singular: "lead source" },
   lost_reasons: { title: "Lost reasons", singular: "lost reason" },
+  content_pillars: { title: "Content pillars", singular: "content pillar" },
 };
 
 export const listNameField = z
@@ -20,7 +21,7 @@ export const listNameField = z
 export const listItemSchema = z.object({ table: z.enum(LIST_TABLES), name: listNameField });
 export const renameListItemSchema = z.object({ table: z.enum(LIST_TABLES), id: z.uuid(), name: listNameField });
 export const toggleListItemSchema = z.object({ table: z.enum(LIST_TABLES), id: z.uuid(), active: z.boolean() });
-export const reorderSchema = z.object({ table: z.enum([...LIST_TABLES, "activity_types"]), ids: z.array(z.uuid()).min(1) });
+export const reorderSchema = z.object({ table: z.enum([...LIST_TABLES, "activity_types", "social_accounts"]), ids: z.array(z.uuid()).min(1) });
 
 export const activityTypeSchema = z.object({
   id: z.uuid().optional(),

@@ -83,7 +83,7 @@ export async function setListItemActive(input: { table: ListTable; id: string; a
   return ok();
 }
 
-export async function reorderList(input: { table: ListTable | "activity_types"; ids: string[] }): Promise<ActionResult> {
+export async function reorderList(input: { table: ListTable | "activity_types" | "social_accounts"; ids: string[] }): Promise<ActionResult> {
   const parsed = parseInput(reorderSchema, input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();

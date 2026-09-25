@@ -15,6 +15,7 @@ import { PageHeader, Panel, PanelHeader, StatBlock, StatGrid } from "@/component
 import { PaceBar } from "@/components/common/pace-bar";
 import { SelectField } from "@/components/common/select-field";
 import { DrilldownSheet, type DrillRequest } from "@/components/metrics/drilldown-sheet";
+import { PerformanceTabs } from "./performance-tabs";
 import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
 import { RANGE_PRESET_LABELS, eachDay, isWeekend, todayIn, weekdayShort, type RangePreset } from "@/lib/dates";
@@ -121,6 +122,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
 
   return (
     <>
+      {isFounder && lists.socialAccounts.length > 0 && <PerformanceTabs active="sales" />}
       <PageHeader
         title={title}
         actions={
@@ -147,7 +149,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
                   value={f.person}
                   onChange={(v) => setParams({ person: v })}
                   noneLabel="All"
-                  options={lists.members.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+                  options={lists.salesMembers.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
                   className="h-8"
                 />
               </div>

@@ -116,7 +116,12 @@ export const TARGET_METRICS: TargetMetric[] = [
   "replies",
   "meetings_booked",
   "proposals_sent",
+  "posts_published",
 ];
+
+/** Metrics that apply to each role: sales for BDs, posting for social media managers (docs/09 section 1). */
+export const SALES_TARGET_METRICS: TargetMetric[] = TARGET_METRICS.filter((m) => m !== "posts_published");
+export const SOCIAL_TARGET_METRICS: TargetMetric[] = ["posts_published"];
 
 export const METRIC_LABELS: Record<TargetMetric, string> = {
   leads_added: "Leads added",
@@ -125,8 +130,25 @@ export const METRIC_LABELS: Record<TargetMetric, string> = {
   replies: "Replies",
   meetings_booked: "Meetings booked",
   proposals_sent: "Proposals sent",
+  posts_published: "Posts published",
 };
 
-export const TASK_METRICS: TaskMetric[] = ["leads_added", "outreach", "follow_ups", "replies", "meetings_booked"];
+export const TASK_METRICS: TaskMetric[] = [
+  "leads_added",
+  "outreach",
+  "follow_ups",
+  "replies",
+  "meetings_booked",
+  "posts_published",
+];
+export const SALES_TASK_METRICS: TaskMetric[] = TASK_METRICS.filter((m) => m !== "posts_published");
 
-export const ROLE_LABELS: Record<Role, string> = { founder: "Founder", bd: "BD" };
+export const ROLE_LABELS: Record<Role, string> = { founder: "Founder", bd: "BD", social: "Social media manager" };
+
+/** Roles the founder can give a team member (the founder role never changes). */
+export const MEMBER_ROLES = ["bd", "social"] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+/** Social media managers never see sales records (docs/09 section 1). */
+export const isSmm = (role: Role) => role === "social";
+export const isSales = (role: Role) => role === "founder" || role === "bd";

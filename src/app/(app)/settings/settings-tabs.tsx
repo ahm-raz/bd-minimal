@@ -10,6 +10,8 @@ const TABS = [
   { href: "/settings/outcomes", label: "Outcomes and stages" },
   { href: "/settings/campaigns", label: "Campaigns" },
   { href: "/settings/targets", label: "Targets" },
+  { href: "/settings/social-accounts", label: "Social accounts" },
+  { href: "/settings/pillars", label: "Content pillars" },
 ];
 
 export function SettingsTabs() {

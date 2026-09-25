@@ -137,7 +137,7 @@ export function PipelineView({ cards, totals, filters }: { cards: PipelineCard[]
               value={filters.owner}
               onChange={(v) => setParams({ owner: v })}
               noneLabel="Everyone"
-              options={lists.members.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+              options={lists.salesMembers.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
               className="h-8"
             />
           </div>

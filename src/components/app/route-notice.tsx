@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 const NOTICES: Record<string, string> = {
   "founder-only": "That page is for the founder.",
+  "role-only": "That page isn't part of your role.",
 };
 
 /** Shows a toast for `?notice=` set by the proxy, then removes it from the URL. */

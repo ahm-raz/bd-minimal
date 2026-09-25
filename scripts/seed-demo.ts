@@ -6,10 +6,14 @@
  * Creates the demo team, targets, campaigns, ~60 leads per BD over the last 21 days, ~3 activities
  * per lead, 12 opportunities (2 won, 2 lost), tasks and one flagged lead. Rows are written with the
  * admin client and explicit created_by / user_id, so triggers credit the right person.
+ *
+ * Social media module (docs/09 section 8): Hina (social media manager), two LinkedIn accounts, two
+ * posting schedules and their posts from two weeks back to a week ahead, in every status.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
+import { TZDate } from "@date-fns/tz";
 import type { Database } from "../src/lib/database.types";
 
 const env: Record<string, string> = { ...process.env } as Record<string, string>;
@@ -65,7 +69,10 @@ const TEAM = [
   { key: "ahmed", name: "Ahmed Khan", email: "ahmed@example.com", tz: "Asia/Karachi", niche: "Dental" },
   { key: "sara", name: "Sara Iqbal", email: "sara@example.com", tz: "Asia/Karachi", niche: "Law" },
   { key: "bilal", name: "Bilal Aslam", email: "bilal@example.com", tz: "Europe/Berlin", niche: "AI SaaS" },
+  { key: "hina", name: "Hina Raza", email: "hina@example.com", tz: "Asia/Karachi", niche: null },
 ] as const;
+
+const ROLE_OF: Record<string, string> = { zain: "founder", hina: "social media manager" };
 
 const PLACES = [
   ["Austin", "TX"], ["Dallas", "TX"], ["Houston", "TX"], ["San Antonio", "TX"], ["Phoenix", "AZ"], ["Denver", "CO"],
@@ -127,7 +134,11 @@ async function main() {
     const user = created.data.user;
     ids[m.key] = user.id;
     must(
-      await db.from("profiles").update({ timezone: m.tz, primary_niche_id: m.niche ? niches[m.niche] : null }).eq("id", user.id).select("id"),
+      await db
+        .from("profiles")
+        .update({ timezone: m.tz, primary_niche_id: m.niche ? niches[m.niche] : null, ...(m.key === "hina" ? { role: "social" as const } : {}) })
+        .eq("id", user.id)
+        .select("id"),
       `profile ${m.key}`,
     );
   }
@@ -141,6 +152,7 @@ async function main() {
       { user_id: ids[k]!, metric: "meetings_booked" as const, weekly_value: 3 },
     ]),
     { user_id: ids.zain!, metric: "outreach" as const, weekly_value: 25 },
+    { user_id: ids.hina!, metric: "posts_published" as const, weekly_value: 5 },
   ];
   must(await db.from("targets").insert(targets).select("id"), "targets");
 
@@ -389,6 +401,8 @@ async function main() {
     "flag",
   );
 
+  await seedSocial(ids);
+
   // Put feed events at the time the work happened (triggers stamped them "now").
   const feed = must(await db.from("feed_events").select("id, kind, lead_id").order("id"), "feed");
   const seen = new Map<string, number>();
@@ -407,8 +421,276 @@ async function main() {
 
   console.log(`Done: ${seeded.length} leads, ${plan.length} opportunities.`);
   console.log("Sign in at http://localhost:3000/login with any of:");
-  for (const m of TEAM) console.log(`  ${m.email} / ${PASSWORD}  (${m.key === "zain" ? "founder" : "BD"})`);
+  for (const m of TEAM) console.log(`  ${m.email} / ${PASSWORD}  (${ROLE_OF[m.key] ?? "BD"})`);
 }
+
+// ---------- Social media module ------------------------------------------------------------
+
+const NY = "America/New_York";
+
+const PAGE_TITLES = [
+  "How AI intake cuts missed calls",
+  "Case study: 30% more bookings for an Austin dental clinic",
+  "3 signs your website is costing you patients",
+  "What a law firm learned from 1,000 intake calls",
+  "Tip: answer every call in under 5 seconds",
+  "Client result: 42 new consults in a month",
+  "Why after-hours calls matter more than you think",
+  "Our 3-step website migration checklist",
+  "Industry news: patients now book online first",
+  "Offer: free intake audit for 5 clinics",
+  "The cost of a missed call, in dollars",
+];
+const PROFILE_TITLES = [
+  "Lessons from our first 50 clients",
+  "Why I started BlueBugs",
+  "A day building AI intake",
+  "What founders get wrong about follow-ups",
+  "Hiring our first social media manager",
+  "The one metric I check every morning",
+];
+const CAPTIONS = [
+  "Every missed call is a lost patient. Our AI intake answers every one, books the visit and sends the summary to your front desk.\n\nHere is what changed for one Austin clinic in 30 days.",
+  "Most clinics lose 1 in 5 callers after hours. That is not a marketing problem, it is a phone problem.\n\nThree fixes you can make this week.",
+  "We tested 12 voice agents on real intake calls. Two sounded human. Here is what made the difference.",
+  "Building in public: this week we shipped call summaries straight into the practice calendar.",
+];
+
+/** Instant of a local wall-clock time on a local date in `tz` (DST-safe). */
+function at(date: string, time: string, tz: string): Date {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const [h, mi] = time.split(":").map(Number) as [number, number];
+  return new Date(new TZDate(y, m - 1, d, h, mi, 0, tz).getTime());
+}
+function addLocalDays(date: string, n: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const isoDow = (date: string) => ((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+
+type PostStatus = Database["public"]["Enums"]["post_status"];
+type Walk = { status: PostStatus; postedAt?: Date; caption?: string; changes?: string; results?: boolean };
+
+async function seedSocial(ids: Record<string, string>) {
+  const zain = ids.zain!;
+  const hina = ids.hina!;
+  const pillars = Object.fromEntries(
+    must(await db.from("content_pillars").select("id, name"), "pillars").map((p) => [p.name, p.id]),
+  ) as Record<string, string>;
+  const accounts = must(
+    await db
+      .from("social_accounts")
+      .insert([
+        { name: "BlueBugs LinkedIn page", platform: "linkedin_page", profile_url: "https://www.linkedin.com/company/bluebugs", audience_timezone: NY, sort_order: 1 },
+        { name: "Zain personal LinkedIn", platform: "linkedin_profile", profile_url: "https://www.linkedin.com/in/zain-malik", audience_timezone: NY, sort_order: 2 },
+      ])
+      .select("id, name"),
+    "social accounts",
+  );
+  const page = accounts.find((a) => a.name.startsWith("BlueBugs"))!.id;
+  const profile = accounts.find((a) => a.name.startsWith("Zain"))!.id;
+  const todayNy = localDate(new Date(), NY);
+  const startsOn = addLocalDays(todayNy, -21);
+  const schedules = must(
+    await db
+      .from("posting_schedules")
+      .insert([
+        { account_id: page, assignee_id: hina, weekdays: [1, 3, 5], local_time: "09:00", timezone: NY, default_format: "text", needs_approval: true, draft_lead_hours: 24, starts_on: startsOn, created_by: zain },
+        { account_id: profile, assignee_id: hina, weekdays: [2, 4], local_time: "12:00", timezone: NY, pillar_id: pillars["Behind the scenes"], default_format: "text", needs_approval: true, draft_lead_hours: 24, starts_on: startsOn, created_by: zain },
+      ])
+      .select("id, account_id"),
+    "schedules",
+  );
+  const pageSchedule = schedules.find((x) => x.account_id === page)!.id;
+  const profileSchedule = schedules.find((x) => x.account_id === profile)!.id;
+
+  // Every slot from 14 days back to 7 days ahead.
+  type Slot = { account: string; schedule: string; when: Date; title: string; pillar: string | null };
+  const slots: Slot[] = [];
+  let pi = 0;
+  let qi = 0;
+  const pagePillars = ["Case study", "Tip or how-to", "Client result", "Industry news", "Offer"];
+  for (let i = -14; i <= 7; i++) {
+    const d = addLocalDays(todayNy, i);
+    const dow = isoDow(d);
+    if ([1, 3, 5].includes(dow)) {
+      slots.push({ account: page, schedule: pageSchedule, when: at(d, "09:00", NY), title: PAGE_TITLES[pi % PAGE_TITLES.length]!, pillar: pillars[pagePillars[pi % pagePillars.length]!] ?? null });
+      pi++;
+    }
+    if ([2, 4].includes(dow)) {
+      slots.push({ account: profile, schedule: profileSchedule, when: at(d, "12:00", NY), title: PROFILE_TITLES[qi % PROFILE_TITLES.length]!, pillar: pillars["Behind the scenes"] ?? null });
+      qi++;
+    }
+  }
+  const now = Date.now();
+  const past = slots.filter((x) => x.when.getTime() + 2 * 3600_000 < now);
+  const future = slots.filter((x) => x.when.getTime() + 2 * 3600_000 >= now);
+
+  // Past: mostly on time with results; the 3rd and 7th most recent missed; the 5th posted 3 hours late.
+  const plan = new Map<Slot, Walk>();
+  [...past].reverse().forEach((slot, i) => {
+    const caption = CAPTIONS[i % CAPTIONS.length];
+    if (i === 2 || i === 6) plan.set(slot, { status: "missed", caption });
+    else if (i === 4) plan.set(slot, { status: "posted", postedAt: new Date(slot.when.getTime() + 3 * 3600_000), caption, results: true });
+    else plan.set(slot, { status: "posted", postedAt: new Date(slot.when.getTime() + Math.floor(rand() * 25) * 60_000), caption, results: true });
+  });
+  // Ahead: the next one approved, then two in review, one with changes requested, one drafting; the rest planned.
+  const ahead: Walk[] = [
+    { status: "approved", caption: CAPTIONS[0] },
+    { status: "in_review", caption: CAPTIONS[1] },
+    { status: "in_review", caption: CAPTIONS[2] },
+    { status: "changes_requested", caption: CAPTIONS[3], changes: "Open with the number, not the story. Keep it under 150 words." },
+    { status: "drafting", caption: "Every clinic we audit loses calls at lunch." },
+  ];
+  future.forEach((slot, i) => plan.set(slot, ahead[i] ?? { status: "planned" }));
+
+  const FLOW: Record<string, PostStatus[]> = {
+    planned: [],
+    drafting: ["drafting"],
+    in_review: ["drafting", "in_review"],
+    changes_requested: ["drafting", "in_review", "changes_requested"],
+    approved: ["drafting", "in_review", "approved"],
+    posted: ["drafting", "in_review", "approved", "posted"],
+    missed: ["drafting", "missed"],
+  };
+  const KIND: Record<string, string> = {
+    in_review: "post_submitted",
+    approved: "post_approved",
+    changes_requested: "changes_requested",
+    posted: "post_published",
+    missed: "post_missed",
+  };
+
+  for (const [slot, walk] of plan) {
+    const post = must(
+      await db
+        .from("posts")
+        .insert({
+          account_id: slot.account,
+          assignee_id: hina,
+          created_by: zain,
+          schedule_id: slot.schedule,
+          title: slot.title,
+          pillar_id: slot.pillar,
+          format: "text",
+          scheduled_at: slot.when.toISOString(),
+          timezone: NY,
+          needs_approval: true,
+          status: "planned",
+        })
+        .select("id")
+        .single(),
+      "post",
+    );
+    for (const to of FLOW[walk.status] ?? []) {
+      const update: Database["public"]["Tables"]["posts"]["Update"] = { status: to };
+      if (to === "drafting") update.caption = walk.caption;
+      if (to === "changes_requested" && walk.changes) {
+        must(await db.from("post_comments").insert({ post_id: post.id, author_id: zain, kind: "change_request", body: walk.changes }).select("id"), "comment");
+      }
+      if (to === "approved") {
+        must(await db.from("post_comments").insert({ post_id: post.id, author_id: zain, kind: "approval", body: "Approved." }).select("id"), "approval");
+      }
+      if (to === "posted") {
+        update.posted_at = walk.postedAt!.toISOString();
+        update.post_url = `https://www.linkedin.com/feed/update/urn:li:activity:73${String(Math.floor(rand() * 1e15)).padStart(15, "0")}`;
+      }
+      must(await db.from("posts").update(update).eq("id", post.id).select("id"), `post ${to}`);
+    }
+    if (walk.results) {
+      const impressions = 400 + Math.floor(rand() * 2200);
+      must(
+        await db
+          .from("posts")
+          .update({
+            impressions,
+            reactions: Math.floor(impressions * (0.02 + rand() * 0.03)),
+            comments_count: Math.floor(rand() * 14),
+            shares: Math.floor(rand() * 8),
+            clicks: Math.floor(rand() * 40),
+          })
+          .eq("id", post.id)
+          .select("id"),
+        "results",
+      );
+      await db
+        .from("posts")
+        .update({ results_recorded_at: new Date(Math.min(now, walk.postedAt!.getTime() + 2 * DAY)).toISOString() })
+        .eq("id", post.id);
+    }
+
+    // History and feed at the time the work happened, by the right person.
+    const end =
+      walk.status === "posted" ? walk.postedAt!.getTime() : walk.status === "missed" ? slot.when.getTime() + 2 * 3600_000 : now - 3600_000;
+    const begin = Math.min(slot.when.getTime() - 3 * DAY, end - 2 * DAY);
+    await db.from("posts").update({ created_at: new Date(begin).toISOString() }).eq("id", post.id);
+    const events = must(await db.from("post_status_events").select("id, to_status").eq("post_id", post.id).order("id"), "events");
+    const feed = must(await db.from("feed_events").select("id, kind").eq("post_id", post.id).order("id"), "post feed");
+    let fi = 0;
+    for (let e = 0; e < events.length; e++) {
+      const ev = events[e]!;
+      const when = new Date(e === events.length - 1 ? end : begin + ((end - begin) * e) / Math.max(1, events.length - 1));
+      const by = ["planned", "approved", "changes_requested"].includes(ev.to_status) ? zain : ev.to_status === "missed" ? null : hina;
+      await db.from("post_status_events").update({ changed_at: when.toISOString(), changed_by: by }).eq("id", ev.id);
+      const f = feed[fi];
+      if (f && f.kind === KIND[ev.to_status]) {
+        await db.from("feed_events").update({ created_at: when.toISOString(), actor_id: by }).eq("id", f.id);
+        fi++;
+      }
+    }
+    await db.from("post_comments").update({ created_at: new Date(end - 30 * 60_000).toISOString() }).eq("post_id", post.id);
+  }
+
+  // A one-off post from the founder and an idea from Hina.
+  must(
+    await db
+      .from("posts")
+      .insert([
+        {
+          account_id: page,
+          assignee_id: hina,
+          created_by: zain,
+          title: "Announcing our law firm intake product",
+          brief: "Short launch post. Link to the demo video.",
+          pillar_id: pillars.Offer,
+          format: "video",
+          scheduled_at: at(addLocalDays(todayNy, 3), "15:00", NY).toISOString(),
+          timezone: NY,
+          needs_approval: true,
+          status: "planned",
+        },
+        {
+          account_id: page,
+          assignee_id: hina,
+          created_by: hina,
+          title: "Carousel: 5 intake mistakes clinics make",
+          brief: "Could reuse the audit findings.",
+          pillar_id: pillars["Tip or how-to"],
+          format: "carousel",
+          scheduled_at: null,
+          timezone: NY,
+          needs_approval: true,
+          status: "idea",
+        },
+      ])
+      .select("id"),
+    "one-off posts",
+  );
+
+  // Repeating count task: publish today's scheduled posts.
+  const hinaToday = localDate(new Date(), "Asia/Karachi");
+  must(
+    await db
+      .from("task_templates")
+      .insert({ assignee_id: hina, created_by: zain, title: "Publish today's scheduled posts", kind: "count", metric: "posts_published", target_count: 1, starts_on: hinaToday })
+      .select("id"),
+    "social template",
+  );
+  await db.rpc("ensure_recurring_tasks", { p_user: hina, p_day: hinaToday });
+  console.log(`Social: ${plan.size + 2} posts for Hina across 2 accounts.`);
+}
+
 
 main().catch((e) => {
   console.error(e);

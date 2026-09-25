@@ -29,13 +29,21 @@ export default async function TeamPage() {
           .select("id", { count: "exact", head: true })
           .eq("owner_id", m.id)
           .not("status", "in", `(${CLOSED_LEAD_STATUSES.join(",")})`),
-        supabase
-          .from("activities")
-          .select("occurred_at")
-          .eq("user_id", m.id)
-          .order("occurred_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+        m.role === "social"
+          ? supabase
+              .from("post_status_events")
+              .select("occurred_at:changed_at")
+              .eq("changed_by", m.id)
+              .order("changed_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : supabase
+              .from("activities")
+              .select("occurred_at")
+              .eq("user_id", m.id)
+              .order("occurred_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
       ]);
       const status: TeamRow["status"] = !m.is_active ? "deactivated" : lastSignIn.get(m.id) ? "active" : "invited";
       return { ...m, status, openLeads: count ?? 0, lastActive: last?.occurred_at ?? null };

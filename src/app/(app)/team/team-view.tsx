@@ -3,7 +3,7 @@
 import { RelativeTime } from "@/components/common/relative-time";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +32,8 @@ import { PageHeader, Panel } from "@/components/common/page";
 import { SelectField } from "@/components/common/select-field";
 import { TimezoneSelect } from "@/components/common/timezone-select";
 import { useProfile } from "@/components/app/profile-provider";
-import { ROLE_LABELS } from "@/lib/domain";
+import { MEMBER_ROLES, ROLE_LABELS } from "@/lib/domain";
+import type { z } from "zod";
 import { formatNumber, firstName } from "@/lib/format";
 import { applyFieldErrors } from "@/lib/forms";
 import { inviteSchema, memberEditSchema, type InviteInput, type MemberEditInput } from "@/lib/validation/auth";
@@ -124,7 +125,9 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
                     <TableCell>
                       <Chip tone={chip.tone}>{chip.label}</Chip>
                     </TableCell>
-                    <TableCell className="num text-right">{formatNumber(r.openLeads)}</TableCell>
+                    <TableCell className="num text-right">
+                      {r.role === "social" ? <span className="text-ink-muted">None</span> : formatNumber(r.openLeads)}
+                    </TableCell>
                     <TableCell className="text-ink-muted">
                       {r.lastActive ? <RelativeTime at={r.lastActive} tz={timezone} /> : "No activity yet"}
                     </TableCell>
@@ -240,7 +243,7 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
         <ReassignDialog
           key={reassigning.row.id}
           from={reassigning.row}
-          candidates={activeMembers.filter((m) => m.id !== reassigning.row.id)}
+          candidates={activeMembers.filter((m) => m.id !== reassigning.row.id && m.role !== "social")}
           onClose={() => setReassigning(null)}
         />
       )}
@@ -260,9 +263,13 @@ function InviteSheet({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
-  const empty: InviteInput = { fullName: "", email: "", primaryNicheId: "", timezone: "Asia/Karachi" };
-  const form = useForm<InviteInput>({ resolver: zodResolver(inviteSchema), defaultValues: empty });
+  const empty: InviteInput = { fullName: "", email: "", role: "bd", primaryNicheId: null, timezone: "Asia/Karachi" };
+  const form = useForm<InviteInput, unknown, z.output<typeof inviteSchema>>({
+    resolver: zodResolver(inviteSchema),
+    defaultValues: empty,
+  });
   const errors = form.formState.errors;
+  const role = useWatch({ control: form.control, name: "role" });
 
   const close = () => {
     form.reset(empty);
@@ -321,22 +328,38 @@ function InviteSheet({
         <FormField label="Email" htmlFor="invite-email" required error={errors.email?.message}>
           <Input id="invite-email" type="email" aria-invalid={!!errors.email} {...form.register("email")} />
         </FormField>
-        <FormField label="Primary niche" htmlFor="invite-niche" required error={errors.primaryNicheId?.message}>
+        <FormField label="Role" htmlFor="invite-role" required error={errors.role?.message}>
           <Controller
             control={form.control}
-            name="primaryNicheId"
+            name="role"
             render={({ field }) => (
               <SelectField
-                id="invite-niche"
-                value={field.value || null}
-                onChange={(v) => field.onChange(v ?? "")}
-                options={niches.filter((n) => n.is_active).map((n) => ({ value: n.id, label: n.name }))}
-                placeholder="Pick a niche"
-                invalid={!!errors.primaryNicheId}
+                id="invite-role"
+                value={field.value ?? "bd"}
+                onChange={(v) => field.onChange(v ?? "bd")}
+                options={MEMBER_ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
               />
             )}
           />
         </FormField>
+        {role !== "social" && (
+          <FormField label="Primary niche" htmlFor="invite-niche" required error={errors.primaryNicheId?.message}>
+            <Controller
+              control={form.control}
+              name="primaryNicheId"
+              render={({ field }) => (
+                <SelectField
+                  id="invite-niche"
+                  value={field.value || null}
+                  onChange={(v) => field.onChange(v ?? null)}
+                  options={niches.filter((n) => n.is_active).map((n) => ({ value: n.id, label: n.name }))}
+                  placeholder="Pick a niche"
+                  invalid={!!errors.primaryNicheId}
+                />
+              )}
+            />
+          </FormField>
+        )}
         <FormField label="Time zone" htmlFor="invite-tz" required error={errors.timezone?.message}>
           <Controller
             control={form.control}
@@ -357,6 +380,7 @@ function EditSheet({ member, niches, onClose }: { member: TeamRow; niches: ListI
     defaultValues: {
       id: member.id,
       fullName: member.full_name,
+      role: member.role === "founder" ? undefined : member.role,
       primaryNicheId: member.primary_niche_id,
       timezone: member.timezone,
     },
@@ -401,6 +425,29 @@ function EditSheet({ member, niches, onClose }: { member: TeamRow; niches: ListI
         <FormField label="Full name" htmlFor="member-name" required error={errors.fullName?.message}>
           <Input id="member-name" aria-invalid={!!errors.fullName} {...form.register("fullName")} />
         </FormField>
+        {member.role !== "founder" && (
+          <FormField
+            label="Role"
+            htmlFor="member-role"
+            required
+            error={errors.role?.message}
+            helper="A social media manager can't see leads or deals."
+          >
+            <Controller
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <SelectField
+                  id="member-role"
+                  value={field.value ?? "bd"}
+                  onChange={(v) => field.onChange(v ?? "bd")}
+                  options={MEMBER_ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+                  invalid={!!errors.role}
+                />
+              )}
+            />
+          </FormField>
+        )}
         <FormField label="Primary niche" htmlFor="member-niche" error={errors.primaryNicheId?.message}>
           <Controller
             control={form.control}

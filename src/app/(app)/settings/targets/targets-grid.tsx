@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Panel } from "@/components/common/page";
-import { METRIC_LABELS, TARGET_METRICS, type TargetMetric } from "@/lib/domain";
+import { METRIC_LABELS, SOCIAL_TARGET_METRICS, TARGET_METRICS, type TargetMetric } from "@/lib/domain";
 import { dailyTarget } from "@/lib/metrics";
 import { formatNumber } from "@/lib/format";
 import { saveTarget } from "@/server/actions/settings";
@@ -60,7 +60,7 @@ export function TargetsGrid({
   return (
     <>
       <p className="prose-width mb-4 text-small text-ink-muted">
-        Weekly numbers per person. The daily target is the weekly number divided by 5. Leave a cell empty for no target.
+        Weekly numbers per person. The daily target is the weekly number divided by 5. Leave a cell empty for no target. Posts published applies to social media managers only.
       </p>
       <Panel className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -86,6 +86,17 @@ export function TargetsGrid({
                     const raw = values[key] ?? "";
                     const n = Number(raw);
                     const error = errors[key];
+                    // Sales targets are for the founder and BDs; Posts published is for social media managers.
+                    const applies = (m.role === "social") === SOCIAL_TARGET_METRICS.includes(metric);
+                    if (!applies) {
+                      return (
+                        <TableCell key={metric} className="text-right align-top">
+                          <span className="inline-block pt-1.5 text-small text-ink-faint" aria-label="Not used for this role">
+                            &ndash;
+                          </span>
+                        </TableCell>
+                      );
+                    }
                     return (
                       <TableCell key={metric} className="align-top">
                         <div className="ml-auto flex w-24 flex-col items-end gap-0.5">

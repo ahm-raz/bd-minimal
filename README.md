@@ -54,6 +54,7 @@ After `pnpm seed:demo`, every account uses the password `demo-password-123`:
 | ahmed@example.com | BD (Dental) | Asia/Karachi |
 | sara@example.com | BD (Law) | Asia/Karachi |
 | bilal@example.com | BD (AI SaaS) | Europe/Berlin |
+| hina@example.com | Social media manager | Asia/Karachi |
 
 ## Local URLs
 

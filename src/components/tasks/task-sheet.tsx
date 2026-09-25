@@ -21,10 +21,12 @@ import { FormField } from "@/components/common/form-field";
 import { FormSheet } from "@/components/common/form-sheet";
 import { SelectField } from "@/components/common/select-field";
 import { useApp } from "@/components/app/app-provider";
-import { METRIC_LABELS, TASK_METRICS } from "@/lib/domain";
+import { METRIC_LABELS, SALES_TASK_METRICS } from "@/lib/domain";
 import { applyFieldErrors } from "@/lib/forms";
 import { COMMON_TASKS, countTaskTitle, taskFormSchema, type TaskData, type TaskFormValues } from "@/lib/validation/task";
 import { createTask, searchLinkTargets, updateTask, updateTemplate, type LinkOption } from "@/server/actions/tasks";
+
+const SOCIAL_TASK_METRICS = ["posts_published"] as const;
 
 export type TaskSheetState =
   | { mode: "new"; defaults?: Partial<TaskFormValues> }
@@ -69,6 +71,14 @@ export function TaskSheet({ state, onClose, defaultDate }: { state: TaskSheetSta
   }, [kind, metric, target, setValue, titleTouched]);
 
   const members = lists.members.filter((m) => m.is_active);
+  // Social media managers count posts; everyone else counts sales work (docs/09 section 1).
+  const assigneeIsSmm = lists.members.find((m) => m.id === assigneeId)?.role === "social";
+  const metricOptions = assigneeIsSmm ? SOCIAL_TASK_METRICS : SALES_TASK_METRICS;
+  useEffect(() => {
+    if (kind !== "count" || !metric) return;
+    const ok = (metricOptions as readonly string[]).includes(metric);
+    if (!ok) setValue("metric", metricOptions[0]!);
+  }, [kind, metric, metricOptions, setValue]);
   const editingOne = state.mode !== "new";
   const [linkLabel, setLinkLabel] = useState<string | null>(state.mode === "edit" ? (state.linkLabel ?? null) : null);
 
@@ -185,7 +195,7 @@ export function TaskSheet({ state, onClose, defaultDate }: { state: TaskSheetSta
                     value={field.value ?? null}
                     onChange={field.onChange}
                     placeholder="Pick what to count"
-                    options={TASK_METRICS.map((m) => ({ value: m, label: METRIC_LABELS[m] }))}
+                    options={metricOptions.map((m) => ({ value: m, label: METRIC_LABELS[m] }))}
                   />
                 )}
               />

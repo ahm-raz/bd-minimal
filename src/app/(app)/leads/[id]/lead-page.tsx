@@ -395,7 +395,7 @@ function ReassignDialog({
             value={toId}
             onChange={setToId}
             placeholder="Pick a person"
-            options={lists.members.filter((m) => m.is_active && m.id !== currentOwner).map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+            options={lists.salesMembers.filter((m) => m.is_active && m.id !== currentOwner).map((m) => ({ value: m.id, label: m.full_name || m.email }))}
             invalid={!!error}
           />
         </FormField>

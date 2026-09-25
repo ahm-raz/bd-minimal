@@ -33,6 +33,7 @@ function toEvent(row: Record<string, unknown>): FeedEvent {
     leadId: (row.lead_id as string | null) ?? null,
     opportunityId: (row.opportunity_id as string | null) ?? null,
     taskId: (row.task_id as string | null) ?? null,
+    postId: (row.post_id as string | null) ?? null,
     summary: String(row.summary),
     createdAt: String(row.created_at),
   };
@@ -288,6 +289,13 @@ export function FeedView({
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setFlagging(e)}>
                         Flag lead
+                      </Button>
+                    </span>
+                  )}
+                  {e.postId && (
+                    <span className="flex shrink-0 gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                      <Button asChild variant="secondary" size="sm">
+                        <Link href={`/content?post=${e.postId}`}>Open</Link>
                       </Button>
                     </span>
                   )}

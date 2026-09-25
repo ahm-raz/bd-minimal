@@ -5,7 +5,14 @@ import type { Database } from "@/lib/database.types";
 // Pages anyone may open without a session.
 const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz"];
 // Pages only the founder may open (docs/03, Sessions).
-const FOUNDER_PREFIXES = ["/feed", "/team", "/settings"];
+const FOUNDER_PREFIXES = ["/feed", "/team", "/settings", "/content/schedules"];
+// Pages outside a role's work (docs/09 section 1): social media managers never see sales pages,
+// and BDs don't use Content.
+const ROLE_BLOCKED: Record<string, string[]> = {
+  social: ["/leads", "/pipeline", "/feed", "/team", "/settings"],
+  bd: ["/content"],
+};
+const ROLE_CHECKED = [...new Set([...FOUNDER_PREFIXES, ...Object.values(ROLE_BLOCKED).flat()])];
 
 function matches(pathname: string, prefixes: string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -63,9 +70,13 @@ export async function proxy(request: NextRequest) {
     return redirect("/my-day");
   }
 
-  if (matches(pathname, FOUNDER_PREFIXES)) {
+  if (matches(pathname, ROLE_CHECKED)) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-    if (profile?.role !== "founder") {
+    const role = profile?.role ?? "";
+    if (matches(pathname, ROLE_BLOCKED[role] ?? [])) {
+      return redirect("/my-day", { notice: "role-only" });
+    }
+    if (role !== "founder" && matches(pathname, FOUNDER_PREFIXES)) {
       return redirect("/my-day", { notice: "founder-only" });
     }
   }

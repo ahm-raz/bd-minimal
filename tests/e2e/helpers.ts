@@ -6,12 +6,16 @@ import { ANON_KEY, MAILPIT_URL, SERVICE_KEY, SUPABASE_URL } from "./env";
 export const PASSWORD = "test-password-123";
 
 export type Who = "zain" | "ahmed" | "sara" | "bilal";
+/** Everyone the tests can sign in as: the sales team plus the social media manager (docs/09). */
+export type Member = Who | "hina";
 
-export const TEAM: Record<Who, { name: string; email: string; timezone: string; niche: string | null }> = {
+export const TEAM: Record<Member, { name: string; email: string; timezone: string; niche: string | null }> = {
   zain: { name: "Zain Malik", email: "zain@example.com", timezone: "Asia/Karachi", niche: null },
   ahmed: { name: "Ahmed Khan", email: "ahmed@example.com", timezone: "Asia/Karachi", niche: "Dental" },
   sara: { name: "Sara Iqbal", email: "sara@example.com", timezone: "Asia/Karachi", niche: "Law" },
   bilal: { name: "Bilal Aslam", email: "bilal@example.com", timezone: "Europe/Berlin", niche: "AI SaaS" },
+  // Social media manager (docs/09). Created only by the specs that need her, so earlier team counts hold.
+  hina: { name: "Hina Raza", email: "hina@example.com", timezone: "Asia/Karachi", niche: null },
 };
 
 let adminClient: SupabaseClient<Database> | undefined;
@@ -25,7 +29,7 @@ export function admin(): SupabaseClient<Database> {
 }
 
 /** A supabase-js client signed in as a team member: requests go through RLS like the app's. */
-export async function clientAs(who: Who): Promise<SupabaseClient<Database>> {
+export async function clientAs(who: Member): Promise<SupabaseClient<Database>> {
   const c = createClient<Database>(SUPABASE_URL, ANON_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -34,7 +38,7 @@ export async function clientAs(who: Who): Promise<SupabaseClient<Database>> {
   return c;
 }
 
-export async function profileId(who: Who): Promise<string | null> {
+export async function profileId(who: Member): Promise<string | null> {
   const { data } = await admin().from("profiles").select("id").eq("email", TEAM[who].email).maybeSingle();
   return data?.id ?? null;
 }
@@ -45,7 +49,7 @@ async function nicheId(name: string): Promise<string | null> {
 }
 
 /** Create one member through the admin API (first ever user becomes founder by trigger). */
-export async function ensureUser(who: Who): Promise<string> {
+export async function ensureUser(who: Member): Promise<string> {
   const existing = await profileId(who);
   if (existing) return existing;
   const t = TEAM[who];
@@ -59,7 +63,11 @@ export async function ensureUser(who: Who): Promise<string> {
   const id = data.user.id;
   const { error: upErr } = await admin()
     .from("profiles")
-    .update({ timezone: t.timezone, primary_niche_id: t.niche ? await nicheId(t.niche) : null })
+    .update({
+      timezone: t.timezone,
+      primary_niche_id: t.niche ? await nicheId(t.niche) : null,
+      ...(who === "hina" ? { role: "social" as const } : {}),
+    })
     .eq("id", id);
   if (upErr) throw new Error(upErr.message);
   return id;
@@ -74,7 +82,7 @@ export async function ensureTeam(): Promise<Record<Who, string>> {
   return { zain, ahmed, sara, bilal };
 }
 
-export async function signIn(page: Page, who: Who | { email: string; password: string }) {
+export async function signIn(page: Page, who: Member | { email: string; password: string }) {
   const creds = typeof who === "string" ? { email: TEAM[who].email, password: PASSWORD } : who;
   await page.context().clearCookies();
   await page.goto("/login");

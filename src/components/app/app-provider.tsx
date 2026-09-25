@@ -10,6 +10,9 @@ export type LeadSheetState =
 
 export type LogSheetState = { leadId: string; contactId?: string | null };
 
+/** The post side panel (docs/09 section 4): a new post (founder), a new idea (SMM), or an existing post. */
+export type PostSheetState = { mode: "new"; day?: string } | { mode: "idea" } | { mode: "open"; id: string };
+
 type AppContextValue = {
   lists: Lists;
   leadSheet: LeadSheetState | null;
@@ -22,6 +25,9 @@ type AppContextValue = {
   /** The lead page registers its lead so the L shortcut knows what to log against. */
   currentLeadId: string | null;
   setCurrentLeadId: (id: string | null) => void;
+  postSheet: PostSheetState | null;
+  openPostSheet: (state: PostSheetState) => void;
+  closePostSheet: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -36,6 +42,9 @@ export function AppProvider({ lists, children }: { lists: Lists; children: React
   const openLogActivity = useCallback((state: LogSheetState) => setLogSheet(state), []);
   const closeLogActivity = useCallback(() => setLogSheet(null), []);
   const [currentLeadId, setCurrentLeadId] = useState<string | null>(null);
+  const [postSheet, setPostSheet] = useState<PostSheetState | null>(null);
+  const openPostSheet = useCallback((state: PostSheetState) => setPostSheet(state), []);
+  const closePostSheet = useCallback(() => setPostSheet(null), []);
 
   const value = useMemo(
     () => ({
@@ -49,8 +58,24 @@ export function AppProvider({ lists, children }: { lists: Lists; children: React
       closeLogActivity,
       currentLeadId,
       setCurrentLeadId,
+      postSheet,
+      openPostSheet,
+      closePostSheet,
     }),
-    [lists, leadSheet, openNewLead, openEditLead, closeLeadSheet, logSheet, openLogActivity, closeLogActivity, currentLeadId],
+    [
+      lists,
+      leadSheet,
+      openNewLead,
+      openEditLead,
+      closeLeadSheet,
+      logSheet,
+      openLogActivity,
+      closeLogActivity,
+      currentLeadId,
+      postSheet,
+      openPostSheet,
+      closePostSheet,
+    ],
   );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

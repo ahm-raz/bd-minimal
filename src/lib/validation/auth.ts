@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MEMBER_ROLES } from "@/lib/domain";
 import { isValidTimeZone } from "@/lib/dates";
 
 export const emailField = z
@@ -45,17 +46,28 @@ export const setupSchema = z.object({
 });
 export type SetupInput = z.infer<typeof setupSchema>;
 
-export const inviteSchema = z.object({
-  fullName: fullNameField,
-  email: emailField,
-  primaryNicheId: z.uuid("Pick a niche."),
-  timezone: timezoneField,
-});
-export type InviteInput = z.infer<typeof inviteSchema>;
+/** Roles the founder gives a member: BD (sales) or Social media manager (docs/09 section 1). */
+export const memberRoleField = z.enum(MEMBER_ROLES, "Pick a role.");
+
+/** A BD needs a primary niche; a social media manager doesn't. */
+export const inviteSchema = z
+  .object({
+    fullName: fullNameField,
+    email: emailField,
+    role: memberRoleField.default("bd"),
+    primaryNicheId: z.uuid("Pick a niche.").nullable().optional().transform((v) => v ?? null),
+    timezone: timezoneField,
+  })
+  .superRefine((v, ctx) => {
+    if (v.role === "bd" && !v.primaryNicheId) ctx.addIssue({ code: "custom", path: ["primaryNicheId"], message: "Pick a niche." });
+  });
+export type InviteInput = z.input<typeof inviteSchema>;
 
 export const memberEditSchema = z.object({
   id: z.uuid(),
   fullName: fullNameField,
+  /** Ignored for the founder, whose role never changes. */
+  role: memberRoleField.optional(),
   primaryNicheId: z.uuid("Pick a niche.").nullable(),
   timezone: timezoneField,
 });

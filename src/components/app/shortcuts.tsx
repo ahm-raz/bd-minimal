@@ -20,7 +20,8 @@ function overlayOpen(): boolean {
 /**
  * Global keyboard shortcuts (docs/06 section 6):
  * N new lead, L log activity (lead page or focused My Day row), / focus search,
- * T new task (founder), G then M / L / P to go to My Day / Leads / Pipeline. Esc closes panels (Radix).
+ * T new task (founder), G then M / L / P / C to go to My Day / Leads / Pipeline / Content. Esc closes panels (Radix).
+ * Social media managers have no sales shortcuts (N, L, /, G L, G P) (docs/09 section 1).
  */
 export function Shortcuts() {
   const router = useRouter();
@@ -36,7 +37,13 @@ export function Shortcuts() {
 
       if (gPressed.current && Date.now() - gPressed.current < 1200) {
         gPressed.current = 0;
-        const dest = { m: "/my-day", l: "/leads", p: "/pipeline" }[key];
+        const dests: Record<string, string> =
+          role === "social"
+            ? { m: "/my-day", c: "/content" }
+            : role === "founder"
+              ? { m: "/my-day", l: "/leads", p: "/pipeline", c: "/content" }
+              : { m: "/my-day", l: "/leads", p: "/pipeline" };
+        const dest = dests[key];
         if (dest) {
           e.preventDefault();
           router.push(dest);
@@ -48,6 +55,10 @@ export function Shortcuts() {
         case "g":
           gPressed.current = Date.now();
           return;
+      }
+      if (role === "social") return;
+
+      switch (key) {
         case "n":
           e.preventDefault();
           openNewLead();

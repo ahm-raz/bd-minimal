@@ -1,7 +1,8 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { ActivityCategory } from "@/lib/domain";
+import type { ActivityCategory, Role } from "@/lib/domain";
+import type { Database } from "@/lib/database.types";
 
 export type ListItem = { id: string; name: string; sort_order: number; is_active: boolean };
 export type ActivityTypeItem = ListItem & { category: ActivityCategory; default_channel_id: string | null };
@@ -28,10 +29,20 @@ export type MemberItem = {
   id: string;
   full_name: string;
   email: string;
-  role: "founder" | "bd";
+  role: Role;
   is_active: boolean;
   timezone: string;
   primary_niche_id: string | null;
+};
+
+export type SocialAccountItem = {
+  id: string;
+  name: string;
+  platform: Database["public"]["Enums"]["social_platform"];
+  profile_url: string | null;
+  audience_timezone: string;
+  is_active: boolean;
+  sort_order: number;
 };
 
 export type Lists = {
@@ -44,13 +55,17 @@ export type Lists = {
   stages: StageItem[];
   campaigns: CampaignItem[];
   members: MemberItem[];
+  /** Founder and BDs: the people who can own leads and deals (social media managers never do). */
+  salesMembers: MemberItem[];
+  socialAccounts: SocialAccountItem[];
+  pillars: ListItem[];
 };
 
 /** All settings lists (including hidden items, so old records still show their labels). Once per request. */
 export const getLists = cache(async (): Promise<Lists> => {
   const supabase = await createClient();
   const cols = "id, name, sort_order, is_active";
-  const [niches, channels, sources, lostReasons, activityTypes, outcomes, stages, campaigns, members] = await Promise.all([
+  const [niches, channels, sources, lostReasons, activityTypes, outcomes, stages, campaigns, members, socialAccounts, pillars] = await Promise.all([
     supabase.from("niches").select(cols).order("sort_order").order("name"),
     supabase.from("channels").select(cols).order("sort_order").order("name"),
     supabase.from("lead_sources").select(cols).order("sort_order").order("name"),
@@ -60,6 +75,12 @@ export const getLists = cache(async (): Promise<Lists> => {
     supabase.from("stages").select("*").order("sort_order"),
     supabase.from("campaigns").select("id, name, niche_id, channel_id, owner_id, status, notes").order("name"),
     supabase.from("profiles").select("id, full_name, email, role, is_active, timezone, primary_niche_id").order("role").order("full_name"),
+    supabase
+      .from("social_accounts")
+      .select("id, name, platform, profile_url, audience_timezone, is_active, sort_order")
+      .order("sort_order")
+      .order("name"),
+    supabase.from("content_pillars").select(cols).order("sort_order").order("name"),
   ]);
   return {
     niches: niches.data ?? [],
@@ -71,6 +92,9 @@ export const getLists = cache(async (): Promise<Lists> => {
     stages: (stages.data ?? []).map((s) => ({ ...s, probability: Number(s.probability) })),
     campaigns: campaigns.data ?? [],
     members: members.data ?? [],
+    salesMembers: (members.data ?? []).filter((m) => m.role !== "social"),
+    socialAccounts: socialAccounts.data ?? [],
+    pillars: pillars.data ?? [],
   };
 });
 

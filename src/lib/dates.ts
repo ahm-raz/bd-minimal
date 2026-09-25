@@ -334,3 +334,58 @@ export function toLocalDateTimeInput(instant: Date | string, tz: string): string
 }
 
 export const MAX_BACKDATE_DAYS = 7;
+
+// ---------- Two time zones (docs/09 section 3) ------------------------------
+
+/** "America/New_York" → "New York"; "UTC" stays "UTC". */
+export function zoneCity(tz: string): string {
+  const last = tz.split("/").pop() ?? tz;
+  return last.replace(/_/g, " ");
+}
+
+/** "Tue 30 Sep, 9:00 AM" in `tz`. */
+export function formatDayTime(instant: Date | string, tz: string): string {
+  return dfFormat(inTz(instant, tz), "EEE d MMM, h:mm a");
+}
+
+/** "9:00 AM" in `tz`. */
+export function formatClock(instant: Date | string, tz: string): string {
+  return dfFormat(inTz(instant, tz), "h:mm a");
+}
+
+/**
+ * A post time in the audience's zone with the viewer's time next to it:
+ * "Tue 30 Sep, 9:00 AM New York (6:00 PM your time)".
+ * The viewer part adds the day when it differs ("(Wed 1 Oct, 2:00 AM your time)") and is left out
+ * when both zones show the same wall-clock time.
+ */
+export function formatDualZone(instant: Date | string, audienceTz: string, viewerTz: string): string {
+  const main = `${formatDayTime(instant, audienceTz)} ${zoneCity(audienceTz)}`;
+  const aDay = localDateOf(typeof instant === "string" ? new Date(instant) : instant, audienceTz);
+  const vDay = localDateOf(typeof instant === "string" ? new Date(instant) : instant, viewerTz);
+  const aClock = formatClock(instant, audienceTz);
+  const vClock = formatClock(instant, viewerTz);
+  if (aDay === vDay && aClock === vClock) return main;
+  const yours = aDay === vDay ? vClock : formatDayTime(instant, viewerTz);
+  return `${main} (${yours} your time)`;
+}
+
+/** Time left until an instant: "in 2h 10m", "in 45m", "in 3d 4h"; past: "2h 10m ago"; under a minute: "now". */
+export function formatCountdown(target: Date | string, now: Date = new Date()): string {
+  const t = typeof target === "string" ? new Date(target).getTime() : target.getTime();
+  const diff = t - now.getTime();
+  const mins = Math.floor(Math.abs(diff) / 60_000);
+  if (mins < 1) return "now";
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  const text = d > 0 ? `${d}d${h ? ` ${h}h` : ""}` : h > 0 ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`;
+  return diff > 0 ? `in ${text}` : `${text} ago`;
+}
+
+/** Move an instant by whole local days in `tz`, keeping its wall-clock time (DST-safe). */
+export function shiftLocalDays(instant: Date | string, tz: string, days: number): Date {
+  const local = toLocalDateTimeInput(instant, tz);
+  const moved = `${addDays(local.slice(0, 10), days)}${local.slice(10)}`;
+  return localDateTimeToUtc(moved, tz)!;
+}

@@ -337,6 +337,30 @@ export type Database = {
           },
         ]
       }
+      content_pillars: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       feed_events: {
         Row: {
           actor_id: string | null
@@ -345,6 +369,7 @@ export type Database = {
           kind: string
           lead_id: string | null
           opportunity_id: string | null
+          post_id: string | null
           subject_user_id: string | null
           summary: string
           task_id: string | null
@@ -356,6 +381,7 @@ export type Database = {
           kind: string
           lead_id?: string | null
           opportunity_id?: string | null
+          post_id?: string | null
           subject_user_id?: string | null
           summary: string
           task_id?: string | null
@@ -367,6 +393,7 @@ export type Database = {
           kind?: string
           lead_id?: string | null
           opportunity_id?: string | null
+          post_id?: string | null
           subject_user_id?: string | null
           summary?: string
           task_id?: string | null
@@ -391,6 +418,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
           {
@@ -898,6 +932,315 @@ export type Database = {
         }
         Relationships: []
       }
+      post_comments: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["post_comment_kind"]
+          post_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["post_comment_kind"]
+          post_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["post_comment_kind"]
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_status_events: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: Database["public"]["Enums"]["post_status"] | null
+          id: number
+          post_id: string
+          to_status: Database["public"]["Enums"]["post_status"]
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: Database["public"]["Enums"]["post_status"] | null
+          id?: never
+          post_id: string
+          to_status: Database["public"]["Enums"]["post_status"]
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: Database["public"]["Enums"]["post_status"] | null
+          id?: never
+          post_id?: string
+          to_status?: Database["public"]["Enums"]["post_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_status_events_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_status_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posting_schedules: {
+        Row: {
+          account_id: string
+          assignee_id: string
+          created_at: string
+          created_by: string
+          default_format: Database["public"]["Enums"]["post_format"]
+          draft_lead_hours: number
+          ends_on: string | null
+          id: string
+          is_active: boolean
+          local_time: string
+          needs_approval: boolean
+          pillar_id: string | null
+          starts_on: string
+          timezone: string
+          weekdays: number[]
+        }
+        Insert: {
+          account_id: string
+          assignee_id: string
+          created_at?: string
+          created_by?: string
+          default_format?: Database["public"]["Enums"]["post_format"]
+          draft_lead_hours?: number
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          local_time: string
+          needs_approval?: boolean
+          pillar_id?: string | null
+          starts_on?: string
+          timezone: string
+          weekdays: number[]
+        }
+        Update: {
+          account_id?: string
+          assignee_id?: string
+          created_at?: string
+          created_by?: string
+          default_format?: Database["public"]["Enums"]["post_format"]
+          draft_lead_hours?: number
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          local_time?: string
+          needs_approval?: boolean
+          pillar_id?: string | null
+          starts_on?: string
+          timezone?: string
+          weekdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posting_schedules_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_schedules_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_schedules_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "content_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          account_id: string
+          assignee_id: string
+          brief: string | null
+          campaign_id: string | null
+          caption: string | null
+          clicks: number | null
+          comments_count: number | null
+          created_at: string
+          created_by: string
+          cta_link: string | null
+          draft_due_at: string | null
+          first_comment: string | null
+          format: Database["public"]["Enums"]["post_format"]
+          hashtags: string | null
+          id: string
+          impressions: number | null
+          media_links: string[]
+          needs_approval: boolean
+          pillar_id: string | null
+          post_url: string | null
+          posted_at: string | null
+          reactions: number | null
+          results_recorded_at: string | null
+          schedule_id: string | null
+          scheduled_at: string | null
+          shares: number | null
+          status: Database["public"]["Enums"]["post_status"]
+          timezone: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          assignee_id: string
+          brief?: string | null
+          campaign_id?: string | null
+          caption?: string | null
+          clicks?: number | null
+          comments_count?: number | null
+          created_at?: string
+          created_by?: string
+          cta_link?: string | null
+          draft_due_at?: string | null
+          first_comment?: string | null
+          format?: Database["public"]["Enums"]["post_format"]
+          hashtags?: string | null
+          id?: string
+          impressions?: number | null
+          media_links?: string[]
+          needs_approval?: boolean
+          pillar_id?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          reactions?: number | null
+          results_recorded_at?: string | null
+          schedule_id?: string | null
+          scheduled_at?: string | null
+          shares?: number | null
+          status?: Database["public"]["Enums"]["post_status"]
+          timezone?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          assignee_id?: string
+          brief?: string | null
+          campaign_id?: string | null
+          caption?: string | null
+          clicks?: number | null
+          comments_count?: number | null
+          created_at?: string
+          created_by?: string
+          cta_link?: string | null
+          draft_due_at?: string | null
+          first_comment?: string | null
+          format?: Database["public"]["Enums"]["post_format"]
+          hashtags?: string | null
+          id?: string
+          impressions?: number | null
+          media_links?: string[]
+          needs_approval?: boolean
+          pillar_id?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          reactions?: number | null
+          results_recorded_at?: string | null
+          schedule_id?: string | null
+          scheduled_at?: string | null
+          shares?: number | null
+          status?: Database["public"]["Enums"]["post_status"]
+          timezone?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "content_pillars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "posting_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -944,6 +1287,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_accounts: {
+        Row: {
+          audience_timezone: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          profile_url: string | null
+          sort_order: number
+        }
+        Insert: {
+          audience_timezone?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          platform: Database["public"]["Enums"]["social_platform"]
+          profile_url?: string | null
+          sort_order?: number
+        }
+        Update: {
+          audience_timezone?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          platform?: Database["public"]["Enums"]["social_platform"]
+          profile_url?: string | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       stages: {
         Row: {
@@ -1206,6 +1582,14 @@ export type Database = {
         }
         Returns: number
       }
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      ensure_post_slots: {
+        Args: { p_from: string; p_to: string }
+        Returns: number
+      }
       ensure_recurring_tasks: {
         Args: { p_day: string; p_user: string }
         Returns: number
@@ -1228,6 +1612,7 @@ export type Database = {
         }
         Returns: string
       }
+      mark_missed_posts: { Args: never; Returns: number }
       metrics_by_dimension: {
         Args: {
           p_dimension: string
@@ -1291,9 +1676,62 @@ export type Database = {
           weighted_value: number
         }[]
       }
+      post_guard_bypassed: { Args: never; Returns: boolean }
       recompute_lead_completeness: {
         Args: { p_lead_id: string }
         Returns: undefined
+      }
+      request_post_changes: {
+        Args: { p_body: string; p_post: string }
+        Returns: undefined
+      }
+      social_daily: {
+        Args: { p_from: string; p_to: string; p_tz: string; p_user?: string }
+        Returns: {
+          day: string
+          missed: number
+          posted: number
+          scheduled: number
+          user_id: string
+        }[]
+      }
+      social_metrics: {
+        Args: { p_from: string; p_to: string; p_user?: string }
+        Returns: {
+          changes_requested: number
+          clicks: number
+          comments: number
+          impressions: number
+          late: number
+          median_approval_hours: number
+          missed: number
+          on_time: number
+          on_time_rate: number
+          planned: number
+          posted: number
+          reactions: number
+          shares: number
+          user_id: string
+        }[]
+      }
+      social_metrics_by: {
+        Args: {
+          p_dimension: string
+          p_from: string
+          p_to: string
+          p_user?: string
+        }
+        Returns: {
+          avg_reactions: number
+          dimension_id: string
+          dimension_name: string
+          impressions: number
+          missed: number
+          on_time: number
+          planned: number
+          posted: number
+          reactions: number
+        }[]
       }
       tasks_with_progress: {
         Args: { p_assignee?: string; p_from: string; p_to: string }
@@ -1344,6 +1782,39 @@ export type Database = {
         | "nurture"
         | "not_interested"
         | "bad_fit"
+      post_comment_kind:
+        | "comment"
+        | "change_request"
+        | "approval"
+        | "status_note"
+      post_format:
+        | "text"
+        | "image"
+        | "carousel"
+        | "video"
+        | "reel"
+        | "story"
+        | "article"
+        | "poll"
+      post_status:
+        | "idea"
+        | "planned"
+        | "drafting"
+        | "in_review"
+        | "changes_requested"
+        | "approved"
+        | "posted"
+        | "missed"
+        | "cancelled"
+      social_platform:
+        | "linkedin_page"
+        | "linkedin_profile"
+        | "instagram"
+        | "facebook"
+        | "x"
+        | "tiktok"
+        | "youtube"
+        | "other"
       target_metric:
         | "leads_added"
         | "outreach"
@@ -1351,6 +1822,7 @@ export type Database = {
         | "replies"
         | "meetings_booked"
         | "proposals_sent"
+        | "posts_published"
       task_kind: "count" | "checklist" | "lead_fix"
       task_metric:
         | "leads_added"
@@ -1358,7 +1830,8 @@ export type Database = {
         | "follow_ups"
         | "replies"
         | "meetings_booked"
-      user_role: "founder" | "bd"
+        | "posts_published"
+      user_role: "founder" | "bd" | "social"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1513,6 +1986,43 @@ export const Constants = {
         "not_interested",
         "bad_fit",
       ],
+      post_comment_kind: [
+        "comment",
+        "change_request",
+        "approval",
+        "status_note",
+      ],
+      post_format: [
+        "text",
+        "image",
+        "carousel",
+        "video",
+        "reel",
+        "story",
+        "article",
+        "poll",
+      ],
+      post_status: [
+        "idea",
+        "planned",
+        "drafting",
+        "in_review",
+        "changes_requested",
+        "approved",
+        "posted",
+        "missed",
+        "cancelled",
+      ],
+      social_platform: [
+        "linkedin_page",
+        "linkedin_profile",
+        "instagram",
+        "facebook",
+        "x",
+        "tiktok",
+        "youtube",
+        "other",
+      ],
       target_metric: [
         "leads_added",
         "outreach",
@@ -1520,6 +2030,7 @@ export const Constants = {
         "replies",
         "meetings_booked",
         "proposals_sent",
+        "posts_published",
       ],
       task_kind: ["count", "checklist", "lead_fix"],
       task_metric: [
@@ -1528,8 +2039,9 @@ export const Constants = {
         "follow_ups",
         "replies",
         "meetings_booked",
+        "posts_published",
       ],
-      user_role: ["founder", "bd"],
+      user_role: ["founder", "bd", "social"],
     },
   },
 } as const

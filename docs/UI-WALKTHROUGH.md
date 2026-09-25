@@ -60,6 +60,7 @@ Every account uses the password **`demo-password-123`**.
 | ahmed@example.com | Ahmed, BD, Dental | Asia/Karachi | ~60 dental leads, one flagged lead, tasks |
 | sara@example.com | Sara, BD, Law | Asia/Karachi | ~60 law leads, tasks |
 | bilal@example.com | Bilal, BD, AI SaaS | Europe/Berlin | ~60 AI SaaS leads; shows time-zone handling |
+| hina@example.com | Hina, **social media manager** | Asia/Karachi | Posts for two LinkedIn accounts (New York audience); no sales pages |
 
 Tip: use one normal browser window for Zain and one private window for a BD, so you can
 watch both sides at once (you'll need this for the live Feed).

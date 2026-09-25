@@ -4,7 +4,7 @@
  *   pnpm screenshots                       # every page, demo logins
  *   pnpm screenshots my-day leads          # only these paths (leading slash optional)
  *
- * Env: BASE_URL (default http://localhost:3000), FOUNDER_EMAIL, BD_EMAIL, SCREENSHOT_PASSWORD.
+ * Env: BASE_URL (default http://localhost:3000), FOUNDER_EMAIL, BD_EMAIL, SMM_EMAIL, SCREENSHOT_PASSWORD.
  * Defaults match `pnpm seed:demo`.
  */
 import { chromium, type Page } from "@playwright/test";
@@ -15,11 +15,28 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
 const PASSWORD = process.env.SCREENSHOT_PASSWORD ?? "demo-password-123";
 const FOUNDER = process.env.FOUNDER_EMAIL ?? "zain@example.com";
 const BD = process.env.BD_EMAIL ?? "ahmed@example.com";
+const SMM = process.env.SMM_EMAIL ?? "hina@example.com";
 const OUT = path.resolve(process.cwd(), "screenshots");
 
 const PUBLIC_PAGES = ["/login", "/reset-password", "/dev/ui"];
-const FOUNDER_PAGES = ["/my-day", "/leads", "/pipeline", "/tasks", "/feed", "/performance", "/team", "/settings", "/profile"];
+const FOUNDER_PAGES = [
+  "/my-day",
+  "/leads",
+  "/pipeline",
+  "/content",
+  "/content/schedules",
+  "/tasks",
+  "/feed",
+  "/performance",
+  "/performance?tab=social",
+  "/team",
+  "/settings",
+  "/settings/social-accounts",
+  "/settings/pillars",
+  "/profile",
+];
 const BD_PAGES = ["/my-day", "/leads", "/pipeline", "/tasks", "/performance", "/profile"];
+const SMM_PAGES = ["/my-day", "/content", "/content?view=month", "/tasks", "/performance", "/profile"];
 
 function slug(p: string) {
   return p.replace(/^\//, "").replace(/[/?&=]+/g, "-") || "home";
@@ -48,7 +65,7 @@ async function main() {
     .filter((a) => !a.startsWith("-"))
     .map((a) => `/${a.replace(/^[A-Za-z]:[\/].*?Git[\/]/, "").replace(/^\/+/, "")}`);
   const pick = (list: string[]) => (only.length ? list.filter((p) => only.some((o) => p === o || o.startsWith(`${p}/`) || p.startsWith(o))) : list);
-  const extra = only.filter((o) => ![...PUBLIC_PAGES, ...FOUNDER_PAGES, ...BD_PAGES].includes(o));
+  const extra = only.filter((o) => ![...PUBLIC_PAGES, ...FOUNDER_PAGES, ...BD_PAGES, ...SMM_PAGES].includes(o));
 
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
@@ -60,6 +77,7 @@ async function main() {
     for (const [role, email, pages] of [
       ["founder", FOUNDER, FOUNDER_PAGES],
       ["bd", BD, BD_PAGES],
+      ["smm", SMM, SMM_PAGES],
     ] as const) {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const page = await ctx.newPage();

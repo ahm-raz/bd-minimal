@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Columns3, FileText, ListChecks, Plus, Search, User } from "lucide-react";
+import { Building2, Columns3, FileText, Lightbulb, ListChecks, Megaphone, Plus, Search, User } from "lucide-react";
 import {
   Command,
   CommandDialog,
@@ -15,21 +15,11 @@ import {
 } from "@/components/ui/command";
 import { useApp } from "./app-provider";
 import { useProfile } from "./profile-provider";
+import { navFor } from "./sidebar";
 import { searchEverything, type SearchResults } from "@/server/actions/search";
 
 const EMPTY: SearchResults = { leads: [], contacts: [], opportunities: [] };
 
-const PAGES = [
-  { href: "/my-day", label: "My Day", founderOnly: false },
-  { href: "/leads", label: "Leads", founderOnly: false },
-  { href: "/pipeline", label: "Pipeline", founderOnly: false },
-  { href: "/tasks", label: "Tasks", founderOnly: false },
-  { href: "/feed", label: "Feed", founderOnly: true },
-  { href: "/performance", label: "Performance", founderOnly: false },
-  { href: "/team", label: "Team", founderOnly: true },
-  { href: "/settings", label: "Settings", founderOnly: true },
-  { href: "/profile", label: "Profile", founderOnly: false },
-];
 
 /** Ctrl/Cmd+K: search leads, contacts and opportunities, plus actions and pages (docs/07 section 14). */
 export function CommandMenu() {
@@ -40,6 +30,8 @@ export function CommandMenu() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [pickLead, setPickLead] = useState(false);
+  // Social media managers have no sales records to search (docs/09 section 1).
+  const sales = role !== "social";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -53,7 +45,7 @@ export function CommandMenu() {
   }, []);
 
   useEffect(() => {
-    if (q.trim().length < 2) return;
+    if (!sales || q.trim().length < 2) return;
     let live = true;
     const t = setTimeout(() => {
       void searchEverything({ q }).then((r) => live && r.ok && setResults(r.data));
@@ -62,7 +54,7 @@ export function CommandMenu() {
       live = false;
       clearTimeout(t);
     };
-  }, [q]);
+  }, [q, sales]);
 
   const close = () => {
     setOpen(false);
@@ -74,44 +66,68 @@ export function CommandMenu() {
     close();
     router.push(href);
   };
-  const searching = q.trim().length >= 2;
+  const searching = sales && q.trim().length >= 2;
   const shown = searching ? results : EMPTY;
   const needle = q.trim().toLowerCase();
   const match = (label: string) => !needle || label.toLowerCase().includes(needle);
 
   const actions = [
-    { label: "New lead", icon: Plus, shortcut: "N", run: () => (close(), openNewLead()) },
-    {
-      label: "Log activity",
-      icon: FileText,
-      shortcut: "L",
-      run: () => {
-        setPickLead(true);
-        setQ("");
-      },
-    },
-    ...(role === "founder" ? [{ label: "New task", icon: ListChecks, shortcut: "T", run: () => go("/tasks?new=1") }] : []),
+    ...(sales
+      ? [
+          { label: "New lead", icon: Plus, shortcut: "N", run: () => (close(), openNewLead()) },
+          {
+            label: "Log activity",
+            icon: FileText,
+            shortcut: "L",
+            run: () => {
+              setPickLead(true);
+              setQ("");
+            },
+          },
+        ]
+      : []),
+    ...(role === "founder"
+      ? [
+          { label: "New task", icon: ListChecks, shortcut: "T", run: () => go("/tasks?new=1") },
+          { label: "New post", icon: Megaphone, shortcut: undefined, run: () => go("/content?new=1") },
+        ]
+      : []),
+    ...(role === "social"
+      ? [{ label: "Suggest an idea", icon: Lightbulb, shortcut: undefined, run: () => go("/content?idea=1") }]
+      : []),
   ].filter((a) => match(a.label));
-  const pages = PAGES.filter((p) => (!p.founderOnly || role === "founder") && match(`Go to ${p.label}`));
+  const pages = [...navFor(role), { href: "/profile", label: "Profile" }].filter((p) => match(`Go to ${p.label}`));
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={(o) => (o ? setOpen(true) : close())}
       title="Command menu"
-      description="Search leads, contacts and opportunities, or run an action."
+      description={sales ? "Search leads, contacts and opportunities, or run an action." : "Run an action or go to a page."}
     >
       <Command shouldFilter={false}>
         <CommandInput
           // remount (and autofocus) when switching to "which lead?", so typing continues in the box
           key={pickLead ? "pick-lead" : "search"}
           autoFocus
-          placeholder={pickLead ? "Which lead? Type a company name" : "Search leads, contacts, opportunities, or type a command"}
+          placeholder={
+            pickLead
+              ? "Which lead? Type a company name"
+              : sales
+                ? "Search leads, contacts, opportunities, or type a command"
+                : "Type a command or a page"
+          }
           value={q}
           onValueChange={setQ}
         />
         <CommandList>
-          <CommandEmpty>{searching ? "No matches. Try a company, contact name or email." : "Type at least 2 letters to search."}</CommandEmpty>
+          <CommandEmpty>
+            {!sales
+              ? "No matching command or page."
+              : searching
+                ? "No matches. Try a company, contact name or email."
+                : "Type at least 2 letters to search."}
+          </CommandEmpty>
           {!pickLead && actions.length > 0 && (
             <CommandGroup heading="Actions">
               {actions.map((a) => (

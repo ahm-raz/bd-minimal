@@ -20,7 +20,7 @@ export default async function CampaignsPage() {
       leadCounts={Object.fromEntries(counts)}
       niches={lists.niches}
       channels={lists.channels}
-      members={lists.members}
+      members={lists.salesMembers}
     />
   );
 }

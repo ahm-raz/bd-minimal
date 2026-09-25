@@ -25,7 +25,7 @@ export async function loadFeed(input: FeedQuery): Promise<ActionResult<FeedEvent
   const supabase = await createClient();
   let q = supabase
     .from("feed_events")
-    .select("id, kind, actor_id, subject_user_id, lead_id, opportunity_id, task_id, summary, created_at, leads(company_name)")
+    .select("id, kind, actor_id, subject_user_id, lead_id, opportunity_id, task_id, post_id, summary, created_at, leads(company_name)")
     .gte("created_at", fromUtc)
     .lt("created_at", toUtc)
     .order("id", { ascending: false })
@@ -44,6 +44,7 @@ export async function loadFeed(input: FeedQuery): Promise<ActionResult<FeedEvent
       leadId: e.lead_id,
       opportunityId: e.opportunity_id,
       taskId: e.task_id,
+      postId: e.post_id,
       summary: e.summary,
       createdAt: e.created_at,
       company: e.leads?.company_name ?? null,

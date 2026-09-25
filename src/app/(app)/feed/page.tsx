@@ -4,6 +4,7 @@ import { isLocalDate, RANGE_PRESETS, rangeFor, type RangePreset } from "@/lib/da
 import { FEED_GROUP_KEYS, type FeedGroup } from "@/lib/feed";
 import { requireFounder, requireViewer } from "@/server/auth";
 import { loadFeed } from "@/server/actions/feed";
+import { refreshPosts } from "@/server/queries/content";
 import { FeedView } from "./feed-view";
 
 export const metadata: Metadata = { title: "Feed" };
@@ -26,6 +27,8 @@ export default async function FeedPage({ searchParams }: PageProps<"/feed">) {
   const person = one("person") && UUID.test(one("person")!) ? one("person")! : null;
   const groups = (one("types") ?? "").split(",").filter((g): g is FeedGroup => (FEED_GROUP_KEYS as string[]).includes(g));
 
+  // No background jobs: late posts become missed (with their feed event) when someone looks.
+  await refreshPosts(viewer);
   const res = await loadFeed({ fromUtc: range.fromUtc, toUtc: range.toUtc, person, groups });
   return (
     <FeedView

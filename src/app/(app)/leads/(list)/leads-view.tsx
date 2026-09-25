@@ -674,7 +674,7 @@ function FiltersPopover({
                   value={filters.owner}
                   onChange={(v) => setParams({ owner: v })}
                   noneLabel="Anyone"
-                  options={lists.members.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+                  options={lists.salesMembers.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
                 />
               </FormField>
             )}
@@ -750,7 +750,7 @@ function ReassignLeadsDialog({
             value={toId}
             onChange={setToId}
             placeholder="Pick a person"
-            options={lists.members.filter((m) => m.is_active).map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+            options={lists.salesMembers.filter((m) => m.is_active).map((m) => ({ value: m.id, label: m.full_name || m.email }))}
             invalid={!!error}
           />
         </FormField>

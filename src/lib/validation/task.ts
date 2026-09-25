@@ -16,6 +16,8 @@ export function countTaskTitle(metric: TaskMetric | null | undefined, target: nu
       return `Get ${n} replies`;
     case "meetings_booked":
       return `Book ${n} meetings`;
+    case "posts_published":
+      return `Publish ${n} posts`;
     default:
       return "";
   }

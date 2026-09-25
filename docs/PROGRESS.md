@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** M10 (social media module) in progress; M0–M9 done. Final run green (lint 0, typecheck, 163 unit, db:test, 58/58 e2e, build); demo data loaded; screenshots in ./screenshots/.
+**Status:** M0–M10 done (M10: social media module). Final run green (lint 0, typecheck, 187 unit, db:test, 63/63 e2e, build); demo data loaded; screenshots in ./screenshots/.
 
 ## Milestones
 
@@ -92,17 +92,22 @@
 
 ### M10: Social media module
 - [x] Spec: docs/09 + updates to docs/01, 02, 03, 05, 07, 08 and CLAUDE.md
-- [ ] Migrations: social_enums, social_module (RLS, triggers, functions); db:types
-- [ ] Shared lib: domain roles and metrics, lib/social.ts, dates dual-zone helpers, validation, feed group
-- [ ] Access: proxy role redirects, sidebar per role, shortcuts and command menu per role
-- [ ] Team: role column, invite and edit role; targets posts_published column
-- [ ] Settings: Social accounts, Content pillars
-- [ ] Content: week, month, list, needs review; post panel with action bar; schedules page
-- [ ] My Day: SMM view; founder Needs your review and Today's posts
-- [ ] Performance Social tab; Feed Social filter
-- [ ] Demo data: Hina, accounts, schedules, posts, target, repeating task
-- [ ] Tests: SQL 03_social_test, unit social, e2e 10-social; all existing tests pass
-- [ ] Final run, screenshots, report
+- [x] Migrations: 20260925000000_social_enums, 20260925000100_social_module (RLS, triggers, functions); db:types
+- [x] Shared lib: domain roles and metrics, lib/social.ts, dates dual-zone helpers, validation, feed group
+- [x] Access: proxy role redirects, sidebar per role, shortcuts and command menu per role
+- [x] Team: role in invite and edit; targets Posts published column (SMM rows only); task metric per role
+- [x] Settings: Social accounts, Content pillars
+- [x] Content: week (drag to reschedule, add on a day), month, list, needs review, ideas; post panel with action bar; schedules page with preview
+- [x] My Day: SMM view; founder Needs your review (inline Approve / Request changes) and Today's posts
+- [x] Performance Social tab; Feed Social filter and Open link to the post
+- [x] Demo data: Hina, accounts, schedules, posts in every status, target, repeating task
+- [x] Tests: SQL 03_social_test (40 checks, 18 expected errors), unit social (24), e2e 10-social (5 flows); all existing tests pass
+- [x] Final run, screenshots, report
+
+### Results (M10)
+- Final run: lint 0, typecheck, 187 unit (24 new), db:test (02 smoke + 03 social: 40 checks, 11 + 18 expected errors), 63/63 e2e (5 new), production build.
+- Demo data reloaded (`pnpm db:reset && pnpm seed:demo`): Hina with 18 posts across two LinkedIn accounts; screenshots in ./screenshots/ now include founder-content*, founder-performance-tab-social, founder-settings-social-accounts / -pillars and smm-*.
+- Bug found by the new e2e and fixed: the post panel reloads after an action, which wiped text typed right after it; confirmations now appear once the panel has reloaded.
 
 ## Decisions
 - 2026-09-24: Local Supabase uses ports 55420–55429 (API 55421, DB 55422, Studio 55423, Mailpit 55424). Another local Supabase project ("bdms") already occupies 5432x; stopping someone else's stack would be destructive.
@@ -155,6 +160,22 @@
 - 2026-09-25: Lighthouse runs via `pnpm dlx lighthouse@12` (not a dependency) against a Chrome started by scripts/lighthouse.ts, signed in over CDP, so no session cookie is passed on a command line.
 - 2026-09-25: The command menu's "Log activity" asks for the lead in the same search box (the input remounts with focus).
 - 2026-09-25: My Day receives task data (not a pre-rendered element) from the server page; passing a server-created element as a prop into the client view produced an intermittent React key warning.
+- 2026-09-25 (M10): The role enum value and the posts_published metric values live in their own migration (20260925000000_social_enums.sql): Postgres can't use an enum value in the transaction that adds it.
+- 2026-09-25 (M10): Trusted writes to posts (ensure_post_slots, mark_missed_posts, the schedule trigger) set a transaction-local flag (`app.post_guard_bypass`) that guard_post_write honours, like its is_system() exception. The flag isn't reachable through the API: PostgREST can't run set_config, and the helper that reads it isn't executable by users.
+- 2026-09-25 (M10): is_system() is also true for anonymous callers, so execute on ensure_post_slots, mark_missed_posts and request_post_changes is revoked from anon (tested).
+- 2026-09-25 (M10): ensure_post_slots never creates slots in the past, so opening an old week doesn't manufacture missed posts. The DST tests use future dates (1 Nov 2026 and 14 Mar 2027 in New York).
+- 2026-09-25 (M10): Request changes is one RPC (request_post_changes, security invoker) so the change_request comment and the status move commit together; the guard requires a change_request comment newer than the last submit.
+- 2026-09-25 (M10): The posts after-trigger has no column list: the guard itself moves an approved post back to in_review when its caption changes, which "update of status" would miss (found by the SQL test).
+- 2026-09-25 (M10): Performance by account / by pillar and the posted-per-day grid come from two extra SQL functions (social_metrics_by, social_daily) in the same migration, because KPIs must come from SQL. The grid cell shows posted / scheduled; a red border marks a missed post.
+- 2026-09-25 (M10): Sales pickers (lead owner, reassign, campaign owner, Leads / Pipeline / Performance person filters) use `lists.salesMembers` (founder and BDs). Switching a BD to social media manager is refused while they own open leads ("Reassign them first").
+- 2026-09-25 (M10): BDs don't use Content: /content redirects them with "That page isn't part of your role."; /content/schedules is founder-only.
+- 2026-09-25 (M10): lucide-react 1.x has no brand icons, so platforms show as short text chips (LI, IG, FB, X, TT, YT) with the full name for screen readers.
+- 2026-09-25 (M10): Posts go to social media managers; the founder can also be the assignee (useful before an SMM is hired). BDs aren't offered.
+- 2026-09-25 (M10): Drag to reschedule moves by whole days in the post's own time zone (DST-safe) and only for posts not yet posted, missed or cancelled; dropping on a past day is refused.
+- 2026-09-25 (M10): Approving also adds an "Approved." approval comment, so the review thread shows every decision.
+- 2026-09-25 (M10): Cancel keeps the post on the calendar, struck through; nothing deletes posts from the app.
+- 2026-09-25 (M10): Performance → Social counts posts by their scheduled time (docs/09 §5); the Posts list under it is the drill-down (All, On time, Late, Missed).
+- 2026-09-25 (M10): "Posts published" count tasks count posts marked posted on that day in the assignee's time zone; check_count_tasks runs from the posts after-trigger.
 
 ## Deviations
 - @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.

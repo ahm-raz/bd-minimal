@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SQL smoke test against the LOCAL Supabase stack.
-# db reset -> run supabase/tests/02_smoke_test.sql -> check output -> db reset.
+# SQL tests against the LOCAL Supabase stack.
+# db reset -> 02_smoke_test.sql -> check; db reset -> 03_social_test.sql -> check; db reset.
 # Never runs 00_supabase_stub.sql (that file is for plain Postgres only).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -81,6 +81,60 @@ if [ "$ERRORS" -ne 11 ]; then
   FAILED=1
 fi
 
+# ---------- 03: social media module (docs/09 section 7) ----------
+echo "Resetting local database for the social test..."
+reset_db
+OUT=$(run_psql < supabase/tests/03_social_test.sql 2>&1)
+echo "$OUT"
+
+expect "ROLES|Ahmed:bd, Hina:social, Zain:founder"
+expect "PILLARS|6"
+expect "HINA_ROLE|social"
+expect "HINA_SEES_LEADS|0"
+expect "HINA_SEES_OPPS|0"
+expect "HINA_SEES_ACCOUNTS|1"
+expect "SLOTS_NOV|2"
+expect "SLOTS_NOV_AGAIN|0"
+# 9:00 AM New York: EDT (UTC-4) before 1 Nov 2026, EST (UTC-5) after; back to EDT on 14 Mar 2027.
+expect "DST_NOV|2026-10-31 13:00 2026-11-02 14:00"
+expect "SLOT_TITLE|BlueBugs LinkedIn page post, Open topic|planned|t|2026-10-30 13:00"
+expect "SLOTS_MAR_BY_HINA|2"
+expect "DST_MAR|2027-03-13 14:00 2027-03-15 13:00"
+expect "HINA_SEES_SCHEDULES|1"
+expect "BD_SEES_POSTS|0"
+expect "P1|planned|America/New_York|t"
+expect "REQUEST_CHANGES|changes_requested|1"
+expect "EDIT_AFTER_APPROVAL|in_review|1"
+expect "TASK_BEFORE|open"
+expect "P1_POSTED|posted|t"
+expect "TASK_AFTER|done|1"
+expect "HISTORY|->planned planned>drafting drafting>in_review in_review>changes_requested changes_requested>in_review in_review>approved approved>in_review in_review>approved approved>posted"
+expect "HINA_FEED_ROWS|0"
+expect "FEED_P1|changes_requested:1 post_approved:2 post_published:1 post_submitted:3"
+expect "FEED_TEXT|submitted 'How AI intake cuts missed calls' for review"
+expect "TASK_FEED|1"
+expect "MARK1|1"
+expect "MARK2|0"
+expect "P2|missed"
+expect "MISSED_FEED|1"
+expect "P2_LATE|posted"
+expect "IDEA_SCHEDULED|planned|t"
+expect "SOCIAL|2|2|1|1|0|0.5000|1|t"
+expect "SOCIAL_BY_ACCOUNT|BlueBugs LinkedIn page|2|2"
+expect "SCOREBOARD_NAMES|Ahmed,Zain"
+expect "DAILY_NO_SMM|0"
+expect "HINA_SOCIAL_ROWS|1"
+expect "BD_SOCIAL_ROWS|0"
+expect "STOPPED|cancelled|4"
+# posted per day, by the UTC day the posts went out (both today, unless the test straddles midnight UTC)
+expect "SOCIAL_DAILY_POSTED|2"
+
+SOCIAL_ERRORS=$(grep -c '^ERROR:' <<<"$OUT")
+if [ "$SOCIAL_ERRORS" -ne 18 ]; then
+  echo "Expected 18 ERROR lines in the social test (SHOULD_FAIL checks), got $SOCIAL_ERRORS"
+  FAILED=1
+fi
+
 echo "Resetting local database..."
 reset_db
 
@@ -88,4 +142,4 @@ if [ "$FAILED" -ne 0 ]; then
   echo "db:test FAILED"
   exit 1
 fi
-echo "db:test passed: all checks present, 11 expected errors."
+echo "db:test passed: all checks present, 11 + 18 expected errors."

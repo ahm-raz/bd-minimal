@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { LEAD_STATUS_LABELS, type LeadStatus, type StageKey } from "@/lib/domain";
 
-type Tone = "neutral" | "accent" | "ok" | "warn" | "bad" | "muted" | "info";
+export type Tone = "neutral" | "accent" | "ok" | "warn" | "bad" | "muted" | "info" | "meeting";
 
 const TONES: Record<Tone, string> = {
   neutral: "bg-surface-muted text-ink-muted",
@@ -11,6 +11,7 @@ const TONES: Record<Tone, string> = {
   bad: "bg-bad-soft text-bad",
   muted: "bg-[var(--stage-lost-bg)] text-lost-ink",
   info: "bg-[#e6eef6] text-[#2f5a85]",
+  meeting: "bg-[var(--stage-meeting-bg)] text-[var(--stage-meeting-fg)]",
 };
 
 /** Chip: micro type, 20px tall, soft background, strong text (docs/06 section 5). */

@@ -20,7 +20,7 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
   if (!parsed.ok) return parsed;
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
 
-  const { fullName, email, primaryNicheId, timezone } = parsed.data;
+  const { fullName, email, role, primaryNicheId, timezone } = parsed.data;
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
@@ -33,12 +33,12 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
     return fail("The invite wasn't sent. Check the email address and try again.");
   }
 
-  // The trigger created the profile as a BD; now set niche and time zone.
+  // The trigger created the profile as a BD; now set role, niche and time zone.
   const { error: upErr } = await admin
     .from("profiles")
-    .update({ full_name: fullName, primary_niche_id: primaryNicheId, timezone })
+    .update({ full_name: fullName, role, primary_niche_id: primaryNicheId, timezone })
     .eq("id", data.user.id);
-  if (upErr) return fail("The invite was sent, but the niche and time zone weren't saved. Edit the member to set them.");
+  if (upErr) return fail("The invite was sent, but the role, niche and time zone weren't saved. Edit the member to set them.");
 
   revalidatePath("/team");
   return ok({ id: data.user.id, email });
@@ -59,18 +59,36 @@ export async function resendInvite(id: string): Promise<ActionResult> {
   return ok();
 }
 
-/** Name, niche and time zone. The founder's own session does this; RLS allows it. */
+/** Name, role, niche and time zone. The founder's own session does this; RLS and guard_profile_update allow it. */
 export async function updateMember(input: MemberEditInput): Promise<ActionResult> {
   const parsed = parseInput(memberEditSchema, input);
   if (!parsed.ok) return parsed;
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
   const supabase = await createClient();
+  const { data: current } = await supabase.from("profiles").select("role").eq("id", parsed.data.id).maybeSingle();
+  if (!current) return fail("That member wasn't found.");
+  const role = current.role === "founder" ? undefined : parsed.data.role;
+  if (role === "bd" && !parsed.data.primaryNicheId) return fail("Check the highlighted fields.", { primaryNicheId: "Pick a niche." });
+  if (current.role === "bd" && role === "social") {
+    // A social media manager can't see sales records, so leads they own would be stranded.
+    const { count } = await supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", parsed.data.id)
+      .not("status", "in", `(${CLOSED_LEAD_STATUSES.join(",")})`);
+    if (count) {
+      return fail(`They still own ${count} open ${count === 1 ? "lead" : "leads"}. Reassign them first.`, {
+        role: "Reassign their open leads first.",
+      });
+    }
+  }
   const { error } = await supabase
     .from("profiles")
     .update({
       full_name: parsed.data.fullName,
       primary_niche_id: parsed.data.primaryNicheId,
       timezone: parsed.data.timezone,
+      ...(role ? { role } : {}),
     })
     .eq("id", parsed.data.id);
   if (error) return fail(dbErrorMessage(error, "Changes weren't saved. Try again."));

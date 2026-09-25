@@ -20,11 +20,24 @@ import type { DrillMetric } from "@/server/actions/drilldown";
 import type { FollowUp, MyDayData } from "@/server/queries/my-day";
 import type { TaskItem } from "@/server/queries/tasks";
 import { MyDayTasks } from "./my-day-tasks";
+import { FounderSocialBlocks } from "./social-day";
+import type { PostItem } from "@/server/queries/content";
 
-const BAR_METRICS: TargetMetric[] = ["leads_added", "outreach", "follow_ups"];
+const BAR_METRICS = ["leads_added", "outreach", "follow_ups"] as const satisfies readonly TargetMetric[];
 const SHORT: Partial<Record<TargetMetric, string>> = { leads_added: "Leads", outreach: "Outreach", follow_ups: "Follow-ups" };
 
-export function MyDayView({ data, tasks, founderName }: { data: MyDayData; tasks: TaskItem[]; founderName: string }) {
+export function MyDayView({
+  data,
+  tasks,
+  founderName,
+  social,
+}: {
+  data: MyDayData;
+  tasks: TaskItem[];
+  founderName: string;
+  /** Founder only: review queue and today's posts (docs/09 section 4). */
+  social?: { review: PostItem[]; todayPosts: PostItem[] } | null;
+}) {
   const { openNewLead } = useApp();
   const profile = useProfile();
   const now = useNow();
@@ -90,6 +103,8 @@ export function MyDayView({ data, tasks, founderName }: { data: MyDayData; tasks
       </Panel>
 
       <MyDayTasks today={data.today} tasks={tasks} founderName={founderName} />
+
+      {social && <FounderSocialBlocks review={social.review} todayPosts={social.todayPosts} />}
 
       <Panel aria-label="Follow-ups">
         <PanelHeader

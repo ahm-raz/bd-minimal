@@ -238,7 +238,7 @@ function LeadSheetForm({
   const campaignOptions = lists.campaigns
     .filter((c) => (c.status === "active" && (!c.niche_id || c.niche_id === nicheId)) || c.id === watched.campaign_id)
     .map((c) => ({ value: c.id, label: c.name }));
-  const members = lists.members.filter((m) => m.is_active || m.id === watched.owner_id);
+  const members = lists.salesMembers.filter((m) => m.is_active || m.id === watched.owner_id);
 
   const reachError = (errors as Record<string, { message?: string } | undefined>).reach?.message;
 
