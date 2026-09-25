@@ -84,6 +84,8 @@ another local Supabase project on the default 5432x ports.
 | `pnpm db:types` | Regenerate `src/lib/database.types.ts` |
 | `pnpm db:test` | SQL smoke test (`supabase/tests/02_smoke_test.sql`) against local Supabase; fails on any missing value |
 | `pnpm seed:demo` | Demo team and ~200 leads (refuses unless Supabase is local and empty) |
+| `pnpm dev:test-users` (or `pnpm dev:reset`) | Erases the local database and creates only zain@ (founder), ahmed@ (BD) and hina@ (social media manager), password `demo-password-123`; no other data (local only) |
+| `pnpm dev:reset-lead` | Same as `pnpm dev:reset`, then adds one fresh BD lead as Ahmed (Smile Dental Austin, status New, next action due tomorrow) (local only) |
 | `pnpm screenshots [page …]` | Capture pages at 1440×900 as founder and BD into `./screenshots/` |
 
 ## Running the tests

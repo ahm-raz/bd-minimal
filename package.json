@@ -17,6 +17,9 @@
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
     "db:test": "bash scripts/db-test.sh",
     "seed:demo": "tsx scripts/seed-demo.ts",
+    "dev:test-users": "tsx scripts/test-users.ts",
+    "dev:reset": "tsx scripts/test-users.ts",
+    "dev:reset-lead": "tsx scripts/test-lead.ts",
     "screenshots": "tsx scripts/screenshots.ts",
     "lighthouse": "tsx scripts/lighthouse.ts"
   },
