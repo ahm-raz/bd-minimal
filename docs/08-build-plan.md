@@ -114,6 +114,19 @@ In Supabase Auth settings:
 
 ---
 
+## M10: Social media module
+- Spec: `docs/09-social-media.md`
+- Migrations: `social_enums` (role and metric values) and `social_module` (tables, RLS, triggers, functions)
+- Content (week, month, list, needs review), post side panel, schedules, My Day blocks, Performance Social tab, Feed filter, Settings tabs, Team role, targets column
+- Demo data: Hina, two accounts, two schedules, ~15 posts in every status
+
+**Done when:**
+- ☐ an SMM can't open or read sales data (UI and database)
+- ☐ schedules create slots at the right time across DST, idempotently
+- ☐ draft → review → changes → approve → posted works with feed events, count task and Performance
+- ☐ missed posts are marked once and can be posted late
+- ☐ every existing test still passes
+
 ## Demo data (`pnpm seed:demo`, local only)
 
 Refuse to run unless `NEXT_PUBLIC_SUPABASE_URL` points at localhost. Using the admin client, create:

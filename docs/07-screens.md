@@ -4,16 +4,17 @@ Each screen lists who sees it, its layout, data, actions, states and acceptance 
 
 ## Navigation
 
-| Item | Route | BD | Founder |
-|---|---|---|---|
-| My Day | `/my-day` | ✓ | ✓ |
-| Leads | `/leads` | own | all |
-| Pipeline | `/pipeline` | own | all |
-| Tasks | `/tasks` | own (read) | assign and track |
-| Feed | `/feed` | – | ✓ |
-| Performance | `/performance` | own | team |
-| Team | `/team` | – | ✓ |
-| Settings | `/settings` | – | ✓ |
+| Item | Route | BD | SMM | Founder |
+|---|---|---|---|---|
+| My Day | `/my-day` | ✓ | ✓ (social) | ✓ |
+| Leads | `/leads` | own | – | all |
+| Pipeline | `/pipeline` | own | – | all |
+| Content | `/content` | – | own | all |
+| Tasks | `/tasks` | own (read) | own (read) | assign and track |
+| Feed | `/feed` | – | – | ✓ |
+| Performance | `/performance` | own | own social | team |
+| Team | `/team` | – | – | ✓ |
+| Settings | `/settings` | – | – | ✓ |
 
 Home after login: `/my-day`. Profile and Sign out are in the sidebar user menu.
 
@@ -326,3 +327,19 @@ Full name, time zone (searchable IANA list, with the current local time shown), 
 
 - Search across own (or all, for the founder) leads, contacts and opportunities. Show up to 8 results per group.
 - Actions: New lead, Log activity (asks for the lead), New task (founder), Go to page.
+
+---
+
+## 15. Social media screens (M10)
+
+Full detail in `docs/09-social-media.md`, section 4.
+
+- **Content `/content`**: Week (default), Month, List, and Needs review (founder). Filters in the URL.
+  Founder drags cards to reschedule and clicks an empty day to create a post; SMM suggests ideas.
+- **Post side panel**: Brief (founder), Work (SMM, caption counter), review thread, action bar with only
+  the valid actions.
+- **Schedules `/content/schedules`** (founder): recurring rules with a "Next 3 posts" preview.
+- **My Day**: SMM gets Today's posts (both time zones, countdown, banners), Drafts due, Changes requested,
+  tasks and a Posts published pace bar; the founder gets Needs your review and Today's posts.
+- **Performance**: tab Social. **Feed**: filter Social. **Settings**: Social accounts, Content pillars.
+  **Team**: Role column and field.

@@ -1,6 +1,6 @@
 # Progress
 
-**Status:** All milestones M0–M9 done. Final run green (lint 0, typecheck, 163 unit, db:test, 58/58 e2e, build); demo data loaded; screenshots in ./screenshots/.
+**Status:** M10 (social media module) in progress; M0–M9 done. Final run green (lint 0, typecheck, 163 unit, db:test, 58/58 e2e, build); demo data loaded; screenshots in ./screenshots/.
 
 ## Milestones
 
@@ -89,6 +89,20 @@
 - Lighthouse accessibility (production build, demo data, founder): My Day 100, Leads 100, Performance 100 (`pnpm lighthouse`, reports in screenshots/lighthouse-*.json). Before the fixes: 96 / 96 / 97 (faint text contrast, label-in-name).
 - Performance page load with demo data (production build, median of 3): This week 0.58 s, This month 0.83 s. My Day 0.29 s, Leads (all) 0.80 s, Pipeline 0.30 s.
 - 390 px wide: no page-level horizontal overflow on My Day, Leads, Pipeline; sidebar becomes a menu button.
+
+### M10: Social media module
+- [x] Spec: docs/09 + updates to docs/01, 02, 03, 05, 07, 08 and CLAUDE.md
+- [ ] Migrations: social_enums, social_module (RLS, triggers, functions); db:types
+- [ ] Shared lib: domain roles and metrics, lib/social.ts, dates dual-zone helpers, validation, feed group
+- [ ] Access: proxy role redirects, sidebar per role, shortcuts and command menu per role
+- [ ] Team: role column, invite and edit role; targets posts_published column
+- [ ] Settings: Social accounts, Content pillars
+- [ ] Content: week, month, list, needs review; post panel with action bar; schedules page
+- [ ] My Day: SMM view; founder Needs your review and Today's posts
+- [ ] Performance Social tab; Feed Social filter
+- [ ] Demo data: Hina, accounts, schedules, posts, target, repeating task
+- [ ] Tests: SQL 03_social_test, unit social, e2e 10-social; all existing tests pass
+- [ ] Final run, screenshots, report
 
 ## Decisions
 - 2026-09-24: Local Supabase uses ports 55420–55429 (API 55421, DB 55422, Studio 55423, Mailpit 55424). Another local Supabase project ("bdms") already occupies 5432x; stopping someone else's stack would be destructive.

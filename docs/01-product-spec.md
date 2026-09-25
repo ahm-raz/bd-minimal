@@ -15,8 +15,9 @@ Replace the "Client Acquisition OS" spreadsheet with a web app that:
 |---|---|---|
 | Founder | exactly 1 | Everything a BD does (own leads, Upwork, pipeline). Also manages the team, targets, settings and tasks, and sees all data. |
 | BD | 1 to about 10 | Adds leads, logs activities, works their pipeline, completes tasks. Sees only their own work. |
+| Social media manager (SMM) | 0 to a few | Writes and publishes the posts the founder schedules on the brand's social accounts, marks them as posted, and records results. Sees only their own posts and social numbers; no sales data. See `docs/09-social-media.md`. |
 
-There is no third role in v1.
+The SMM role was added in M10 (`docs/09-social-media.md`). There are no other roles.
 
 Example team used across these docs:
 
@@ -43,6 +44,11 @@ Example team used across these docs:
 - **Target**: a weekly number per person per metric ("Ahmed: 112 new leads per week").
 - **Completeness**: a 0–100% score showing how fully a lead's details are filled in.
 
+- **Post**: one piece of social content for one account, with a scheduled time, a status (idea → planned → drafting → in review → approved → posted, or missed / cancelled) and the live link once posted.
+- **Posting schedule**: a recurring rule ("LinkedIn page, Mon/Wed/Fri 9:00 AM New York, Hina") that creates planned posts.
+- **Content pillar**: a topic category for posts (Case study, Tip or how-to, …).
+- **SMM**: Social media manager, the third role.
+
 ## 4. Scope
 
 ### In v1
@@ -58,9 +64,11 @@ Example team used across these docs:
 9. Performance: scoreboard, funnel, by niche, channel and campaign, daily consistency grid, pipeline health, task completion, all with a date range
 10. Global search (Ctrl/Cmd + K)
 
+11. (M10) Social media manager role and content scheduling: social accounts, content pillars, posting schedules, posts with a review flow, social metrics (`docs/09-social-media.md`)
+
 ### Out of scope for v1
 
-Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app; email or push reminders; payment-by-payment tracking and invoices; currencies other than USD; extra roles; dark mode; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables.
+Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app; email or push reminders; payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; dark mode; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), browser/push/email notifications, multi-step or client approvals, AI caption generation.
 
 ## 5. User stories and acceptance criteria
 

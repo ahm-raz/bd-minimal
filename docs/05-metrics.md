@@ -102,3 +102,20 @@ Every number on Performance and My Day is clickable. It opens a side panel listi
 | Win rate's lost count | direct query: opportunities with `lost_at` in range (RLS-scoped) |
 
 Write one unit test per rate and target formula in `lib/metrics.ts`. Write a Playwright test that logs a known set of activities and checks the scoreboard numbers.
+
+## 10. Social metrics (M10)
+
+From `social_metrics(p_from, p_to, p_user?)`; definitions in `docs/09-social-media.md`, section 5.
+
+| Metric | Definition |
+|---|---|
+| Planned | posts scheduled in range, not idea or cancelled |
+| Posted / On time / Late | posted_at ≤ scheduled_at + 60 min is on time |
+| Missed | status missed (2h past scheduled time, not posted) |
+| On-time rate | on time ÷ posted |
+| Changes requested | change requests on posts in range |
+| Median approval hours | first submit → approval |
+| Result totals | impressions, reactions, comments, shares, clicks (entered by hand) |
+| Posts published (task / target metric) | posts marked posted on the day, in the SMM's time zone |
+
+`metrics_scoreboard` and `metrics_daily` exclude SMMs, so sales numbers never include social staff.

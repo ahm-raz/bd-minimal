@@ -1,243 +1,224 @@
 # MISSION
-Build "Client Acquisition OS v1" completely, from an empty Next.js setup to a finished, tested, locally running app. Work through ALL milestones M0 → M9 in docs/08-build-plan.md in one continuous run.
+Add a new team role, "Social media manager" (SMM), plus a content-scheduling module to the existing Client Acquisition OS app. The founder hires an SMM, assigns them posts (which account, what to post, which day and time), sets recurring posting schedules, reviews and approves drafts, and tracks whether posts go out on time. The SMM sees their schedule, writes the posts, submits them for approval, publishes them manually on each platform, and marks them as posted with the live link.
 
-You are working autonomously. Do NOT stop, pause, ask for confirmation, or wait for review between steps or milestones. The only output I want from you before the end is the work itself (code, commits, docs/PROGRESS.md). Report once, at the very end (section 9).
-
-The complete spec is in this repo and is the source of truth:
+Work autonomously from start to finish. Do not stop, pause or ask for confirmation. Follow the same rules as the original build:
 - CLAUDE.md
-- docs/01-product-spec.md … docs/08-build-plan.md
-- supabase/migrations/20260924000000_init.sql (finished and tested database)
-- supabase/tests/
+- the autonomy rules and loop you used for M0–M9
+- docs/PROGRESS.md as your memory
 
-# 1. AUTONOMY RULES (read twice)
-1. **Never stop to ask.** When something is unclear or the docs conflict:
-   - choose the option that best matches docs/01 (product intent), then docs/07 (screens), then docs/06 (design)
-   - make it
-   - log it under "Decisions" in docs/PROGRESS.md with one line of reasoning
-   - continue
-2. **Never stop on a failing test or build.** Debug properly: read the error, check the spec, fix the root cause. Up to 3 real attempts per problem. If it still fails:
-   - mark it with `test.fixme` or a clearly named TODO
-   - log it under "Known issues" in PROGRESS.md with the error and what you tried
-   - move on
-   Never delete or weaken an assertion just to make it pass.
-3. **Never stop on a changed library API.** Look up the current usage (node_modules types, the package README/CHANGELOG, or official docs), use the current API, and log it under "Deviations".
-4. **Infrastructure problems:** if Docker or Supabase won't start, try to fix it (start Docker, `supabase stop --no-backup` then `supabase start`, free ports, check `docker ps`). If it's truly impossible:
-   - continue with everything that doesn't need the database (UI, validation, unit tests, pure logic)
-   - retry the database every milestone
-   - list it first in the final report
-5. **The database migration is finished and tested.** Do not edit 20260924000000_init.sql. If you truly need a schema change, add a NEW migration with a later timestamp, regenerate types, rerun `pnpm db:test`, and log why.
-6. **Stay in scope.** Build exactly what the docs describe. Nothing from "Out of scope" in docs/01. No extra libraries beyond CLAUDE.md unless a spec feature is impossible without one (log it).
-7. **Security rules from CLAUDE.md are absolute:**
-   - RLS is the security boundary
-   - the service key is used only in src/lib/supabase/admin.ts (`import "server-only"`), and only after a server-side founder check
-   - business rules that live in SQL triggers are never reimplemented in TypeScript
-   - KPIs come only from the SQL metric functions
-8. **Context management.** This is a long run. docs/PROGRESS.md is your memory.
-   - At the start of every milestone, re-read CLAUDE.md, PROGRESS.md and that milestone's section of docs/08 plus the docs/07 sections it touches.
-   - If you ever lose track (e.g. after context compaction), re-read PROGRESS.md and continue from the first unticked item.
-9. **No remote actions.** Never run `supabase db push`, `supabase link`, deploy commands, or anything that touches a remote project. Never print or commit secrets.
+Report once at the end.
 
-# 2. THE LOOP (repeat for each milestone M0 → M9)
-For each milestone:
-1. **Read:** CLAUDE.md, PROGRESS.md, the milestone in docs/08, and the related docs/04, 05, 06, 07 sections.
-2. **Plan:** write the milestone's task list into PROGRESS.md as checkboxes (acceptance checks from docs/07 plus the "Done when" items from docs/08).
-3. **Build:** in small steps. After each meaningful step, run typecheck and the relevant tests.
-4. **Verify the whole milestone:**
-   `pnpm lint && pnpm typecheck && pnpm test && pnpm db:test && pnpm test:e2e && pnpm build`
-5. **Visual self-review:** a Playwright script (scripts/screenshots.ts) captures every page touched in this milestone at 1440×900 as founder and as BD, into ./screenshots/.
-   - Look at each screenshot and compare it against docs/06: tokens, type scale, spacing, chips, pace bar, empty states, copy rules (sentence case, verb buttons, no all-caps labels, no arrows in buttons, no middle-dot separators).
-   - Fix what's off. One review pass per milestone is enough.
-6. **Update PROGRESS.md:** tick items; record Decisions, Deviations and Known issues.
-7. **Commit:** `git commit -m "M<n>: <name>"`, then IMMEDIATELY start the next milestone.
+# 0. READ FIRST
+CLAUDE.md, docs/PROGRESS.md, docs/01–08, and the current migrations and code. The existing app is complete and all tests pass. Keep it that way: every existing test must still pass at the end.
 
-# 3. ENVIRONMENT SETUP (part of M0)
-- **Check** node (20.9+, prefer 22), pnpm (`corepack enable` if missing), docker, git.
-  - Supabase CLI: add `supabase` as a dev dependency and call it via `pnpm supabase`.
-  - psql may be missing; use `docker exec -i <supabase db container> psql -U postgres` as the fallback.
-- **git:** `git init` if needed.
-  - .gitignore: node, .next, .env*.local, supabase/.temp, supabase/.branches, playwright-report, test-results, coverage, screenshots
-  - commit the existing docs first: "docs: v1 spec"
-- **Next.js scaffold:** the repo root already has CLAUDE.md, docs/ and supabase/.
-  - Scaffold in `.tmp-app` with `pnpm create next-app@latest .tmp-app --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm` (adapt flags to the current version).
-  - Move the files to the root without overwriting CLAUDE.md, docs/ or supabase/. Merge .gitignore. Delete .tmp-app.
-  - Follow the installed Next.js version's conventions, e.g. whether request interception is `middleware.ts` or `proxy.ts`.
-  - tsconfig: `strict: true`, `noUncheckedIndexedAccess: true`.
-- **Libraries (only these):**
-  - Runtime: @supabase/supabase-js, @supabase/ssr, react-hook-form, zod, @hookform/resolvers, @tanstack/react-table, @dnd-kit/core, @dnd-kit/sortable, recharts, libphonenumber-js, date-fns, @date-fns/tz, sonner, cmdk, lucide-react, server-only
-  - Dev: supabase, vitest, @vitejs/plugin-react, jsdom, @testing-library/react, @playwright/test (install chromium), prettier, prettier-plugin-tailwindcss, tsx
-  - shadcn/ui init, then add the components you need: button, input, textarea, label, select, checkbox, switch, dialog, sheet, dropdown-menu, popover, command, calendar, badge, table, tabs, tooltip, separator, skeleton, avatar, form, sonner, scroll-area, alert-dialog
-- **Scripts:**
-  - dev, build, start, lint, format
-  - typecheck (`tsc --noEmit`)
-  - test (`vitest run`), test:e2e (`playwright test`)
-  - db:start, db:stop, db:reset, db:types (`supabase gen types typescript --local > src/lib/database.types.ts`)
-  - db:test, seed:demo, screenshots
-- **Local Supabase in Docker:**
-  - `pnpm supabase init`, keeping existing supabase/migrations and supabase/tests.
-  - config.toml:
-    - site_url = "http://localhost:3000"
-    - additional_redirect_urls = ["http://localhost:3000/accept-invite", "http://localhost:3000/reset-password"]
-    - enable_signup = false
-    - email confirmations off
-    - realtime on
-  - `pnpm db:start`, then `pnpm db:reset`; the migration must apply cleanly.
-  - .env.local from `pnpm supabase status`: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (anon or publishable key), SUPABASE_SERVICE_ROLE_KEY (service_role or secret key), NEXT_PUBLIC_SITE_URL=http://localhost:3000. Also write .env.example with empty values.
-  - `pnpm db:types`.
-- **SQL smoke test against local Supabase:** scripts/db-test.sh does db reset → run supabase/tests/02_smoke_test.sql → db reset again.
-  - NEVER run 00_supabase_stub.sql against Supabase. It's only for plain Postgres.
-  - If Supabase's real auth.users insert needs extra columns (instance_id, aud, role), adapt only that insert.
-  - **Expected:** the 11 SHOULD_FAIL lines print ERROR, and every other check prints its value, including:
-    - ROLES Ahmed:bd, Sara:bd, Zain:founder
-    - TASKS 3|3|done
-    - STATUS_AFTER_REPLY replied
-    - LEAD_STATUS_WON customer
-    - SARA_SEES_LEADS 0
-    - FOUNDER_SEES_LEADS 3
-    - FEED 10
-  - Make the script exit non-zero if any expected value is missing, so `pnpm db:test` is a real gate.
-- **Test isolation:** Playwright globalSetup runs `supabase db reset` so e2e runs are repeatable. Use one worker for e2e. Build a helper (tests/e2e/helpers.ts) that creates the founder and BDs through the admin API and signs in as any of them.
-- **Local email:** invite and reset emails go to the local inbox (Mailpit/Inbucket, usually http://127.0.0.1:54324). e2e tests read invite links from its HTTP API.
+# 1. WRITE THE SPEC BEFORE CODING
+Create docs/09-social-media.md from sections 2–8 below, in the same style as the other docs. Then update:
+- docs/01 (roles, scope, glossary)
+- docs/02 (new tables)
+- docs/03 (permission matrix with a third column for SMM)
+- docs/05 (social metrics)
+- docs/07 (new screens and nav)
+- docs/08 (add milestone M10 with its checklist)
+- CLAUDE.md (mention docs/09)
 
-# 4. MILESTONE REQUIREMENTS (details are in docs; these are the must-haves)
+Commit "docs: social media module spec". Then build M10.
 
-## M0: Foundation
-- Design tokens from docs/06 as CSS variables mapped into Tailwind and the shadcn theme: exact hex values, light only, IBM Plex Sans 400/500/600 + Plex Mono via next/font, `.num` tabular utility.
-- src/lib/supabase/{browser,server,admin}.ts per current @supabase/ssr docs.
-- Middleware/proxy: session refresh; signed-out users go to /login (except auth pages, /setup, static files); BDs are redirected from /feed, /team, /settings to /my-day.
-- src/lib/dates.ts (docs/04, section 8): todayIn, rangeFor(preset, tz) → {fromUtc, toUtc, fromDate, toDate}, weekdaysBetween, relative formatting. Tests include the Europe/Berlin DST case and an Asia/Karachi midnight edge.
-- src/lib/format.ts: money, percent ("–" when the denominator is 0), phone display. Add tests.
-- /dev/ui (404 in production): all buttons, inputs with errors, all stage and status chips, pace bar (green/amber/red with marker), table, sheet with form, empty state.
+# 2. ROLE AND ACCESS
+- New role `social`, displayed as "Social media manager". Add it to `user_role` in its OWN migration file, because Postgres can't use a new enum value in the same transaction that adds it. In that same file, add `posts_published` to `task_metric` and `target_metric`.
+- **Invite:** Team → Invite gets a Role field: BD (default) or Social media manager. The trigger still creates every new profile as `bd`; the invite server action then sets the role with the admin client, the same way it already sets niche and time zone. The founder can change BD ↔ SMM on Edit. The founder role can never change (the existing guard).
+- **SMM access:**
+  - Nav: My Day, Content, Tasks, Performance (their own social numbers only), Profile.
+  - No access to Leads, Pipeline, Feed, Team or Settings. Middleware redirects to /my-day with the toast "That page isn't part of your role."
+  - Database: add a `public.current_user_role()` helper (security definer, stable). Tighten `leads_insert` and `opportunities_insert` so only founder or bd can insert. Check that no other lead/activity/opportunity policy lets an SMM create data.
+  - `metrics_scoreboard`, `metrics_daily` and the BD blocks on Performance must exclude SMMs. Change them in a new migration with `create or replace`; don't edit old migrations.
+- Existing tasks work for SMMs unchanged: the founder can assign checklist tasks ("Design 5 carousel templates") and count tasks with the new metric `posts_published` (posts marked posted on that day in the SMM's time zone). Extend `count_task_progress` and `check_count_tasks` for it, and call the check when a post becomes posted.
+- Targets grid: add a "Posts published" column. It only applies to SMMs; grey it out for BDs.
 
-## M1: Auth, team, profile
-- **/setup:** only when no profiles exist, else 404. Admin createUser with email_confirm, then the trigger makes them founder. Set time zone, sign in.
-- **Auth pages:** /login, /accept-invite, /reset-password, with copy exactly as in docs/07, section 1.
-- **(app) layout:** sidebar per docs/06, role-aware nav, ProfileProvider (id, name, role, timezone), Toaster.
-- **/team:**
-  - statuses Active / Invited (no last_sign_in_at) / Deactivated
-  - invite (inviteUserByEmail with redirectTo /accept-invite, then set niche and time zone with the admin client)
-  - resend, edit
-  - deactivate (is_active false + ban "876000h") and reactivate (ban "none")
-  - dialog copy from docs/07, section 11
-- **/profile:** name, time zone (Intl.supportedValuesOf, with local time preview).
-- **e2e:** setup → /setup 404s; invite via inbox link → BD on My Day; BD blocked from /team; deactivated BD can't sign in; time zone changes the displayed date.
+# 3. DATA MODEL (new migration)
+**social_accounts:** the brand accounts the SMM posts to.
+- id, name* (e.g. "BlueBugs LinkedIn page", "Zain personal LinkedIn")
+- platform* enum: linkedin_page, linkedin_profile, instagram, facebook, x, tiktok, youtube, other
+- profile_url
+- audience_timezone* (IANA; default America/New_York; the time zone the audience lives in)
+- is_active, sort_order, created_at
+- Founder manages; everyone active can read.
 
-## M2: Settings (docs/07, section 12)
-- Lists (add, rename inline, reorder, hide/show)
-- Activity types with category help text
-- Outcome labels; stage labels + probabilities
-- Campaigns table
-- Targets grid (people × metrics, save on blur, daily equivalent shown)
-- e2e: a hidden item disappears from dropdowns but stays on existing records; a BD calling a settings action directly is rejected by the database.
+**content_pillars:** a label list like niches, founder-managed, hide don't delete. Defaults: Case study, Tip or how-to, Behind the scenes, Offer, Industry news, Client result.
 
-## M3: Leads (docs/04, section 1; docs/07, sections 3–5)
-- **Zod schemas and normalisers** (URL, company/contact LinkedIn, email, E.164 phone with default country, Maps URL, Upwork URL, tags) with exhaustive unit tests.
-- **lib/completeness.ts** mirroring the SQL. A test proves it equals the database value on 10 fixture leads.
-- **Add/edit lead side panel:**
-  - all 8 sections
-  - "at least one way to reach them" rule, including the Upwork exception
-  - paste helpers
-  - live completeness meter with missing-item links
-  - Save lead / Save and add another
-  - the duplicate notice (own leads only: domain, name, email, LinkedIn)
-- **Leads list:**
-  - TanStack table with all columns and saved column visibility
-  - search, all filters kept in the URL
-  - built-in views
-  - bulk actions (founder adds Reassign/Delete)
-- **Lead page:**
-  - header with local time, links, flag badge placeholder
-  - contacts CRUD with primary switching
-  - details
-  - ownership history (founder)
-  - reassign and delete (founder; delete confirm by typing the company name)
+**posting_schedules:** recurring slots ("LinkedIn page, Mon/Wed/Fri, 9:00 AM New York time, assigned to Hina").
+- id, account_id*, assignee_id*
+- weekdays smallint[]* (ISO 1–7)
+- local_time time*
+- timezone* (defaults from the account's audience_timezone)
+- pillar_id, default_format
+- needs_approval bool (default true)
+- draft_lead_hours int (default 24: the draft is due this many hours before posting time)
+- starts_on*, ends_on
+- is_active, created_by, created_at
+- Founder only; the SMM can read their own.
 
-## M4: Activities + My Day (docs/04, section 3; docs/07, sections 2, 6)
-- **Log activity side panel via the `log_activity` RPC:**
-  - outcomes filtered by category, with correct defaults
-  - next action required unless "No next step" / Not interested / Bounced
-  - date chips
-  - backdating up to 7 days
-  - Meeting booked → "Create opportunity?" dialog; Proposal sent → "Move to Proposal sent?"
-  - BD edit window of 24h
-- **Lead timeline:** activities, stage changes, owner changes, creation; filter chips.
-- **My Day:** Today-so-far pace bars (targets + `metrics_scoreboard` for today), follow-ups (overdue then today) with one-click Log, Coming up (7 days), empty states. The tasks block comes in M6.
-- **Shortcuts:** N, L, /, G then M/L/P, Esc.
-- **e2e:** the status transition table from docs/04, section 2; overdue logic for a Europe/Berlin user.
+**posts:** one row per post.
+- id, account_id*, assignee_id*, created_by, schedule_id (null if one-off)
+- title* (short topic, e.g. "How AI intake cuts missed calls")
+- brief (the founder's instructions: goal, key message, CTA, reference links)
+- pillar_id
+- format enum: text, image, carousel, video, reel, story, article, poll
+- campaign_id (optional link to an existing BD campaign)
+- scheduled_at timestamptz (null only when status = idea); timezone (display time zone, copied from schedule or account)
+- draft_due_at timestamptz (default scheduled_at − draft_lead_hours)
+- needs_approval bool
+- status enum: idea, planned, drafting, in_review, changes_requested, approved, posted, missed, cancelled
+- SMM work fields: caption, hashtags, first_comment, cta_link, media_links text[] (Google Drive / Canva / Dropbox URLs; no file uploads in this version)
+- posted_at, post_url (the live post link)
+- Manual results: impressions, reactions, comments_count, shares, clicks, results_recorded_at
+- created_at, updated_at
+- Unique index on (schedule_id, scheduled_at) where schedule_id is not null.
 
-## M5: Pipeline (docs/07, section 7)
-- dnd-kit board: 6 columns; Won/Lost limited to 30 days with Show all; column counts, values, weighted values; stuck indicator.
-- Won and Lost dialogs; cancel returns the card; optimistic update with rollback.
-- Opportunity side panel with stage history; list view; stage dropdown on the lead page; founder owner filter.
-- e2e: won/lost flows; reassigning a lead moves its open opportunity but not a won one.
+**post_comments:** id, post_id, author_id, kind enum (comment, change_request, approval, status_note), body, created_at. This is the review conversation.
 
-## M6: Tasks (docs/04, section 6; docs/07, section 8)
-- **Founder Tasks page:**
-  - date picker; call `ensure_recurring_tasks` for each active member on weekdays
-  - grouped by person, with "Still overdue"
-  - new task panel (count/checklist, filters, linked record, repeat on weekdays)
-  - "Start from a common task" (the 8 in docs/04)
-  - repeating templates tab (edit future, stop)
-- BD read-only view with ticking for checklist and lead-fix tasks.
-- My Day tasks block (call `ensure_recurring_tasks` for self on load).
-- Flag lead action + red badge until the lead-fix task is done.
-- e2e: a repeating count task appears Mon–Fri only, once per day, and auto-completes at target with a feed event; flag → lead-fix task → badge clears.
+**post_status_events:** history. id, post_id, from_status, to_status, changed_by, changed_at. Written by trigger.
 
-## M7: Feed (docs/07, section 9)
-- Realtime subscription on feed_events; filters (person, event type, date); "N new" pill; infinite scroll; hover actions (Open, Flag lead).
-- e2e: a BD's event appears on the founder's open feed without refreshing; a BD gets no feed rows.
+**feed_events:** extend the `kind` check with post_submitted, post_approved, changes_requested, post_published, post_missed. Write these from triggers, with summaries like "Hina submitted 'How AI intake cuts missed calls' for review".
 
-## M8: Performance (docs/05, docs/07 section 10)
-- lib/metrics.ts: rates ("–" on zero), range targets (weekly ÷ 5 × weekdays), daily target, pace marker and pace color. Full unit tests.
-- **Page:**
-  - date range + person filter (a BD is fixed to self)
-  - compare-to-previous toggle
+# 4. RULES (enforce in SQL triggers/RLS; mirror in the UI)
+**Status flow:**
+- idea → planned (founder schedules it)
+- planned → drafting (SMM starts)
+- drafting → in_review (SMM submits; requires caption, or media_links for image/video formats)
+- in_review → approved | changes_requested (founder only; a change request requires a comment of kind change_request)
+- changes_requested → drafting or in_review (SMM)
+- approved → posted (SMM)
+- When needs_approval = false: drafting → posted is allowed directly.
+- Any status → cancelled (founder only).
+- missed → posted is allowed ("posted late").
+
+**Who can do what:**
+- Only the founder can create posts, except that an SMM can create `idea` posts assigned to themself (the "Suggest an idea" button).
+- Only the founder can change account, assignee, scheduled_at, needs_approval, brief and title after creation.
+- The SMM edits caption, hashtags, first_comment, cta_link, media_links and results, and moves status only along the flow above.
+- The SMM cannot approve their own post.
+- Editing the caption on an approved post moves it back to in_review (when needs_approval is true), with an automatic status_note comment.
+
+**Posting:**
+- **Mark as posted** requires post_url (validated as a URL). posted_at defaults to now and can be backdated up to 24h.
+- On time = posted_at ≤ scheduled_at + 60 minutes. Otherwise late.
+
+**Missed:**
+- There are no background jobs in this version. Add an idempotent function `mark_missed_posts()` (security definer) that sets status = missed on posts whose scheduled_at + 2 hours has passed and whose status isn't posted, cancelled or idea. It writes a post_missed feed event once per post.
+- The app calls it when these load: Content, My Day (founder and SMM), Performance, and Feed.
+
+**Recurring schedules:**
+- `ensure_post_slots(p_from date, p_to date)` (security definer, idempotent) creates `planned` posts for every active schedule on each matching weekday in the range, at local_time in the schedule's time zone. Convert correctly across DST.
+  - Slot title: "<Account> post, <pillar or 'Open topic'>".
+  - Copy pillar, default_format and needs_approval from the schedule; draft_due_at = scheduled_at − draft_lead_hours.
+- Callers: the founder or the schedule's assignee. The Content page calls it for the visible range, capped at 28 days ahead.
+- Editing a schedule changes future, untouched (planned) slots only. Deactivating a schedule cancels its future planned slots.
+
+**Time zones:** always show both times: "Tue 30 Sep, 9:00 AM New York (6:00 PM your time)". Use lib/dates.ts; add helpers and DST tests (America/New_York in March and November).
+
+**Character limits (warning only, never block):** a live counter in the caption editor, per platform: X 280, LinkedIn 3,000, Instagram 2,200, Facebook 63,206, TikTok 2,200, YouTube 5,000. Put these in one constants file with a comment to verify current limits. The counter turns amber at 90% and red above the limit.
+
+# 5. SCREENS (follow docs/06 design system exactly)
+**Content `/content`** (founder: all; SMM: own):
+- Views: Week (default), Month, List.
+- Filters: account, assignee (founder), status, pillar. Kept in the URL.
+- **Week view:** 7 day columns. Posts appear as cards sorted by time, showing time (in the viewer's zone), a platform icon from lucide-react if available (else a short text chip like "LI"), title, status chip and assignee initials.
+  - Founder only: drag a card to another day to reschedule it (keeps the local time) and click an empty day to create a post.
+- **Status chip colors:** idea and planned are neutral; drafting uses the accent-soft; in review and changes requested use warn; approved uses the Meeting done chip style; posted is ok; missed is bad; cancelled is muted and struck through.
+- **Month view:** a dot per post colored by status, with a day count.
+- **List view:** a table with sorting.
+- A "Needs review (n)" tab for the founder, with the same count shown as a badge on the Content nav item.
+- Buttons:
+  - Founder: **New post**, **Schedules**
+  - SMM: **Suggest an idea**
+
+**Post side panel:**
+- **Brief section** (the founder edits; read-only for the SMM): account, scheduled date and time (entered in the account's audience time zone, with your-time shown under it), draft due, assignee, title, brief, pillar, format, campaign, needs approval.
+- **Work section** (the SMM edits): caption with the character counter, hashtags, first comment, CTA link, and media links (add, remove, open).
+- **Review thread:** comments, with kind badges.
+- **Context action bar**, only showing actions that are valid now:
+  - Start drafting, Submit for review, Approve, Request changes (opens a required comment), Mark as posted (asks for the post URL and time), Cancel post, Add results
+- **Posted posts:** show the live link and the result fields. Nudge "Add results" 48h after posting.
+- **Copy examples:** buttons "Submit for review", toast "Sent for review"; "Approve", toast "Post approved"; error "Add the live post link to mark it as posted."
+
+**Schedules `/content/schedules`** (founder):
+- Table of recurring rules.
+- Side panel form: account, assignee, weekday toggles, time, time zone, pillar, format, needs approval, draft lead hours, start and end.
+- The preview line reads: "Next 3 posts: Mon 29 Sep 9:00 AM New York (6:00 PM your time), …"
+- **Stop schedule** cancels future planned slots, after a confirmation dialog.
+
+**My Day:**
+- **SMM My Day:**
+  - "Today's posts": time in both zones, a countdown ("in 2h 10m"), status, and one primary action button. It gets an amber banner when a post is due within 60 minutes and isn't approved or ready, and a red banner when it's missed.
+  - "Drafts due" (next 48h, not yet submitted), "Changes requested", the existing tasks block, and pace bars for the posts_published target.
+- **Founder My Day:** add a "Needs your review" block (posts in_review, oldest first, with Approve/Request changes inline), and "Today's posts" across all accounts.
+
+**Feed (founder):** a new event type filter "Social".
+
+**Performance:**
+- New tab "Social" (founder: all SMMs or one; SMM: self only).
+- New metric function `social_metrics(p_from, p_to, p_user)`, security invoker. It returns per assignee:
+  - planned (scheduled in range, not cancelled or idea), posted, on_time, late, missed
+  - on-time rate
+  - changes_requested count
+  - median hours from first submit to approval
+  - totals for impressions, reactions, comments, shares, clicks
+- Blocks:
   - summary stat blocks
-  - scoreboard with pace bars, completeness and flags
-  - funnel
-  - niche/channel/campaign tabs with a Recharts reply-rate chart
-  - consistency grid
-  - pipeline health (`pipeline_summary`, `active_mrr`, stuck list)
-  - tasks block
-  - drill-down side panels for every number
-- e2e: seed known activities and assert every scoreboard number; a BD cannot see other people's numbers even via the URL.
+  - by account table
+  - by pillar table with average reactions per post
+  - a consistency grid of posted per day
+  - list of missed posts
+- Drill-down panels as usual.
 
-## M9: Polish
-- **Command menu** (Ctrl/Cmd+K): leads, contacts, opportunities, actions.
-- **Copy review** of every screen against docs/06, section 7.
-- **Accessibility:** keyboard-only walkthrough, focus rings, contrast. Lighthouse accessibility ≥ 95 on My Day, Leads and Performance (run Lighthouse via Playwright or the lighthouse CLI locally; log the scores).
-- Error boundaries, a 404 page, loading skeletons everywhere.
-- **scripts/seed-demo.ts** (`pnpm seed:demo`, refuses unless the URL is localhost), exactly as described in docs/08 "Demo data". Insert rows as the correct users so triggers credit the right person.
-- **README.md:** prerequisites, setup from a fresh clone, all scripts, local URLs, demo logins, how to run tests.
-- **Final full run:** db reset → seed:demo → the full verification command → screenshots of every page as founder and as BD → a final visual review.
+**Settings (founder):** new tabs "Social accounts" and "Content pillars" (list pattern: add, rename, reorder, hide).
 
-# 5. QUALITY BAR (applies everywhere)
-- TypeScript strict, no `any` (use generated database types), no ts-ignore without a comment.
-- Server Components by default. Server Actions for mutations, each validating input with the same Zod schema as its form and returning typed `{ ok, error, fieldErrors }` results.
-- Every list has loading skeletons, an empty state with an action, and an error state that says what happened and what to do.
-- Optimistic UI only where docs/06 says so, always with rollback.
-- Money, percent, dates and time zones always go through lib/format.ts and lib/dates.ts.
-- No console errors or warnings in the browser during e2e runs (fail the test on console errors).
-- Accessible names on every icon button; visible focus; forms fully usable by keyboard.
+**Team:** the Role column and the invite Role field.
 
-# 6. DOCS/PROGRESS.md FORMAT (keep it current at all times)
-- **Status:** current milestone and next step (one line; update constantly)
-- **Milestones M0–M9:** a checklist per milestone (ticked as done)
-- **Decisions:** date, decision, reason
-- **Deviations:** from docs or assumed library APIs
-- **Known issues:** error, what was tried, suggested fix
-- **How to run:** commands and URLs
+# 6. OUT OF SCOPE (do not build)
+- Auto-publishing through platform APIs
+- Connecting social accounts or OAuth
+- Pulling analytics from platforms
+- File uploads (links only)
+- Browser, push or email notifications
+- Multi-step or client approvals
+- AI caption generation
 
-# 7. START NOW
-Begin with M0 environment setup. Don't write a plan and wait. Write the M0 checklist into PROGRESS.md and start executing.
+Add these to "Out of scope" in docs/01 and docs/09.
 
-# 8. IF THE SESSION IS INTERRUPTED
-When resumed with "continue", re-read CLAUDE.md and docs/PROGRESS.md and carry on from the first unticked item. Don't redo finished work.
+# 7. TESTS (all must pass, plus every existing test)
+**SQL** (extend supabase/tests and `pnpm db:test`):
+- an SMM cannot insert leads or opportunities, and cannot read any lead
+- an SMM cannot approve their own post, and cannot change scheduled_at or assignee
+- posted requires post_url
+- invalid status jumps are rejected
+- `ensure_post_slots` is idempotent and puts 9:00 AM New York on the right UTC instant on both sides of the March and November DST changes
+- `mark_missed_posts` marks once and writes one feed event
+- a posts_published count task auto-completes
+- `social_metrics` numbers are correct for a known fixture
+- BD scoreboard rows exclude SMMs
 
-# 9. FINAL REPORT (only after M9's final full run)
-- **Done:** one sentence on the state of the app.
-- **Run it:** exact commands from a fresh clone, then the URL to open, plus demo logins.
-- **Local URLs:** app, Supabase Studio, email inbox.
-- **Results:** lint, typecheck, unit tests (count), db:test, e2e (passed/fixme counts), build, Lighthouse scores.
-- **Decisions and deviations:** the list from PROGRESS.md.
-- **Known issues:** anything marked fixme or TODO, with a suggested fix.
-- **Screenshots:** the folder path.
+**Unit:** dual-zone formatting, character counter thresholds, the status-action matrix (which buttons show for which role and status).
+
+**E2E:**
+1. The founder invites an SMM via the inbox link; the SMM lands on My Day and is blocked from /leads.
+2. The founder creates a schedule; slots appear on the Content week view in the right place for both viewers.
+3. SMM drafts → submits → founder requests changes with a comment → SMM resubmits → founder approves → SMM marks posted with a URL → the count task and Performance update, and feed events appear.
+4. A post whose time has passed (set scheduled_at in the past via the admin client) shows as missed after the page loads, then can be marked as posted late.
+5. The SMM suggests an idea; the founder schedules it.
+
+Screenshot review of every new screen as founder and as SMM against docs/06, as in previous milestones.
+
+# 8. DEMO DATA
+Extend `pnpm seed:demo`:
+- SMM "Hina" (Asia/Karachi)
+- Accounts: "BlueBugs LinkedIn page" (linkedin_page, America/New_York) and "Zain personal LinkedIn" (linkedin_profile, America/New_York)
+- Schedules: page Mon/Wed/Fri 9:00 AM, profile Tue/Thu 12:00 PM, both assigned to Hina
+- About 15 posts across the last 2 weeks and the next 2 weeks, in every status, including 2 missed, 1 posted late, 2 in review and 1 with changes requested, plus results on the posted ones
+- Hina's target: posts_published 5 per week
+- One repeating count task: "Publish today's scheduled posts" (posts_published, 1, weekdays)
+
+# 9. FINISH
+Run the full verification (`pnpm lint && pnpm typecheck && pnpm test && pnpm db:test && pnpm test:e2e && pnpm build`), then `db reset` → `seed:demo` → screenshots. Update docs/PROGRESS.md (M10 checklist, decisions, deviations, known issues). Commit "M10: social media module". Then give the final report in the same format as before, adding:
+- demo login for Hina
+- the three URLs to try first as founder and as SMM

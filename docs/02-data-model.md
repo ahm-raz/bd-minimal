@@ -177,3 +177,23 @@ All of these respect RLS. A BD calling them gets only their own numbers.
 - Won and lost timestamps, and clearing won fields when an opportunity is lost.
 - Count tasks are marked complete when they reach their target.
 - Feed events.
+
+## 6. Social media module (M10)
+
+Added by `20260925000000_social_enums.sql` (enum values) and `20260925000100_social_module.sql`.
+Full field lists and rules are in `docs/09-social-media.md`, section 2.
+
+| Table | Purpose |
+|---|---|
+| social_accounts | Brand accounts the SMM posts to: name, platform, profile URL, audience time zone, hide |
+| content_pillars | Topic label list (hide, never delete) |
+| posting_schedules | Recurring slots: account, assignee, weekdays, local time + time zone, pillar, format, needs approval, draft lead hours, start/end |
+| posts | One post: brief (founder), work fields (SMM), status, scheduled/draft-due/posted times, live link, manual results |
+| post_comments | Review thread: comment, change request, approval, status note |
+| post_status_events | Every status change (trigger) |
+
+- New role value `social` on `user_role`; new metric `posts_published` on `task_metric` and `target_metric`.
+- `feed_events.kind` adds post_submitted, post_approved, changes_requested, post_published, post_missed.
+- New functions: `current_user_role()`, `ensure_post_slots(p_from, p_to)`, `mark_missed_posts()`,
+  `request_post_changes(p_post, p_body)`, `social_metrics(p_from, p_to, p_user?)`.
+- `metrics_scoreboard` and `metrics_daily` now exclude SMMs; `count_task_progress` counts posts_published.
