@@ -113,6 +113,8 @@ test("book, reschedule, cancel and undo a meeting; My Day and the bell show it",
   await page.goto("/my-day");
   await expect(page.getByTestId("my-day-meetings")).toContainText("Sarah Mitchell · Meeting Flow Dental");
   await page.getByTestId("bell").first().click();
+  // The bell opens on What happened while there are unread items.
+  await page.getByRole("tab", { name: "What's upcoming" }).click();
   await expect(page.getByTestId("upcoming-list")).toContainText("Meeting with Sarah Mitchell · Meeting Flow Dental");
 
   // The founder heard about the booking, the move and the cancellation; Ahmed about none of his own.

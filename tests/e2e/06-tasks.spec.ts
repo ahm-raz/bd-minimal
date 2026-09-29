@@ -101,8 +101,13 @@ test("a count task completes itself at target and posts to the feed", async ({ p
 
   const { data: task } = await admin().from("tasks").select("id, completed_at").eq("title", title).single();
   expect(task!.completed_at).not.toBeNull();
-  const { data: feed } = await admin().from("feed_events").select("kind, subject_user_id").eq("task_id", task!.id);
-  expect(feed).toEqual([{ kind: "task_completed", subject_user_id: ids.sara }]);
+  const { data: feed } = await admin().from("feed_events").select("kind, subject_user_id").eq("task_id", task!.id)
+    .order("id");
+  // Zain assigning it is news for Sara (M11); completing it is news for Zain.
+  expect(feed).toEqual([
+    { kind: "task_assigned", subject_user_id: ids.sara },
+    { kind: "task_completed", subject_user_id: ids.sara },
+  ]);
 
   await page.reload();
   await page.getByRole("button", { name: /done today/ }).click();

@@ -138,6 +138,8 @@ test("a posting schedule puts slots on the week view for the founder and the SMM
 });
 
 test("draft, submit, changes, resubmit, approve and post, with feed, task and performance", async ({ page }) => {
+  // Five sign-ins across three people; on the dev server this outgrows the 60s default.
+  test.slow();
   const title = `Review loop ${RUN}`;
   const id = await arrangePost({ title, scheduledAt: new Date(Date.now() + 26 * 3600_000) });
   await admin().from("tasks").insert({
@@ -206,7 +208,15 @@ test("draft, submit, changes, resubmit, approve and post, with feed, task and pe
   const { data: task } = await admin().from("tasks").select("completed_at").eq("title", `Publish 1 post ${RUN}`).single();
   expect(task!.completed_at).not.toBeNull();
   const { data: feed } = await admin().from("feed_events").select("kind").eq("post_id", id).order("id");
-  expect(feed!.map((f) => f.kind)).toEqual(["post_submitted", "changes_requested", "post_submitted", "post_approved", "post_published"]);
+  // The post was made for Hina by Zain, so it starts with post_assigned (M11).
+  expect(feed!.map((f) => f.kind)).toEqual([
+    "post_assigned",
+    "post_submitted",
+    "changes_requested",
+    "post_submitted",
+    "post_approved",
+    "post_published",
+  ]);
 
   // The founder sees it in the feed and in Performance → Social
   await signIn(page, "zain");
