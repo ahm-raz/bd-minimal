@@ -253,7 +253,9 @@
 
   /* Motion: docs/06 section 7. Fast, eased out, only on user actions and arrivals. */
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --animate-enter: enter 180ms var(--ease-out-soft) both;
+  /* "backwards": the element keeps no transform after the fade, so fixed overlays (drag previews) stay
+     relative to the window. */
+  --animate-enter: enter 180ms var(--ease-out-soft) backwards;
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-progress: progress 1.1s var(--ease-out-soft) infinite;
 

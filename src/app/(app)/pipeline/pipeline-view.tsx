@@ -274,7 +274,7 @@ function Board({
             const value = list.reduce((s, c) => s + (key === "won" ? (c.wonValue ?? 0) : c.estimatedValue), 0);
             const weighted = stage?.is_open ? list.reduce((s, c) => s + c.estimatedValue * (stage.probability ?? 0), 0) : null;
             return (
-              <div key={key} className={cn("min-w-0", key !== mobileStage && "max-md:hidden")}>
+              <div key={key} className={cn("grid min-w-0", key !== mobileStage && "max-md:hidden")}>
               <Column
                 key={key}
                 stageKey={key}

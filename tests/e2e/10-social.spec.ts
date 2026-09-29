@@ -248,8 +248,9 @@ test("a late post shows as missed after a page load and can still be posted late
   await expect(page.getByRole("dialog").getByText("Posted late")).toBeVisible();
 
   const { data: feed } = await admin().from("feed_events").select("kind, summary").eq("post_id", id).order("id");
-  expect(feed!.map((f) => f.kind)).toEqual(["post_missed", "post_published"]);
-  expect(feed![1]!.summary).toContain("(late)");
+  // Made for Hina by Zain, so it starts with post_assigned (M11).
+  expect(feed!.map((f) => f.kind)).toEqual(["post_assigned", "post_missed", "post_published"]);
+  expect(feed![2]!.summary).toContain("(late)");
 });
 
 test("the SMM suggests an idea and the founder schedules it", async ({ page }) => {
