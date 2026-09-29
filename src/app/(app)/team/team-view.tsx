@@ -363,7 +363,7 @@ function InviteSheet({
               Send invite
             </Button>
           )}
-          <Button type="submit" form="invite-form" disabled={pending || emailBlocked}>
+          <Button type="submit" form="invite-form" pending={pending} disabled={emailBlocked}>
             {method === "email" ? "Send invite" : "Add member"}
           </Button>
         </div>
@@ -579,7 +579,7 @@ function SetPasswordDialog({ member, onClose }: { member: TeamRow; onClose: () =
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="set-password-form" disabled={pending}>
+          <Button type="submit" form="set-password-form" pending={pending}>
             Set password
           </Button>
         </DialogFooter>
@@ -614,7 +614,7 @@ function EditSheet({ member, niches, onClose }: { member: TeamRow; niches: ListI
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="member-form" disabled={pending}>
+          <Button type="submit" form="member-form" pending={pending}>
             Save changes
           </Button>
         </div>

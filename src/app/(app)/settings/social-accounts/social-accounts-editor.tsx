@@ -141,7 +141,7 @@ function AccountSheet({ account, onClose }: { account: SocialAccountItem | null;
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="account-form" disabled={pending}>
+          <Button type="submit" form="account-form" pending={pending}>
             {account ? "Save account" : "Add account"}
           </Button>
         </div>

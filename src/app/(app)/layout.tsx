@@ -16,6 +16,7 @@ import { unreadNotificationCount } from "@/server/queries/notifications";
 import { after } from "next/server";
 import { syncMyPending } from "@/server/google/sync";
 import { getDepartment } from "@/server/department";
+import { NavProgressProvider } from "@/components/app/nav-progress";
 import { showsSocial } from "@/lib/department";
 import { groupsFor } from "@/lib/notifications";
 
@@ -36,12 +37,20 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <ProfileProvider value={viewer}>
       <AppProvider lists={lists} department={department}>
         <NotificationsProvider key={department} initialUnread={unread}>
-          <div className="flex min-h-screen flex-col lg:flex-row">
-            <Sidebar reviewCount={reviewCount} />
-            <main id="main" className="min-w-0 flex-1">
-              <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">{children}</div>
-            </main>
-          </div>
+          <NavProgressProvider>
+            <a
+              href="#main"
+              className="sr-only z-[70] rounded-md bg-surface px-3 py-2 text-body font-medium text-ink shadow-overlay focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+            >
+              Skip to content
+            </a>
+            <div className="flex min-h-screen flex-col lg:flex-row">
+              <Sidebar reviewCount={reviewCount} />
+              <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+                <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8">{children}</div>
+              </main>
+            </div>
+          </NavProgressProvider>
           <LeadSheet />
           <LogActivitySheet />
           {viewer.role !== "bd" && showsSocial(department) && <PostSheet />}

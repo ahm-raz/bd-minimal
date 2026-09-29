@@ -228,7 +228,7 @@ function ScheduleSheet({ schedule, onClose }: { schedule: ScheduleItem | null; o
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="schedule-form" disabled={pending}>
+          <Button type="submit" form="schedule-form" pending={pending}>
             {schedule ? "Save schedule" : "Create schedule"}
           </Button>
         </div>

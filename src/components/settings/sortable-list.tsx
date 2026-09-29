@@ -157,7 +157,7 @@ export function SortableList({
           />
           {addError && <p className="mt-1 text-small text-bad">{addError}</p>}
         </div>
-        <Button type="submit" variant="secondary" size="form" disabled={pending}>
+        <Button type="submit" variant="secondary" size="form" pending={pending}>
           Add {singular}
         </Button>
       </form>

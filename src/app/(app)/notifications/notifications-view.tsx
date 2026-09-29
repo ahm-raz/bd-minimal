@@ -20,6 +20,7 @@ export function NotificationsView({ groups }: { groups: NotificationGroup[] }) {
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [marking, setMarking] = useState(false);
 
   const load = useCallback(
     (beforeId?: number) =>
@@ -50,11 +51,15 @@ export function NotificationsView({ groups }: { groups: NotificationGroup[] }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() =>
-                    void markRead("all").then(() =>
-                      setItems((l) => l?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? null),
-                    )
-                  }
+                  pending={marking}
+                  onClick={() => {
+                    setMarking(true);
+                    void markRead("all").then((saved) => {
+                      setMarking(false);
+                      if (saved)
+                        setItems((l) => l?.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) ?? null);
+                    });
+                  }}
                 >
                   Mark all as read
                 </Button>
@@ -95,7 +100,7 @@ export function NotificationsView({ groups }: { groups: NotificationGroup[] }) {
           </div>
           {hasMore && (
             <div className="border-t border-line p-3 text-center">
-              <Button variant="secondary" size="sm" disabled={pending} onClick={() => load(items?.at(-1)?.id)}>
+              <Button variant="secondary" size="sm" pending={pending} onClick={() => load(items?.at(-1)?.id)}>
                 Load more
               </Button>
             </div>

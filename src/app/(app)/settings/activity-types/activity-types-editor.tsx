@@ -179,7 +179,7 @@ export function ActivityTypesEditor({ types, channels }: { types: ActivityTypeIt
               options={channelOptions(null)}
             />
           </FormField>
-          <Button type="submit" size="form" className="sm:mt-[26px]" disabled={pending}>
+          <Button type="submit" size="form" className="sm:mt-[26px]" pending={pending}>
             Add activity type
           </Button>
         </form>

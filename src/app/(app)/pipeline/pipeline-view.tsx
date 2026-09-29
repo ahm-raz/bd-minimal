@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { onTablistKeyDown } from "@/lib/tablist";
+import { BusyRegion, useFilterNav } from "@/components/app/nav-progress";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -40,12 +42,10 @@ export function PipelineView({ cards, totals, filters }: { cards: PipelineCard[]
   const { lists } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
-  const router = useRouter();
-  const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
   const now = useNow();
   const today = todayIn(profile.timezone);
-  const [, startTransition] = useTransition();
   const [openId, setOpenId] = useState<string | null>(null);
   const stageChange = useStageChange();
 
@@ -69,7 +69,7 @@ export function PipelineView({ cards, totals, filters }: { cards: PipelineCard[]
       if (v === null) next.delete(k);
       else next.set(k, v);
     }
-    startTransition(() => router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false }));
+    replaceQuery(next);
   };
 
   const move = (card: PipelineCard, to: string) => {
@@ -97,7 +97,7 @@ export function PipelineView({ cards, totals, filters }: { cards: PipelineCard[]
   const memberName = (id: string) => lists.members.find((m) => m.id === id)?.full_name ?? "";
 
   return (
-    <>
+    <BusyRegion busy={loading}>
       <PageHeader
         title="Pipeline"
         meta={
@@ -189,7 +189,7 @@ export function PipelineView({ cards, totals, filters }: { cards: PipelineCard[]
 
       <OpportunitySheet id={openId} onClose={() => setOpenId(null)} />
       {stageChange.dialogs}
-    </>
+    </BusyRegion>
   );
 }
 
@@ -216,8 +216,15 @@ function Board({
 }) {
   const { lists } = useApp();
   const [active, setActive] = useState<PipelineCard | null>(null);
+  // Phones show one stage at a time; the picker above the column switches it.
+  const [mobileStage, setMobileStage] = useState<string>(STAGE_KEYS[0]);
+  // On touch screens a drag starts after a short press, so swiping still scrolls the page.
+  const [coarse] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(
+      PointerSensor,
+      coarse ? { activationConstraint: { delay: 250, tolerance: 8 } } : { activationConstraint: { distance: 6 } },
+    ),
     useSensor(KeyboardSensor),
   );
 
@@ -231,14 +238,43 @@ function Board({
 
   return (
     <DndContext id="pipeline-board" sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
+      <div
+        role="tablist"
+        aria-label="Stage"
+        className="-mx-4 mb-3 flex snap-x gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-none md:hidden"
+        onKeyDown={onTablistKeyDown}
+      >
+        {STAGE_KEYS.map((key) => {
+          const stage = lists.stages.find((s) => s.key === key);
+          const count = cards.filter((c) => c.stage === key).length;
+          const on = key === mobileStage;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              tabIndex={on ? 0 : -1}
+              onClick={() => setMobileStage(key)}
+              className={cn(
+                "h-9 shrink-0 snap-start rounded-full border px-3 text-small whitespace-nowrap transition-colors",
+                on ? "border-accent-strong bg-accent-soft font-medium text-accent-strong" : "border-line bg-surface text-ink-muted",
+              )}
+            >
+              {stage?.label ?? key} <span className="num">{count}</span>
+            </button>
+          );
+        })}
+      </div>
       <div className="overflow-x-auto pb-2">
-        <div className="grid min-w-[1100px] grid-cols-6 gap-3">
+        <div className="grid gap-3 md:min-w-[1100px] md:grid-cols-6">
           {STAGE_KEYS.map((key) => {
             const stage = lists.stages.find((s) => s.key === key);
             const list = cards.filter((c) => c.stage === key);
             const value = list.reduce((s, c) => s + (key === "won" ? (c.wonValue ?? 0) : c.estimatedValue), 0);
             const weighted = stage?.is_open ? list.reduce((s, c) => s + c.estimatedValue * (stage.probability ?? 0), 0) : null;
             return (
+              <div key={key} className={cn("min-w-0", key !== mobileStage && "max-md:hidden")}>
               <Column
                 key={key}
                 stageKey={key}
@@ -266,6 +302,7 @@ function Board({
                   />
                 ))}
               </Column>
+              </div>
             );
           })}
         </div>
@@ -349,6 +386,7 @@ function Card({
       {...listeners}
       aria-label={`${card.company}, ${card.title}`}
       aria-roledescription="Opportunity card. Press space to pick up."
+      aria-describedby={`card-meta-${card.id}`}
       data-testid={`card-${card.title}`}
       onClick={onOpen}
       onKeyDown={(e) => {
@@ -356,10 +394,14 @@ function Card({
         if (e.key === "Enter") onOpen();
       }}
       className={cn(
-        "cursor-grab rounded-lg border border-line bg-surface p-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-accent-strong",
+        "cursor-grab rounded-lg border border-line bg-surface p-3 text-left shadow-card outline-none transition-[box-shadow,border-color,transform] duration-150 hover:border-line-strong hover:shadow-raised focus-visible:outline-2 focus-visible:outline-accent-strong active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
     >
+      <span id={`card-meta-${card.id}`} className="sr-only">
+        {days} days in stage{stuck ? ", stuck" : ""}
+        {ownerInitials ? `, owner ${ownerName}` : ""}
+      </span>
       <div className="truncate text-body font-medium text-ink">{card.company}</div>
       <div className="truncate text-small text-ink-muted">{card.title}</div>
       <div className="mt-2 flex items-center gap-2 text-small">

@@ -195,7 +195,7 @@ function LogActivityForm({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="log-activity-form" disabled={pending}>
+          <Button type="submit" form="log-activity-form" pending={pending}>
             Log activity
           </Button>
         </div>

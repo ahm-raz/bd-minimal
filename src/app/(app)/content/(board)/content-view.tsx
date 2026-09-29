@@ -1,5 +1,6 @@
 "use client";
 
+import { BusyRegion, useFilterNav } from "@/components/app/nav-progress";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -77,6 +78,7 @@ export function ContentView({
   const founder = profile.role === "founder";
   const router = useRouter();
   const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
 
   const setParams = (patch: Record<string, string | null>) => {
@@ -85,7 +87,7 @@ export function ContentView({
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    replaceQuery(next);
   };
 
   // ?post= (from the feed or My Day), ?new=1 and ?idea=1 (command menu) open the side panel once.
@@ -130,7 +132,7 @@ export function ContentView({
   const socialMembers = lists.members.filter((m) => m.role !== "bd");
 
   return (
-    <>
+    <BusyRegion busy={loading}>
       <PageHeader
         title="Content"
         meta={founder ? "Every account" : "Your posts"}
@@ -190,7 +192,8 @@ export function ContentView({
         {view !== "review" && (
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <SelectField
-              className="w-48"
+              aria-label="Account"
+              className="w-48 max-sm:w-full"
               value={filters.account}
               onChange={(v) => setParams({ account: v })}
               noneLabel="All accounts"
@@ -198,7 +201,8 @@ export function ContentView({
             />
             {founder && (
               <SelectField
-                className="w-40"
+                aria-label="Assigned to"
+                className="w-40 max-sm:flex-1"
                 value={filters.assignee}
                 onChange={(v) => setParams({ assignee: v })}
                 noneLabel="Everyone"
@@ -206,14 +210,16 @@ export function ContentView({
               />
             )}
             <SelectField
-              className="w-44"
+              aria-label="Status"
+              className="w-44 max-sm:flex-1"
               value={filters.status}
               onChange={(v) => setParams({ status: v })}
               noneLabel="Any status"
               options={POST_STATUSES.filter((s) => s !== "idea").map((s) => ({ value: s, label: POST_STATUS_LABELS[s] }))}
             />
             <SelectField
-              className="w-40"
+              aria-label="Pillar"
+              className="w-40 max-sm:flex-1"
               value={filters.pillar}
               onChange={(v) => setParams({ pillar: v })}
               noneLabel="Any pillar"
@@ -231,7 +237,7 @@ export function ContentView({
       {view === "review" && <ReviewList posts={review} onOpen={open} />}
 
       {view !== "review" && (ideas.length > 0 || !founder) && <IdeasPanel ideas={ideas} founder={founder} onOpen={open} />}
-    </>
+    </BusyRegion>
   );
 }
 
@@ -433,16 +439,45 @@ function MonthView({
     byDay.set(d, [...(byDay.get(d) ?? []), p]);
   }
   const days = eachDay(from, to);
+  const busyDays = days.filter((d) => d.slice(0, 7) === month && byDay.has(d));
   return (
     <Panel className="overflow-hidden" data-testid="month-view">
-      <div className="grid grid-cols-7 border-b border-line bg-surface-muted text-small text-ink-muted">
+      {/* Phones: an agenda of the days that have posts, instead of a squashed 7-column grid. */}
+      <ul className="divide-y divide-line sm:hidden" aria-label="Posts by day">
+        {busyDays.length === 0 && <li className="px-4 py-6 text-body text-ink-muted">No posts this month.</li>}
+        {busyDays.map((d) => {
+          const list = byDay.get(d)!.sort((a, b) => a.scheduledAt!.localeCompare(b.scheduledAt!));
+          return (
+            <li key={d}>
+              <button
+                type="button"
+                onClick={() => onPickDay(d)}
+                className="flex w-full flex-col gap-1.5 px-4 py-3 text-left active:bg-surface-muted"
+              >
+                <span className={cn("num text-small font-medium", d === today ? "text-accent-strong" : "text-ink")}>
+                  {formatLocalDate(d)}
+                  {d === today && " · Today"}
+                </span>
+                {list.map((p) => (
+                  <span key={p.id} className="flex items-center gap-2 text-small text-ink-muted">
+                    <span className={cn("size-2 shrink-0 rounded-full", POST_STATUS_DOT[p.status])} aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-ink">{p.title}</span>
+                    <span className="shrink-0">{POST_STATUS_LABELS[p.status]}</span>
+                  </span>
+                ))}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="grid grid-cols-7 border-b border-line bg-surface-muted text-small text-ink-muted max-sm:hidden">
         {days.slice(0, 7).map((d) => (
           <div key={d} className="px-2 py-1.5">
             {weekdayShort(d)}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 max-sm:hidden">
         {days.map((d) => {
           const list = (byDay.get(d) ?? []).sort((a, b) => a.scheduledAt!.localeCompare(b.scheduledAt!));
           const inMonth = d.slice(0, 7) === month;

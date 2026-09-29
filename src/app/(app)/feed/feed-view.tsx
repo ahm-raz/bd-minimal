@@ -1,8 +1,9 @@
 "use client";
 
+import { BusyRegion, useFilterNav } from "@/components/app/nav-progress";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowUp, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RelativeTime } from "@/components/common/relative-time";
@@ -56,8 +57,7 @@ export function FeedView({
   // The founder's department view narrows which events load and which chips show.
   const loadGroups = useMemo(() => effectiveFeedGroups(filters.groups, department), [filters.groups, department]);
   const { timezone } = useProfile();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
   const [events, setEvents] = useState(initial);
   const [pending, setPending] = useState<FeedEvent[]>([]);
@@ -82,7 +82,7 @@ export function FeedView({
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    replaceQuery(next);
   };
 
   // Realtime: new events within ~2 seconds, no refresh (RLS: only the founder receives rows).
@@ -168,7 +168,7 @@ export function FeedView({
   };
 
   return (
-    <>
+    <BusyRegion busy={loading}>
       <PageHeader
         title="Feed"
         meta={
@@ -326,6 +326,6 @@ export function FeedView({
           onClose={() => setFlagging(null)}
         />
       )}
-    </>
+    </BusyRegion>
   );
 }

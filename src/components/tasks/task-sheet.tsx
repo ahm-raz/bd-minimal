@@ -111,7 +111,7 @@ export function TaskSheet({ state, onClose, defaultDate }: { state: TaskSheetSta
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="task-form" disabled={pending}>
+          <Button type="submit" form="task-form" pending={pending}>
             {state.mode === "new" ? "Assign task" : "Save task"}
           </Button>
         </div>

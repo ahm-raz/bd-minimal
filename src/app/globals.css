@@ -17,54 +17,62 @@
   }
 }
 
-/* Design tokens: docs/06-design-system.md, section 2. Light theme here; the dark theme overrides below. */
+/*
+ * Design tokens: docs/06-design-system.md, section 2. Warm neutrals (ivory canvas, warm greys), a teal
+ * accent, and status colours that only carry meaning. The dark theme is written once below with
+ * `@variant dark`, which covers both the forced .dark class and "Same as system".
+ */
 :root {
-  --canvas: #f5f6f8;
+  --canvas: #faf9f5;
   --surface: #ffffff;
-  --surface-muted: #eef0f3;
-  --line: #dfe3e8;
-  --ink: #161b22;
-  --ink-muted: #5a6472;
-  --ink-faint: #8a93a0;
+  --surface-muted: #f3f1ec;
+  --line: #e5e2d9;
+  --line-strong: #d4d0c4;
+  --ink: #1f1e1b;
+  --ink-muted: #5e5a52;
+  --ink-faint: #8d897f;
   --accent: #0e6272;
   --accent-hover: #0a4e5b;
-  --accent-soft: #e1eff1;
+  --accent-soft: #e2eff0;
   --ok: #2e7d4f;
-  --ok-soft: #e2f2e8;
+  --ok-soft: #e3f1e6;
   --warn: #a8660b;
-  --warn-soft: #fbefd9;
+  --warn-soft: #faefda;
   --bad: #b8322a;
-  --bad-soft: #fbe5e2;
+  --bad-soft: #fae4e0;
   /* Text on soft fills: darker than --ok/--warn so chips meet WCAG AA (4.5:1). */
   --ok-ink: #276b43;
-  --warn-ink: #93590a;
-  --lost-ink: #76605d;
+  --warn-ink: #8f5609;
+  --lost-ink: #74605b;
   /* Text on solid accent / bad fills (buttons, today markers) */
   --on-accent: #ffffff;
   --on-bad: #ffffff;
   --bad-hover: #9a2922;
   /* Info chip, and the consistency heatmap's lighter steps */
-  --info-bg: #e6eef6;
+  --info-bg: #e7eef5;
   --info-fg: #2f5a85;
   --heat-light: #d3e7ea;
   --heat-medium: #8fc0c8;
 
   /* stage chips */
-  --stage-qualified-bg: #eef0f3;
-  --stage-qualified-fg: #5a6472;
-  --stage-meeting-bg: #e6eef6;
+  --stage-qualified-bg: #f0eee8;
+  --stage-qualified-fg: #5e5a52;
+  --stage-meeting-bg: #e7eef5;
   --stage-meeting-fg: #2f5a85;
-  --stage-proposal-bg: #e1eff1;
+  --stage-proposal-bg: #e2eff0;
   --stage-proposal-fg: #0e6272;
-  --stage-negotiation-bg: #dcebe6;
+  --stage-negotiation-bg: #dcebe5;
   --stage-negotiation-fg: #1d6b57;
-  --stage-won-bg: #e2f2e8;
+  --stage-won-bg: #e3f1e6;
   --stage-won-fg: #276b43;
-  --stage-lost-bg: #f3f1f1;
-  --stage-lost-fg: #76605d;
+  --stage-lost-bg: #f3efee;
+  --stage-lost-fg: #74605b;
 
-  --shadow-overlay: 0 8px 24px rgba(22, 27, 34, 0.12);
-  --radius: 0.625rem; /* 10px panels and dialogs */
+  /* Elevation: a hairline lift for panels, a clearer one on hover, and overlays. */
+  --shadow-card: 0 1px 2px rgba(31, 30, 27, 0.04), 0 1px 1px rgba(31, 30, 27, 0.02);
+  --shadow-raised: 0 2px 4px rgba(31, 30, 27, 0.05), 0 6px 16px rgba(31, 30, 27, 0.07);
+  --shadow-overlay: 0 4px 8px rgba(31, 30, 27, 0.05), 0 16px 40px rgba(31, 30, 27, 0.12);
+  --radius: 0.75rem; /* 12px panels and dialogs */
 
   /* shadcn theme mapped onto the tokens */
   --background: var(--canvas);
@@ -83,7 +91,7 @@
   --accent-fill: var(--surface-muted);
   --destructive: var(--bad);
   --border: var(--line);
-  --input: var(--line);
+  --input: var(--line-strong);
   --ring: var(--accent);
   --chart-1: var(--accent);
   --chart-2: #2f5a85;
@@ -98,101 +106,54 @@
   --sidebar-accent-foreground: var(--accent);
   --sidebar-border: var(--line);
   --sidebar-ring: var(--accent);
-}
 
-/* Dark theme: black shades. Every text/background pair meets WCAG AA (4.5:1). */
-.dark {
-  color-scheme: dark;
-  --canvas: #0a0a0b;
-  --surface: #141416;
-  --surface-muted: #1d1d21;
-  --line: #2a2a30;
-  --ink: #ededf0;
-  --ink-muted: #a3a3ad;
-  --ink-faint: #6e6e78;
-  --accent: #4fb3c2;
-  --accent-hover: #6cc3d0;
-  --accent-soft: #12292d;
-  --ok: #5cc28a;
-  --ok-soft: #10261a;
-  --warn: #e0a24a;
-  --warn-soft: #2a1f0e;
-  --bad: #f07a70;
-  --bad-soft: #2e1513;
-  --ok-ink: #5cc28a;
-  --warn-ink: #e0a24a;
-  --lost-ink: #b3a4a1;
-  --on-accent: #0a0a0b;
-  --on-bad: #0a0a0b;
-  --bad-hover: #f4958d;
-  --info-bg: #14202d;
-  --info-fg: #8db8e6;
-  --heat-light: #173236;
-  --heat-medium: #2a6a74;
-
-  --stage-qualified-bg: #1d1d21;
-  --stage-qualified-fg: #a3a3ad;
-  --stage-meeting-bg: #14202d;
-  --stage-meeting-fg: #8db8e6;
-  --stage-proposal-bg: #12292d;
-  --stage-proposal-fg: #4fb3c2;
-  --stage-negotiation-bg: #10251f;
-  --stage-negotiation-fg: #6fcbb0;
-  --stage-won-bg: #10261a;
-  --stage-won-fg: #5cc28a;
-  --stage-lost-bg: #1f1c1c;
-  --stage-lost-fg: #b3a4a1;
-
-  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.6);
-  --chart-2: #8db8e6;
-  --chart-3: #6fcbb0;
-}
-
-/* "Same as system": the same dark tokens when the OS is dark and light isn't forced. */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
+  /* Dark theme: warm near-blacks. Every text/background pair meets WCAG AA (4.5:1). */
+  @variant dark {
     color-scheme: dark;
-    --canvas: #0a0a0b;
-    --surface: #141416;
-    --surface-muted: #1d1d21;
-    --line: #2a2a30;
-    --ink: #ededf0;
-    --ink-muted: #a3a3ad;
-    --ink-faint: #6e6e78;
+    --canvas: #141412;
+    --surface: #1c1b19;
+    --surface-muted: #262521;
+    --line: #302e2a;
+    --line-strong: #403d37;
+    --ink: #eeece6;
+    --ink-muted: #aaa69c;
+    --ink-faint: #767269;
     --accent: #4fb3c2;
     --accent-hover: #6cc3d0;
-    --accent-soft: #12292d;
+    --accent-soft: #13292c;
     --ok: #5cc28a;
-    --ok-soft: #10261a;
+    --ok-soft: #11261a;
     --warn: #e0a24a;
-    --warn-soft: #2a1f0e;
+    --warn-soft: #2a200f;
     --bad: #f07a70;
-    --bad-soft: #2e1513;
+    --bad-soft: #2e1714;
     --ok-ink: #5cc28a;
     --warn-ink: #e0a24a;
-    --lost-ink: #b3a4a1;
-    --on-accent: #0a0a0b;
-    --on-bad: #0a0a0b;
+    --lost-ink: #b5a7a2;
+    --on-accent: #0f0f0e;
+    --on-bad: #0f0f0e;
     --bad-hover: #f4958d;
-    --info-bg: #14202d;
+    --info-bg: #15202b;
     --info-fg: #8db8e6;
     --heat-light: #173236;
     --heat-medium: #2a6a74;
 
-    --stage-qualified-bg: #1d1d21;
-    --stage-qualified-fg: #a3a3ad;
-    --stage-meeting-bg: #14202d;
+    --stage-qualified-bg: #262521;
+    --stage-qualified-fg: #aaa69c;
+    --stage-meeting-bg: #15202b;
     --stage-meeting-fg: #8db8e6;
-    --stage-proposal-bg: #12292d;
+    --stage-proposal-bg: #13292c;
     --stage-proposal-fg: #4fb3c2;
-    --stage-negotiation-bg: #10251f;
+    --stage-negotiation-bg: #11251f;
     --stage-negotiation-fg: #6fcbb0;
-    --stage-won-bg: #10261a;
+    --stage-won-bg: #11261a;
     --stage-won-fg: #5cc28a;
-    --stage-lost-bg: #1f1c1c;
-    --stage-lost-fg: #b3a4a1;
+    --stage-lost-bg: #221e1d;
+    --stage-lost-fg: #b5a7a2;
 
-    --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45);
+    --shadow-overlay: 0 4px 8px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.6);
     --chart-2: #8db8e6;
     --chart-3: #6fcbb0;
   }
@@ -203,6 +164,7 @@
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
@@ -225,6 +187,18 @@
   --color-info-fg: var(--info-fg);
   --color-heat-light: var(--heat-light);
   --color-heat-medium: var(--heat-medium);
+  --color-stage-qualified: var(--stage-qualified-bg);
+  --color-stage-qualified-ink: var(--stage-qualified-fg);
+  --color-stage-meeting: var(--stage-meeting-bg);
+  --color-stage-meeting-ink: var(--stage-meeting-fg);
+  --color-stage-proposal: var(--stage-proposal-bg);
+  --color-stage-proposal-ink: var(--stage-proposal-fg);
+  --color-stage-negotiation: var(--stage-negotiation-bg);
+  --color-stage-negotiation-ink: var(--stage-negotiation-fg);
+  --color-stage-won: var(--stage-won-bg);
+  --color-stage-won-ink: var(--stage-won-fg);
+  --color-stage-lost: var(--stage-lost-bg);
+  --color-stage-lost-ink: var(--stage-lost-fg);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -258,31 +232,71 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-  --font-heading: var(--font-plex-sans), system-ui, sans-serif;
+  /* Inter for the interface, Source Serif 4 for page titles and big numbers (docs/06 section 3). */
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display: var(--font-source-serif), Georgia, serif;
+  --font-heading: var(--font-source-serif), Georgia, serif;
 
-  /* 6px for inputs, buttons, chips; 10px for panels and dialogs */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 10px;
-  --radius-2xl: 10px;
-  --radius-3xl: 10px;
-  --radius-4xl: 10px;
+  /* 6px small controls; 8px inputs, buttons and chips; 12px panels and dialogs */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
 
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
   --shadow-overlay: var(--shadow-overlay);
 
+  /* Motion: docs/06 section 7. Fast, eased out, only on user actions and arrivals. */
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-enter: enter 180ms var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-progress: progress 1.1s var(--ease-out-soft) infinite;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+  @keyframes progress {
+    from {
+      transform: translateX(-100%) scaleX(0.4);
+    }
+    to {
+      transform: translateX(160%) scaleX(0.6);
+    }
+  }
+
   /* Type scale: docs/06, section 3 */
-  --text-display-num: 28px;
-  --text-display-num--line-height: 32px;
+  --text-display-num: 30px;
+  --text-display-num--line-height: 34px;
   --text-display-num--font-weight: 600;
-  --text-title: 20px;
+  --text-display-num--letter-spacing: -0.015em;
+  --text-title: 22px;
   --text-title--line-height: 28px;
   --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.01em;
   --text-section: 15px;
   --text-section--line-height: 22px;
   --text-section--font-weight: 600;
+  --text-section--letter-spacing: -0.005em;
   --text-body: 14px;
   --text-body--line-height: 20px;
   --text-small: 13px;
@@ -298,13 +312,22 @@
   }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-canvas text-body text-ink;
   }
+  /* Page titles and big numbers use the display serif; zero specificity, so a font-* class still wins. */
+  :where(.text-title, .text-display-num) {
+    font-family: var(--font-display);
+  }
+  /* One focus style everywhere: a 2px accent ring, keyboard only (docs/06 section 8). */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
   }
   a {
     color: inherit;
@@ -320,8 +343,28 @@
   box-shadow: var(--shadow-overlay);
 }
 
+/* Skeleton shimmer: a soft band moving across a muted block. */
+@utility skeleton {
+  background-color: var(--surface-muted);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface) 70%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
 @utility prose-width {
   max-width: 72ch;
+}
+
+/* Keyboard hints mean nothing on a touch screen. */
+@media (pointer: coarse) {
+  kbd {
+    display: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

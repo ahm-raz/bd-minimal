@@ -355,7 +355,7 @@ function RescheduleDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Save meeting
             </Button>
           </DialogFooter>
@@ -416,7 +416,7 @@ function CancelDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               Keep meeting
             </Button>
-            <Button type="submit" variant="destructive" disabled={pending}>
+            <Button type="submit" variant="destructive" pending={pending}>
               Cancel meeting
             </Button>
           </DialogFooter>

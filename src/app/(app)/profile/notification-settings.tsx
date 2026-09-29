@@ -63,7 +63,10 @@ export function NotificationSettings({
     setReminders(next);
     startTransition(async () => {
       const res = await saveMeetingReminders({ reminders: next });
-      if (!res.ok) toast.error(res.error);
+      if (!res.ok) {
+        toast.error(res.error);
+        setReminders(reminders);
+      }
     });
   };
 
@@ -88,6 +91,7 @@ export function NotificationSettings({
           )}
         </div>
 
+        <div className="-mx-1 overflow-x-auto px-1">
         <table className="w-full text-body">
           <thead>
             <tr className="text-left text-small text-ink-muted">
@@ -125,6 +129,7 @@ export function NotificationSettings({
             })}
           </tbody>
         </table>
+        </div>
 
         {groups.includes("meetings") && (
           <div className="flex flex-col gap-1.5">

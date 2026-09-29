@@ -73,7 +73,7 @@ export function FlagLeadDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Flag lead
             </Button>
           </DialogFooter>

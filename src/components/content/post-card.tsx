@@ -21,7 +21,7 @@ export function PostCardBody({ post, tz }: { post: PostItem; tz: string }) {
         <span className="num text-small font-medium text-ink">{post.scheduledAt ? formatClock(post.scheduledAt, tz) : "No time"}</span>
         {account && <PlatformChip platform={account.platform} />}
         <span
-          className="ml-auto flex size-5 items-center justify-center rounded-full bg-accent-soft text-[10px] text-accent-strong"
+          className="ml-auto flex size-5 items-center justify-center rounded-full bg-accent-soft text-micro leading-none text-accent-strong"
           title={assignee?.full_name}
           aria-hidden
         >

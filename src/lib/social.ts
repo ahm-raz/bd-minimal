@@ -104,7 +104,7 @@ export const POST_STATUS_DOT: Record<PostStatus, string> = {
   drafting: "bg-accent",
   in_review: "bg-warn",
   changes_requested: "bg-warn",
-  approved: "bg-[var(--stage-meeting-fg)]",
+  approved: "bg-stage-meeting-ink",
   posted: "bg-ok",
   missed: "bg-bad",
   cancelled: "bg-line",

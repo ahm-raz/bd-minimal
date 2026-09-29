@@ -9,9 +9,9 @@ const TONES: Record<Tone, string> = {
   ok: "bg-ok-soft text-ok-ink",
   warn: "bg-warn-soft text-warn-ink",
   bad: "bg-bad-soft text-bad",
-  muted: "bg-[var(--stage-lost-bg)] text-lost-ink",
+  muted: "bg-stage-lost text-lost-ink",
   info: "bg-info-bg text-info-fg",
-  meeting: "bg-[var(--stage-meeting-bg)] text-[var(--stage-meeting-fg)]",
+  meeting: "bg-stage-meeting text-stage-meeting-ink",
 };
 
 /** Chip: micro type, 20px tall, soft background, strong text (docs/06 section 5). */
@@ -24,7 +24,7 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-micro whitespace-nowrap",
+        "inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-micro whitespace-nowrap",
         TONES[tone],
         className,
       )}
@@ -36,19 +36,19 @@ export function Chip({
 }
 
 const STAGE_STYLE: Record<StageKey, string> = {
-  qualified: "bg-[var(--stage-qualified-bg)] text-[var(--stage-qualified-fg)]",
-  meeting_done: "bg-[var(--stage-meeting-bg)] text-[var(--stage-meeting-fg)]",
-  proposal_sent: "bg-[var(--stage-proposal-bg)] text-[var(--stage-proposal-fg)]",
-  negotiation: "bg-[var(--stage-negotiation-bg)] text-[var(--stage-negotiation-fg)]",
-  won: "bg-[var(--stage-won-bg)] text-[var(--stage-won-fg)]",
-  lost: "bg-[var(--stage-lost-bg)] text-[var(--stage-lost-fg)]",
+  qualified: "bg-stage-qualified text-stage-qualified-ink",
+  meeting_done: "bg-stage-meeting text-stage-meeting-ink",
+  proposal_sent: "bg-stage-proposal text-stage-proposal-ink",
+  negotiation: "bg-stage-negotiation text-stage-negotiation-ink",
+  won: "bg-stage-won text-stage-won-ink",
+  lost: "bg-stage-lost text-stage-lost-ink",
 };
 
 export function StageChip({ stage, label, className }: { stage: string; label: string; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-micro whitespace-nowrap",
+        "inline-flex h-5 shrink-0 items-center rounded-full px-2 text-micro whitespace-nowrap",
         STAGE_STYLE[stage as StageKey] ?? STAGE_STYLE.qualified,
         className,
       )}

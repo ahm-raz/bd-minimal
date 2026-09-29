@@ -151,7 +151,7 @@ function CampaignSheet({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="campaign-form" disabled={pending}>
+          <Button type="submit" form="campaign-form" pending={pending}>
             {campaign ? "Save campaign" : "Add campaign"}
           </Button>
         </div>

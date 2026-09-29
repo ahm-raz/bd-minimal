@@ -1,5 +1,6 @@
 "use client";
 
+import { useFilterNav } from "@/components/app/nav-progress";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -118,6 +119,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
   const isFounder = profile.role === "founder";
   const router = useRouter();
   const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
   const today = todayIn(profile.timezone);
   const [pending, startTransition] = useTransition();
@@ -137,7 +139,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
     }
     if (resetLimit && !("limit" in patch)) next.delete("limit");
     setRowSelection({});
-    startTransition(() => router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false }));
+    replaceQuery(next);
   };
 
   // "/" from another page lands here with ?focus=search
@@ -388,7 +390,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         <div className="ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary">
+              <Button variant="secondary" className="max-sm:hidden">
                 <Columns3 aria-hidden /> Columns
               </Button>
             </DropdownMenuTrigger>
@@ -474,7 +476,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         </div>
       )}
 
-      <div className={cn("overflow-hidden rounded-lg border border-line bg-surface transition-opacity", pending && "opacity-60")}>
+      <div className={cn("overflow-hidden rounded-lg border border-line bg-surface shadow-card transition-opacity", (pending || loading) && "opacity-60")}>
         {rows.length === 0 ? (
           filters.q || filterCount > 0 || filters.view !== "mine" ? (
             <EmptyState action={<Button variant="secondary" onClick={() => router.replace(pathname)}>Show my open leads</Button>}>
@@ -490,7 +492,40 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
             </EmptyState>
           )
         ) : (
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
+          <>
+          {/* Phones: one card per lead, one scroll direction (docs/07 section 3). */}
+          <ul className="divide-y divide-line sm:hidden" data-testid="lead-cards">
+            {rows.map((r) => {
+              const s = r.next_action_due ? dueState(r.next_action_due, today) : null;
+              return (
+                <li key={r.id}>
+                  <Link
+                    href={`/leads/${r.id}`}
+                    className="flex flex-col gap-1 px-4 py-3 transition-colors active:bg-surface-muted"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate font-medium text-ink">{r.company_name}</span>
+                      {r.flagged && <Flag className="size-3.5 shrink-0 text-bad" aria-label="Flagged" />}
+                      <StatusChip status={r.status} />
+                    </span>
+                    {r.contact && <span className="truncate text-small text-ink-muted">{contactName(r.contact)}</span>}
+                    <span className="flex items-center gap-2 text-small">
+                      <span className="min-w-0 flex-1 truncate text-ink-muted">{r.next_action ?? "No next step"}</span>
+                      {r.next_action_due && (
+                        <span className={cn("num shrink-0", s === "overdue" && "text-bad", s === "today" && "text-warn-ink")}>
+                          {dueLabel(r.next_action_due, today)}
+                        </span>
+                      )}
+                      {isFounder && (
+                        <span className="num shrink-0 text-micro text-ink-muted">{initials(memberName(r.owner_id))}</span>
+                      )}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="hidden max-h-[calc(100vh-220px)] overflow-auto sm:block">
             <table className="w-full text-body">
               <thead className="sticky top-0 z-10 bg-surface-muted">
                 {table.getHeaderGroups().map((group) => (
@@ -531,7 +566,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
                   <tr
                     key={row.id}
                     data-state={row.getIsSelected() ? "selected" : undefined}
-                    className="h-10 cursor-pointer border-b border-line last:border-0 hover:bg-surface-muted data-[state=selected]:bg-accent-soft"
+                    className="h-10 cursor-pointer border-b border-line transition-colors last:border-0 focus-within:bg-surface-muted hover:bg-surface-muted data-[state=selected]:bg-accent-soft"
                     onClick={(e) => {
                       if ((e.target as HTMLElement).closest("button,a,input,[role=checkbox]")) return;
                       router.push(`/leads/${row.original.id}`);
@@ -547,6 +582,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -792,7 +828,7 @@ function TagDialog({ onClose, onConfirm, pending }: { onClose: () => void; onCon
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Add tag
             </Button>
           </DialogFooter>

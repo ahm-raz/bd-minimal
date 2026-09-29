@@ -11,7 +11,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-start gap-3 px-4 py-8", className)}>
+    <div className={cn("flex animate-enter flex-col items-start gap-3 px-4 py-8", className)}>
       <p className="prose-width text-body text-ink-muted">{children}</p>
       {action}
     </div>
@@ -21,7 +21,7 @@ export function EmptyState({
 /** Error state: says what happened and what to do. */
 export function ErrorState({ children, action, className }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
-    <div role="alert" className={cn("flex flex-col items-start gap-3 px-4 py-6", className)}>
+    <div role="alert" className={cn("flex animate-enter flex-col items-start gap-3 px-4 py-6", className)}>
       <p className="prose-width text-body text-bad">{children}</p>
       {action}
     </div>

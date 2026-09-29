@@ -23,9 +23,9 @@ export function PageHeader({
   );
 }
 
-/** Panel: 1px line border, no shadow, 10px radius. */
+/** Panel: 1px line border, hairline card shadow, 12px radius (docs/06 section 5). */
 export function Panel({ className, ...props }: React.ComponentProps<"section">) {
-  return <section className={cn("rounded-lg border border-line bg-surface", className)} {...props} />;
+  return <section className={cn("rounded-lg border border-line bg-surface shadow-card", className)} {...props} />;
 }
 
 export function PanelHeader({
@@ -55,7 +55,7 @@ export function StatGrid({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4",
+        "grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line shadow-card sm:grid-cols-4",
         className,
       )}
       {...props}
@@ -91,7 +91,10 @@ export function StatBlock({
       <button
         type="button"
         onClick={onClick}
-        className={cn("bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-muted", className)}
+        className={cn(
+          "group/stat bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-muted focus-visible:-outline-offset-2",
+          className,
+        )}
       >
         {body}
       </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ListSkeleton } from "@/components/common/page-skeleton";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
@@ -320,7 +321,7 @@ function NewPostSheet({ day, onClose }: { day?: string; onClose: () => void }) {
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="post-new-form" disabled={pending}>
+          <Button type="submit" form="post-new-form" pending={pending}>
             Create post
           </Button>
         </div>
@@ -384,7 +385,7 @@ function IdeaSheet({ onClose }: { onClose: () => void }) {
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="post-idea-form" disabled={pending}>
+          <Button type="submit" form="post-idea-form" pending={pending}>
             Suggest idea
           </Button>
         </div>
@@ -497,7 +498,7 @@ function OpenPostSheet({ id, onClose }: { id: string; onClose: () => void }) {
   if (!detail) {
     return (
       <FormSheet open onOpenChange={(o) => !o && onClose()} title={error ? "Post not found" : "Loading post…"}>
-        {error ? <p className="text-body text-ink-muted">{error}</p> : <p className="text-body text-ink-muted">Loading…</p>}
+        {error ? <p className="text-body text-ink-muted">{error}</p> : <ListSkeleton label="Loading post" rows={5} />}
       </FormSheet>
     );
   }
@@ -765,7 +766,7 @@ function PostPanel({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="flex flex-col gap-3">
-      <h3 className="text-small font-medium tracking-wide text-ink-muted uppercase">{title}</h3>
+      <h3 className="text-small font-medium text-ink-muted">{title}</h3>
       {children}
     </section>
   );
@@ -830,7 +831,7 @@ function BriefEditor({ post, onSaved }: { post: PostItem; onSaved: () => Promise
       <FormError>{formError}</FormError>
       <BriefFields control={form.control} register={form.register} errors={form.formState.errors} idPrefix="post-brief" />
       <div className="flex justify-end">
-        <Button type="submit" variant={idea ? "default" : "secondary"} disabled={pending || (!idea && !form.formState.isDirty)}>
+        <Button type="submit" variant={idea ? "default" : "secondary"} pending={pending} disabled={(!idea && !form.formState.isDirty)}>
           {idea ? "Schedule post" : "Save brief"}
         </Button>
       </div>
@@ -1023,7 +1024,7 @@ export function RequestChangesDialog({ postId, onClose, onDone }: { postId: stri
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="request-changes-form" disabled={pending}>
+          <Button type="submit" form="request-changes-form" pending={pending}>
             Request changes
           </Button>
         </DialogFooter>
@@ -1084,7 +1085,7 @@ function MarkPostedDialog({ post, onClose, onDone }: { post: PostItem; onClose: 
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="mark-posted-form" disabled={pending}>
+          <Button type="submit" form="mark-posted-form" pending={pending}>
             Mark as posted
           </Button>
         </DialogFooter>
@@ -1157,7 +1158,7 @@ function ResultsDialog({ post, onClose, onDone }: { post: PostItem; onClose: () 
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="results-form" disabled={pending}>
+          <Button type="submit" form="results-form" pending={pending}>
             Save results
           </Button>
         </DialogFooter>

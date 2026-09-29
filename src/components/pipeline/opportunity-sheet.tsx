@@ -99,7 +99,7 @@ function OpportunityForm({ detail, onClose, onChanged }: { detail: OpportunityDe
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
-          <Button type="submit" form="opp-form" disabled={pending || !dirty}>
+          <Button type="submit" form="opp-form" pending={pending} disabled={!dirty}>
             Save opportunity
           </Button>
         </div>

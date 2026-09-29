@@ -1,8 +1,10 @@
 "use client";
 
+import { onTablistKeyDown } from "@/lib/tablist";
+import { BusyRegion, useFilterNav } from "@/components/app/nav-progress";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -68,8 +70,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
   const { lists, department } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
-  const router = useRouter();
-  const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
   const now = useNow();
   const today = todayIn(profile.timezone);
@@ -84,7 +85,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    replaceQuery(next);
   };
 
   const open = (metric: DrillMetric, label: string, userId: string | null = f.person, extra: Partial<DrillRequest> = {}) =>
@@ -121,7 +122,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
   };
 
   return (
-    <>
+    <BusyRegion busy={loading}>
       {isFounder && department === "all" && lists.socialAccounts.length > 0 && <PerformanceTabs active="sales" />}
       <PageHeader
         title={title}
@@ -233,7 +234,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
       <PipelineHealth data={data} />
 
       <DrilldownSheet request={drill} onClose={() => setDrill(null)} />
-    </>
+    </BusyRegion>
   );
 }
 
@@ -447,13 +448,14 @@ function Breakdown({ data, onDrill }: { data: PerformanceData; onDrill: (m: Dril
       <PanelHeader
         title="Breakdown"
         actions={
-          <div role="tablist" aria-label="Break down by" className="flex gap-1">
+          <div role="tablist" aria-label="Break down by" className="flex gap-1" onKeyDown={onTablistKeyDown}>
             {(["niche", "channel", "campaign"] as const).map((t) => (
               <button
                 key={t}
                 role="tab"
                 type="button"
                 aria-selected={tab === t}
+                tabIndex={tab === t ? 0 : -1}
                 onClick={() => setTab(t)}
                 className={cn("h-7 rounded-md px-2.5 text-small", tab === t ? "bg-accent-soft font-medium text-accent-strong" : "text-ink-muted hover:bg-surface-muted")}
               >
@@ -603,7 +605,11 @@ function ConsistencyGrid({ data }: { data: PerformanceData }) {
                           weekend ? "w-4 bg-surface-muted text-ink-muted" : cn("w-9", SHADE[shade]),
                         )}
                       >
-                        {v > 0 ? v : ""}
+                        <span aria-hidden>{v > 0 ? v : ""}</span>
+                        <span className="sr-only">
+                          {d}: {v} {METRIC_LABELS[metric].toLowerCase()}
+                          {daily(u) ? `, daily target ${daily(u)}` : ""}
+                        </span>
                       </td>
                     );
                   })}

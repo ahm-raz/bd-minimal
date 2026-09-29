@@ -1,5 +1,6 @@
 "use client";
 
+import { onTablistKeyDown } from "@/lib/tablist";
 import { useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -42,7 +43,7 @@ export function NotificationBell({ className }: { className?: string }) {
           <Bell />
           {total > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bad px-1 num text-[10px] leading-none font-semibold text-on-bad"
+              className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-bad px-1 num text-micro leading-none font-semibold text-on-bad ring-2 ring-surface animate-in zoom-in-50 duration-200"
               data-testid="bell-count"
             >
               {total > 99 ? "99+" : total}
@@ -51,7 +52,7 @@ export function NotificationBell({ className }: { className?: string }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" side="bottom" className="w-[380px] max-w-[calc(100vw-1rem)] gap-0 p-0">
-        <div role="tablist" aria-label="Notifications" className="flex border-b border-line">
+        <div role="tablist" aria-label="Notifications" className="flex border-b border-line" onKeyDown={onTablistKeyDown}>
           {(
             [
               ["upcoming", "What's upcoming", urgent],
@@ -63,9 +64,10 @@ export function NotificationBell({ className }: { className?: string }) {
               role="tab"
               type="button"
               aria-selected={tab === key}
+              tabIndex={tab === key ? 0 : -1}
               onClick={() => setTab(key)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 border-b-2 px-3 py-2.5 text-small",
+                "flex flex-1 items-center justify-center gap-1.5 border-b-2 px-3 py-2.5 text-small transition-colors",
                 tab === key ? "border-accent-strong text-ink" : "border-transparent text-ink-muted hover:text-ink",
               )}
             >

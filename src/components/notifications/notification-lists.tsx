@@ -1,5 +1,6 @@
 "use client";
 
+import { ListSkeleton } from "@/components/common/page-skeleton";
 import Link from "next/link";
 import { Video } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ export function UpcomingList({
   onNavigate?: () => void;
 }) {
   const profile = useProfile();
-  if (!items || !now) return <p className="px-4 py-6 text-small text-ink-muted">Loading…</p>;
+  if (!items || !now) return <ListSkeleton label="Loading what's upcoming" />;
   const today = todayIn(profile.timezone, now);
   const groups = groupUpcoming(items, now, today, (iso) => localDateOf(new Date(iso), profile.timezone));
   if (!groups.length)
@@ -42,7 +43,7 @@ export function UpcomingList({
         <section key={g.bucket} aria-label={BUCKET_LABELS[g.bucket]}>
           <h3
             className={cn(
-              "px-4 pt-3 pb-1 text-micro tracking-wide uppercase",
+              "px-4 pt-3 pb-1 text-micro",
               g.bucket === "overdue" ? "text-bad" : "text-ink-muted",
             )}
           >
@@ -101,7 +102,7 @@ export function HappenedList({
   emptyText?: string;
 }) {
   const profile = useProfile();
-  if (!items) return <p className="px-4 py-6 text-small text-ink-muted">Loading…</p>;
+  if (!items) return <ListSkeleton label="Loading notifications" />;
   if (!items.length) return <p className="px-4 py-6 text-small text-ink-muted">{emptyText}</p>;
   return (
     <ul data-testid="happened-list">

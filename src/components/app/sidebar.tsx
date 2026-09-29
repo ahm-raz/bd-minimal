@@ -2,7 +2,7 @@
 
 import { NotificationBell } from "@/components/notifications/bell";
 import { useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
@@ -78,11 +78,14 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-8 items-center gap-2.5 rounded-md px-2.5 text-body transition-colors",
-              active ? "bg-accent-soft font-medium text-accent-strong" : "text-ink hover:bg-surface-muted",
+              "relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-body transition-colors duration-150 pointer-coarse:h-10",
+              active
+                ? "bg-accent-soft font-medium text-accent-strong before:absolute before:inset-y-1.5 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-accent-strong before:animate-in before:fade-in before:duration-200"
+                : "text-ink-muted hover:bg-surface-muted hover:text-ink",
             )}
           >
             <Icon className="size-4 shrink-0" aria-hidden />
+            <NavPending />
             <span className="flex-1">{item.label}</span>
             {item.href === "/content" && reviewCount > 0 && (
               <span
@@ -100,6 +103,31 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
         );
       })}
     </nav>
+  );
+}
+
+function BrandMark() {
+  return (
+    <span
+      aria-hidden
+      className="flex size-6 shrink-0 items-center justify-center rounded-md bg-accent-strong font-display text-small font-semibold text-on-accent"
+    >
+      C
+    </span>
+  );
+}
+
+/** While a nav link's page is loading, a small dot pulses next to its icon. */
+function NavPending() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "absolute top-1/2 left-1 size-1.5 -translate-y-1/2 rounded-full bg-accent-strong transition-opacity",
+        pending ? "animate-pulse opacity-100 delay-100" : "opacity-0",
+      )}
+    />
   );
 }
 
@@ -171,7 +199,7 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
       <div className="hidden w-[232px] shrink-0 border-r border-line bg-surface lg:block">
         <aside className="sticky top-0 flex h-screen flex-col">
           <div className="flex items-center justify-between gap-2 pt-4 pr-3 pb-3 pl-5">
-            <span className="text-section text-ink">Client Acquisition OS</span>
+            <span className="truncate text-section text-ink">Client Acquisition OS</span>
             <NotificationBell />
           </div>
           <DepartmentSwitcher className="mx-3 mb-3 w-auto" />
@@ -188,7 +216,10 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
         <Button variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
           <Menu />
         </Button>
-        <span className="flex-1 text-section text-ink">Client Acquisition OS</span>
+        <span className="flex flex-1 items-center gap-2 text-section text-ink">
+          <BrandMark />
+          <span className="truncate">Client Acquisition OS</span>
+        </span>
         <NotificationBell />
       </div>
       <Sheet open={open} onOpenChange={setOpen}>

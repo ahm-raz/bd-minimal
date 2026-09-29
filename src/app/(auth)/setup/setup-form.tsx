@@ -69,7 +69,7 @@ export function SetupForm() {
           )}
         />
       </FormField>
-      <Button type="submit" size="form" disabled={pending}>
+      <Button type="submit" size="form" pending={pending}>
         Create founder account
       </Button>
     </form>

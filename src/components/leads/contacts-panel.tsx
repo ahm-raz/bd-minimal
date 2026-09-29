@@ -220,7 +220,7 @@ function ContactSheet({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" form="contact-form" disabled={pending}>
+          <Button type="submit" form="contact-form" pending={pending}>
             {contact ? "Save contact" : "Add contact"}
           </Button>
         </div>

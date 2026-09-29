@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -156,9 +157,17 @@ export function LeadPage({ detail, formValues, calendar }: { detail: LeadDetail;
               </DropdownMenuContent>
             </DropdownMenu>
             {openFlags.length > 0 && (
-              <Chip tone="bad" title={openFlags.map((f) => f.note).filter(Boolean).join("\n")} data-testid="flag-badge">
-                <Flag className="size-3" aria-hidden /> Flagged
-              </Chip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Chip tone="bad" tabIndex={0} className="cursor-help" data-testid="flag-badge">
+                    <Flag className="size-3" aria-hidden /> Flagged
+                    <span className="sr-only">: {openFlags.map((f) => f.note).filter(Boolean).join(". ")}</span>
+                  </Chip>
+                </TooltipTrigger>
+                <TooltipContent className="whitespace-pre-line">
+                  {openFlags.map((f) => f.note).filter(Boolean).join("\n") || "Flagged by the founder"}
+                </TooltipContent>
+              </Tooltip>
             )}
             <div className="ml-auto flex items-center gap-3">
               {lead.lead_timezone && <LeadLocalTime tz={lead.lead_timezone} city={lead.city} />}
@@ -506,7 +515,7 @@ function DeleteDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="destructive" disabled={pending || value.trim() !== companyName.trim()}>
+            <Button type="submit" variant="destructive" pending={pending} disabled={value.trim() !== companyName.trim()}>
               Delete lead
             </Button>
           </DialogFooter>

@@ -1,7 +1,8 @@
 "use client";
 
+import { BusyRegion, useFilterNav } from "@/components/app/nav-progress";
 import { useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -43,8 +44,7 @@ export function SocialPerformanceView({ data, filters: f, range }: { data: Socia
   const { lists, department } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
-  const router = useRouter();
-  const pathname = usePathname();
+  const { pending: loading, replaceQuery } = useFilterNav();
   const params = useSearchParams();
   const [drill, setDrill] = useState<Drill>("all");
   const member = (id: string) => lists.members.find((m) => m.id === id);
@@ -57,7 +57,7 @@ export function SocialPerformanceView({ data, filters: f, range }: { data: Socia
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
-    router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
+    replaceQuery(next);
   };
 
   const totals = sum(data.rows);
@@ -73,7 +73,7 @@ export function SocialPerformanceView({ data, filters: f, range }: { data: Socia
   };
 
   return (
-    <>
+    <BusyRegion busy={loading}>
       {isFounder && department === "all" && <PerformanceTabs active="social" />}
       <PageHeader
         title={title}
@@ -153,7 +153,7 @@ export function SocialPerformanceView({ data, filters: f, range }: { data: Socia
       <PostedGrid data={data} to={f.to} />
 
       <PostsList posts={data.posts} drill={drill} setDrill={setDrill} range={range} />
-    </>
+    </BusyRegion>
   );
 }
 
@@ -282,7 +282,10 @@ function PostedGrid({ data, to }: { data: SocialPerformance; to: string }) {
                           !scheduled && !posted && isWeekend(d) ? "bg-surface-muted text-ink-muted" : SHADE[shade],
                         )}
                       >
-                        {posted > 0 || scheduled > 0 ? `${posted}/${scheduled}` : ""}
+                        <span aria-hidden>{posted > 0 || scheduled > 0 ? `${posted}/${scheduled}` : ""}</span>
+                        <span className="sr-only">
+                          {d}: {posted} posted, {scheduled} scheduled{missed ? `, ${missed} missed` : ""}
+                        </span>
                       </td>
                     );
                   })}

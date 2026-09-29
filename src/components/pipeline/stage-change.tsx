@@ -128,7 +128,7 @@ function WonDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) =>
             <Button type="button" variant="secondary" onClick={() => onDone(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" pending={busy}>
               Mark as won
             </Button>
           </DialogFooter>
@@ -185,7 +185,7 @@ function LostDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) =
             <Button type="button" variant="secondary" onClick={() => onDone(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="destructive" disabled={busy}>
+            <Button type="submit" variant="destructive" pending={busy}>
               Mark as lost
             </Button>
           </DialogFooter>

@@ -74,7 +74,7 @@ export function CreateOpportunityDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               Not now
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Create
             </Button>
           </DialogFooter>

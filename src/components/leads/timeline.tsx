@@ -284,7 +284,7 @@ function EditActivityDialog({ activity, onClose }: { activity: Tables<"activitie
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Save activity
             </Button>
           </DialogFooter>

@@ -65,7 +65,7 @@ export function NextActionBox({
             <DueDateChips id="na-due" value={due} onChange={setDue} invalid={!!errors.nextActionDue} />
           </FormField>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" pending={pending}>
               Save next action
             </Button>
             <Button type="button" variant="secondary" onClick={() => setEditing(false)}>

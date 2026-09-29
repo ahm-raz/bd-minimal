@@ -39,9 +39,12 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
         className="flex flex-col gap-4"
         onSubmit={forgot.handleSubmit((values) =>
           startTransition(async () => {
+            setFormError(null);
             const res = await requestPasswordReset(values);
             if (!res.ok) {
               applyFieldErrors(forgot.setError, res.fieldErrors);
+              // Not about the email field (e.g. too many requests): say so instead of failing silently.
+              if (!res.fieldErrors) setFormError(res.error);
               return;
             }
             setMode("sent");
@@ -50,6 +53,11 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
       >
         <h1 className="text-title text-ink">Reset your password</h1>
         <p className="text-small text-ink-muted">We&apos;ll email you a link to choose a new one.</p>
+        {formError && (
+          <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">
+            {formError}
+          </p>
+        )}
         <FormField label="Email" htmlFor="forgot-email" error={forgot.formState.errors.email?.message}>
           <Input
             id="forgot-email"
@@ -59,10 +67,18 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
             {...forgot.register("email")}
           />
         </FormField>
-        <Button type="submit" size="form" disabled={pending}>
+        <Button type="submit" size="form" pending={pending}>
           Send reset link
         </Button>
-        <Button type="button" variant="link" className="self-start" onClick={() => setMode("signin")}>
+        <Button
+          type="button"
+          variant="link"
+          className="self-start"
+          onClick={() => {
+            setFormError(null);
+            setMode("signin");
+          }}
+        >
           Back to sign in
         </Button>
       </form>
@@ -106,7 +122,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
           {...form.register("password")}
         />
       </FormField>
-      <Button type="submit" size="form" disabled={pending}>
+      <Button type="submit" size="form" pending={pending}>
         Sign in
       </Button>
       <Button

@@ -65,7 +65,7 @@ export function NewPasswordForm({ submitLabel, passwordLabel, toastText }: { sub
           {...form.register("confirm")}
         />
       </FormField>
-      <Button type="submit" size="form" disabled={pending}>
+      <Button type="submit" size="form" pending={pending}>
         {submitLabel}
       </Button>
     </form>

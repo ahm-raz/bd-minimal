@@ -76,7 +76,7 @@ export function ProfileForm({ fullName, timezone, email }: { fullName: string; t
           >
             Change password
           </Button>
-          <Button type="submit" size="form" disabled={pending || !form.formState.isDirty}>
+          <Button type="submit" size="form" pending={pending} disabled={!form.formState.isDirty}>
             Save profile
           </Button>
         </div>

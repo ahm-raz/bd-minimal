@@ -35,7 +35,8 @@ type Ctx = {
   loadHappened: () => Promise<void>;
   loadMore: () => Promise<void>;
   refreshUpcoming: () => Promise<void>;
-  markRead: (ids: number[] | "all") => Promise<void>;
+  /** Optimistic; resolves false (and restores the list) if it didn't save. */
+  markRead: (ids: number[] | "all") => Promise<boolean>;
 };
 
 const NotificationsContext = createContext<Ctx | null>(null);
@@ -138,8 +139,13 @@ export function NotificationsProvider({
     );
     setUnread((u) => (ids === "all" ? 0 : Math.max(0, u - ids.length)));
     const res = await markNotificationsRead(ids === "all" ? { all: true } : { ids });
-    if (!res.ok) toast.error(res.error);
-  }, []);
+    if (!res.ok) {
+      // Put the real state back rather than leave items looking read.
+      toast.error(res.error);
+      void loadHappened();
+    }
+    return res.ok;
+  }, [loadHappened]);
 
   // First load, then keep "What's upcoming" fresh.
   useEffect(() => {
