@@ -109,7 +109,7 @@ Follow these steps in order. Each one says where to click and what you should se
 
 1. Click **Leads** in the sidebar (or press **G** then **L**).
 2. Default view is **My open leads**. Open the view menu to see *No next action*, *Overdue*,
-   *Incomplete (<50%)*, *Customers*.
+   *Incomplete (<50%)*, *Customers*, *All my leads* (closed leads included).
 3. **Search** box (shortcut **/**): company, website, contact name, email, phone digits or LinkedIn.
 4. **Filters**: status, niche, channel, campaign, source, priority, due, completeness, created dates,
    flagged, tags. Every filter is added to the page address, so you can copy the link and share the view.

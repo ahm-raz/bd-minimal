@@ -37,8 +37,11 @@ export const VIEW_LABELS: Record<LeadView, string> = {
   all: "All team leads",
   flagged: "Flagged",
 };
-export const BD_VIEWS: LeadView[] = ["mine", "no_next", "overdue", "incomplete", "customers"];
-export const FOUNDER_VIEWS: LeadView[] = [...BD_VIEWS, "all", "flagged"];
+/** For a BD, "all" is every lead they own, closed ones included (RLS shows them nothing else). */
+export const BD_VIEW_LABELS: Partial<Record<LeadView, string>> = { all: "All my leads" };
+export const BD_VIEWS: LeadView[] = ["mine", "no_next", "overdue", "incomplete", "customers", "all"];
+export const FOUNDER_VIEWS: LeadView[] = ["mine", "no_next", "overdue", "incomplete", "customers", "all", "flagged"];
+export const viewLabel = (view: LeadView, isFounder: boolean) => (isFounder ? undefined : BD_VIEW_LABELS[view]) ?? VIEW_LABELS[view];
 
 export const DUE_LABELS: Record<DueFilter, string> = { overdue: "Overdue", today: "Due today", week: "Due this week", none: "No next action" };
 export const COMP_LABELS: Record<CompletenessFilter, string> = { lt50: "Under 50%", "50to79": "50–79%", "80plus": "80% or more" };

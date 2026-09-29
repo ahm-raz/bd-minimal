@@ -94,7 +94,8 @@ Leads                          [Search…]  [Filters ▾]  [Saved views ▾]  [+
 - **Columns:** company (plus city, state), primary contact (plus title), status chip, niche, channel, campaign, next action, due, completeness (bar + %), last activity, owner (founder only), created. Users can show or hide columns; the choice is saved in localStorage.
 - **Search:** company, domain, contact name, email, phone, LinkedIn URL.
 - **Filters:** status (multi), niche, channel, campaign, source, priority, owner (founder), due (overdue / today / this week / none), completeness (<50, 50–79, 80+), created date range, flagged, tags.
-- **Built-in views:** My open leads (default), No next action, Overdue, Incomplete (<50%), Customers. Founder adds: All team leads, Flagged.
+- **Built-in views:** My open leads (default), No next action, Overdue, Incomplete (<50%), Customers, All my leads (BD: every lead they own, closed ones included). The founder sees the last one as All team leads and also gets Flagged.
+- **Empty (BD, My open leads):** "You have no open leads. Press N to add one. Customers and closed leads are under All my leads." with a **Show all my leads** button.
 - **Bulk actions:**
   - BD: set status, set campaign, set priority, add tag
   - Founder: also Reassign and Delete

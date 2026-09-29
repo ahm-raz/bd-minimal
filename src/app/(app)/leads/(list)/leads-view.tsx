@@ -55,7 +55,7 @@ import {
   DUE_LABELS,
   FOUNDER_VIEWS,
   PAGE_SIZE,
-  VIEW_LABELS,
+  viewLabel,
   type LeadFilters,
   type SortKey,
 } from "@/lib/lead-filters";
@@ -354,7 +354,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary">
-              {VIEW_LABELS[filters.view]} <ChevronDown aria-hidden />
+              {viewLabel(filters.view, isFounder)} <ChevronDown aria-hidden />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -362,7 +362,7 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
             <DropdownMenuRadioGroup value={filters.view} onValueChange={(v) => setParams({ view: v === "mine" ? null : v })}>
               {views.map((v) => (
                 <DropdownMenuRadioItem key={v} value={v}>
-                  {VIEW_LABELS[v]}
+                  {viewLabel(v, isFounder)}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
@@ -485,8 +485,8 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
               You have no open leads of your own. Press N to add one, or look at the team&apos;s leads.
             </EmptyState>
           ) : (
-            <EmptyState action={<Button onClick={() => openNewLead()}>New lead</Button>}>
-              No leads yet. Press N to add your first one.
+            <EmptyState action={<Button variant="secondary" onClick={() => setParams({ view: "all" })}>Show all my leads</Button>}>
+              You have no open leads. Press N to add one. Customers and closed leads are under All my leads.
             </EmptyState>
           )
         ) : (
