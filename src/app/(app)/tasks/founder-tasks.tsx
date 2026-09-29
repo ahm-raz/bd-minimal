@@ -12,6 +12,7 @@ import { Chip } from "@/components/common/chips";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader, Panel, PanelHeader } from "@/components/common/page";
 import { useApp } from "@/components/app/app-provider";
+import { inDepartment } from "@/lib/department";
 import { TaskRows } from "@/components/tasks/task-list";
 import { TaskSheet, type TaskSheetState } from "@/components/tasks/task-sheet";
 import { METRIC_LABELS } from "@/lib/domain";
@@ -37,7 +38,7 @@ export function FounderTasks({
   overdue: TaskItem[];
   templates: TemplateItem[];
 }) {
-  const { lists } = useApp();
+  const { lists, department } = useApp();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -61,7 +62,11 @@ export function FounderTasks({
     router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
   };
 
-  const people = lists.members.filter((m) => m.is_active || day.some((t) => t.assigneeId === m.id) || overdue.some((t) => t.assigneeId === m.id));
+  const people = lists.members.filter(
+    (m) =>
+      inDepartment(m.role, department) &&
+      (m.is_active || day.some((t) => t.assigneeId === m.id) || overdue.some((t) => t.assigneeId === m.id)),
+  );
   const member = (id: string) => lists.members.find((m) => m.id === id);
 
   const editTask = (t: TaskItem) =>

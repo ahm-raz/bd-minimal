@@ -34,6 +34,7 @@ const SHORT: Partial<Record<TargetMetric, string>> = {
 };
 
 export function MyDayView({
+  today,
   data,
   tasks,
   founderName,
@@ -41,7 +42,9 @@ export function MyDayView({
   meetings,
   calendar,
 }: {
-  data: MyDayData;
+  today: string;
+  /** Sales work (counts, meetings, follow-ups); null when the founder views Social media only. */
+  data: MyDayData | null;
   tasks: TaskItem[];
   founderName: string;
   /** Founder only: review queue and today's posts (docs/09 section 4). */
@@ -56,6 +59,7 @@ export function MyDayView({
   const [showComing, setShowComing] = useState(false);
 
   const open = (metric: DrillMetric, label: string) =>
+    data &&
     setDrill({
       metric,
       label: `${label} today`,
@@ -64,135 +68,147 @@ export function MyDayView({
       userId: profile.id,
     });
 
-  const overdue = data.followUps.filter((f) => f.due < data.today);
-  const dueToday = data.followUps.filter((f) => f.due === data.today);
+  const followUps = data?.followUps ?? [];
+  const overdue = followUps.filter((f) => f.due < today);
+  const dueToday = followUps.filter((f) => f.due === today);
 
   return (
     <>
       <PageHeader
         title="My Day"
-        meta={<span data-testid="today">{formatLocalDate(data.today)}</span>}
+        meta={<span data-testid="today">{formatLocalDate(today)}</span>}
         actions={
-          <Button onClick={() => openNewLead()}>
-            <Plus aria-hidden /> Lead <kbd className="ml-1 font-mono text-micro font-normal opacity-80">N</kbd>
-          </Button>
+          data && (
+            <Button onClick={() => openNewLead()}>
+              <Plus aria-hidden /> Lead <kbd className="ml-1 font-mono text-micro font-normal opacity-80">N</kbd>
+            </Button>
+          )
         }
       />
 
-      <Panel className="mb-6" aria-label="Today so far">
-        <PanelHeader title="Today so far" />
-        <div className="grid gap-x-8 gap-y-5 p-4 sm:grid-cols-2 lg:grid-cols-3">
-          {BAR_METRICS.map((m) => {
-            const weekly = data.targets[m];
-            const actual = data.counts[m];
-            if (weekly === undefined) {
+      {data && (
+        <Panel className="mb-6" aria-label="Today so far">
+          <PanelHeader title="Today so far" />
+          <div className="grid gap-x-8 gap-y-5 p-4 sm:grid-cols-2 lg:grid-cols-3">
+            {BAR_METRICS.map((m) => {
+              const weekly = data.targets[m];
+              const actual = data.counts[m];
+              if (weekly === undefined) {
+                return (
+                  <CountButton
+                    key={m}
+                    label={METRIC_LABELS[m]}
+                    value={actual}
+                    onClick={() => open(m, METRIC_LABELS[m])}
+                  />
+                );
+              }
+              const daily = dailyTarget(weekly);
               return (
-                <CountButton
+                <button
                   key={m}
-                  label={METRIC_LABELS[m]}
-                  value={actual}
+                  type="button"
                   onClick={() => open(m, METRIC_LABELS[m])}
-                />
+                  className="rounded-md p-1 text-left transition-colors hover:bg-surface-muted"
+                  data-testid={`counter-${m}`}
+                >
+                  <PaceBar
+                    label={SHORT[m]}
+                    actual={actual}
+                    target={daily}
+                    pace={now ? dayPaceMarker(daily, profile.timezone, now) : null}
+                  />
+                  <span className="sr-only">Show the list</span>
+                </button>
               );
-            }
-            const daily = dailyTarget(weekly);
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => open(m, METRIC_LABELS[m])}
-                className="rounded-md p-1 text-left transition-colors hover:bg-surface-muted"
-                data-testid={`counter-${m}`}
-              >
-                <PaceBar
-                  label={SHORT[m]}
-                  actual={actual}
-                  target={daily}
-                  pace={now ? dayPaceMarker(daily, profile.timezone, now) : null}
-                />
-                <span className="sr-only">Show the list</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-line px-4 py-3">
-          <CountButton label="Replies" value={data.counts.replies} onClick={() => open("replies", "Replies")} inline />
-          <CountButton
-            label="Meetings booked"
-            value={data.counts.meetings_booked}
-            onClick={() => open("meetings_booked", "Meetings booked")}
-            inline
-          />
-          {data.targets.proposals_sent !== undefined && (
+            })}
+          </div>
+          <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-line px-4 py-3">
             <CountButton
-              label="Proposals sent"
-              value={data.counts.proposals_sent}
-              onClick={() => open("proposals_sent", "Proposals sent")}
+              label="Replies"
+              value={data.counts.replies}
+              onClick={() => open("replies", "Replies")}
               inline
             />
-          )}
-        </div>
-      </Panel>
+            <CountButton
+              label="Meetings booked"
+              value={data.counts.meetings_booked}
+              onClick={() => open("meetings_booked", "Meetings booked")}
+              inline
+            />
+            {data.targets.proposals_sent !== undefined && (
+              <CountButton
+                label="Proposals sent"
+                value={data.counts.proposals_sent}
+                onClick={() => open("proposals_sent", "Proposals sent")}
+                inline
+              />
+            )}
+          </div>
+        </Panel>
+      )}
 
-      <MyDayMeetings meetings={meetings} calendar={calendar} />
+      {data && <MyDayMeetings meetings={meetings} calendar={calendar} />}
 
-      <MyDayTasks today={data.today} tasks={tasks} founderName={founderName} />
+      <MyDayTasks today={today} tasks={tasks} founderName={founderName} />
 
       {social && <FounderSocialBlocks review={social.review} todayPosts={social.todayPosts} />}
 
-      <Panel aria-label="Follow-ups">
-        <PanelHeader
-          title="Follow-ups"
-          meta={
-            <span className="num">
-              <span className={cn(overdue.length > 0 && "text-bad")}>Overdue {overdue.length}</span>
-              <span className="ml-3">Today {dueToday.length}</span>
-            </span>
-          }
-        />
-        {data.followUps.length === 0 ? (
-          <EmptyState
-            action={
-              <Button variant="secondary" asChild>
-                <Link href="/leads">Open leads</Link>
-              </Button>
+      {data && (
+        <Panel aria-label="Follow-ups">
+          <PanelHeader
+            title="Follow-ups"
+            meta={
+              <span className="num">
+                <span className={cn(overdue.length > 0 && "text-bad")}>Overdue {overdue.length}</span>
+                <span className="ml-3">Today {dueToday.length}</span>
+              </span>
             }
-          >
-            Nothing due today. Open Leads and plan next steps for new leads.
-          </EmptyState>
-        ) : (
-          <ul className="divide-y divide-line" data-testid="follow-ups">
-            {data.followUps.map((f) => (
-              <FollowUpRow key={f.leadId} f={f} today={data.today} />
-            ))}
-          </ul>
-        )}
-        <div className="border-t border-line">
-          <button
-            type="button"
-            aria-expanded={showComing}
-            onClick={() => setShowComing((v) => !v)}
-            className="flex w-full items-center gap-2 px-4 py-3 text-left text-section text-ink hover:bg-surface-muted"
-          >
-            <ChevronDown
-              className={cn("size-4 text-ink-muted transition-transform", !showComing && "-rotate-90")}
-              aria-hidden
-            />
-            Coming up
-            <span className="num text-small font-normal text-ink-muted">{data.comingUp.length}</span>
-          </button>
-          {showComing &&
-            (data.comingUp.length === 0 ? (
-              <p className="px-4 pb-4 text-small text-ink-muted">Nothing planned for the next 7 days.</p>
-            ) : (
-              <ul className="divide-y divide-line border-t border-line" data-testid="coming-up">
-                {data.comingUp.map((f) => (
-                  <FollowUpRow key={f.leadId} f={f} today={data.today} />
-                ))}
-              </ul>
-            ))}
-        </div>
-      </Panel>
+          />
+          {data.followUps.length === 0 ? (
+            <EmptyState
+              action={
+                <Button variant="secondary" asChild>
+                  <Link href="/leads">Open leads</Link>
+                </Button>
+              }
+            >
+              Nothing due today. Open Leads and plan next steps for new leads.
+            </EmptyState>
+          ) : (
+            <ul className="divide-y divide-line" data-testid="follow-ups">
+              {data.followUps.map((f) => (
+                <FollowUpRow key={f.leadId} f={f} today={today} />
+              ))}
+            </ul>
+          )}
+          <div className="border-t border-line">
+            <button
+              type="button"
+              aria-expanded={showComing}
+              onClick={() => setShowComing((v) => !v)}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left text-section text-ink hover:bg-surface-muted"
+            >
+              <ChevronDown
+                className={cn("size-4 text-ink-muted transition-transform", !showComing && "-rotate-90")}
+                aria-hidden
+              />
+              Coming up
+              <span className="num text-small font-normal text-ink-muted">{data.comingUp.length}</span>
+            </button>
+            {showComing &&
+              (data.comingUp.length === 0 ? (
+                <p className="px-4 pb-4 text-small text-ink-muted">Nothing planned for the next 7 days.</p>
+              ) : (
+                <ul className="divide-y divide-line border-t border-line" data-testid="coming-up">
+                  {data.comingUp.map((f) => (
+                    <FollowUpRow key={f.leadId} f={f} today={today} />
+                  ))}
+                </ul>
+              ))}
+          </div>
+        </Panel>
+      )}
 
       <DrilldownSheet request={drill} onClose={() => setDrill(null)} />
     </>

@@ -7,16 +7,18 @@ import { requireFounder, requireViewer } from "@/server/auth";
 import { emailInvitesEnabled } from "@/server/email";
 import { googleCalendarEnabled } from "@/server/google/config";
 import { getLists } from "@/server/queries/lists";
+import { getDepartment } from "@/server/department";
+import { inDepartment } from "@/lib/department";
 import { TeamView, type TeamRow } from "./team-view";
 
 export const metadata: Metadata = { title: "Team" };
 
 export default async function TeamPage() {
-  await requireViewer();
+  const viewer = await requireViewer();
   if (!(await requireFounder())) notFound();
 
   const supabase = await createClient();
-  const lists = await getLists();
+  const [lists, department] = await Promise.all([getLists(), getDepartment(viewer)]);
 
   // Invited = the auth user has never signed in (docs/03, Invite a BD, step 6).
   // Reading sign-in status needs the Auth admin API; the caller is a verified founder.
@@ -29,7 +31,8 @@ export default async function TeamPage() {
   const calendarOf = new Map((calendars ?? []).map((c) => [c.user_id, c.status]));
 
   const rows: TeamRow[] = await Promise.all(
-    lists.members.map(async (m) => {
+    // The founder's department view shows that department's people (and the founder).
+    lists.members.filter((m) => inDepartment(m.role, department)).map(async (m) => {
       const [{ count }, { data: last }] = await Promise.all([
         supabase
           .from("leads")

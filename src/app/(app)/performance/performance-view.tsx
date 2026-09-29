@@ -65,7 +65,7 @@ function sum(rows: ScoreRow[]): Totals {
 }
 
 export function PerformanceView({ data }: { data: PerformanceData }) {
-  const { lists } = useApp();
+  const { lists, department } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
   const router = useRouter();
@@ -122,7 +122,7 @@ export function PerformanceView({ data }: { data: PerformanceData }) {
 
   return (
     <>
-      {isFounder && lists.socialAccounts.length > 0 && <PerformanceTabs active="sales" />}
+      {isFounder && department === "all" && lists.socialAccounts.length > 0 && <PerformanceTabs active="sales" />}
       <PageHeader
         title={title}
         actions={

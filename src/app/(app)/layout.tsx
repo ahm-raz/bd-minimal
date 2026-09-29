@@ -15,13 +15,17 @@ import { NotificationsProvider } from "@/components/notifications/notifications-
 import { unreadNotificationCount } from "@/server/queries/notifications";
 import { after } from "next/server";
 import { syncMyPending } from "@/server/google/sync";
+import { getDepartment } from "@/server/department";
+import { showsSocial } from "@/lib/department";
+import { groupsFor } from "@/lib/notifications";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireViewer();
+  const department = await getDepartment(viewer);
   const [lists, reviewCount, unread] = await Promise.all([
     getLists(),
-    viewer.role === "founder" ? needsReviewCount() : 0,
-    unreadNotificationCount(),
+    viewer.role === "founder" && showsSocial(department) ? needsReviewCount() : 0,
+    unreadNotificationCount(groupsFor(viewer.role, department)),
   ]);
   // Housekeeping after the response: due Google Calendar retries and old notifications (docs/10).
   after(async () => {
@@ -30,8 +34,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <ProfileProvider value={viewer}>
-      <AppProvider lists={lists}>
-        <NotificationsProvider initialUnread={unread}>
+      <AppProvider lists={lists} department={department}>
+        <NotificationsProvider key={department} initialUnread={unread}>
           <div className="flex min-h-screen flex-col lg:flex-row">
             <Sidebar reviewCount={reviewCount} />
             <main id="main" className="min-w-0 flex-1">
@@ -40,7 +44,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           </div>
           <LeadSheet />
           <LogActivitySheet />
-          {viewer.role !== "bd" && <PostSheet />}
+          {viewer.role !== "bd" && showsSocial(department) && <PostSheet />}
           <Shortcuts />
           <CommandMenu />
           <Suspense>

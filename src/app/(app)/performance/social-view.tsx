@@ -40,7 +40,7 @@ function sum(rows: SocialRow[]) {
 
 /** Performance → Social (docs/09 sections 4 and 5). */
 export function SocialPerformanceView({ data, filters: f, range }: { data: SocialPerformance; filters: PerformanceFilters; range: DateRange }) {
-  const { lists } = useApp();
+  const { lists, department } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
   const router = useRouter();
@@ -74,7 +74,7 @@ export function SocialPerformanceView({ data, filters: f, range }: { data: Socia
 
   return (
     <>
-      {isFounder && <PerformanceTabs active="social" />}
+      {isFounder && department === "all" && <PerformanceTabs active="social" />}
       <PageHeader
         title={title}
         actions={

@@ -18,6 +18,21 @@ Each screen lists who sees it, its layout, data, actions, states and acceptance 
 
 Home after login: `/my-day`. Profile and Sign out are in the sidebar user menu.
 
+**Department view (founder only).** A dropdown under the sidebar title (phone: top of the menu panel), labelled "Show the app for": **All departments**, **Sales** or **Social media**. It's remembered per browser (cookie `cao-dept`, like the theme). BDs always see Sales and SMMs always see Social media, so they have no dropdown.
+
+| | Sales | Social media |
+|---|---|---|
+| Nav | no Content | no Leads, Pipeline |
+| My Day | no social blocks | only Tasks and the social blocks |
+| Tasks, Team, Feed person filter | BDs and the founder | SMMs and the founder |
+| Feed event types | all but Social | Tasks, Social |
+| Performance | Sales tab only | Social tab only |
+| Settings tabs | Lists, Activity types, Outcomes and stages, Campaigns, Targets | Lists, Targets, Social accounts, Content pillars |
+| Bell and `/notifications` | Meetings, Deals, Leads, Tasks | Tasks, Social |
+| Command menu, shortcuts | no New post, G C | no lead search, N, L, /, G L, G P |
+
+Opening a page of the other department (a bookmark, a link) goes to My Day (settings tabs: Settings) with the toast "That page isn't part of the department you're viewing." Mark all as read only marks what the view shows.
+
 ---
 
 ## 1. Login `/login`, Accept invite `/accept-invite`, Reset password `/reset-password`

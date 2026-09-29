@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Flag } from "lucide-react";
@@ -16,7 +16,8 @@ import { useProfile } from "@/components/app/profile-provider";
 import { FlagLeadDialog } from "@/components/leads/flag-dialog";
 import { createClient } from "@/lib/supabase/browser";
 import { RANGE_PRESET_LABELS, type RangePreset } from "@/lib/dates";
-import { FEED_GROUPS, FEED_GROUP_KEYS, kindsFor, type FeedEvent, type FeedGroup } from "@/lib/feed";
+import { FEED_GROUPS, effectiveFeedGroups, feedGroupsFor, kindsFor, type FeedEvent, type FeedGroup } from "@/lib/feed";
+import { inDepartment } from "@/lib/department";
 import { firstName, initials } from "@/lib/format";
 import { loadFeed } from "@/server/actions/feed";
 
@@ -51,7 +52,9 @@ export function FeedView({
   filters: Filters;
   range: { fromUtc: string; toUtc: string };
 }) {
-  const { lists } = useApp();
+  const { lists, department } = useApp();
+  // The founder's department view narrows which events load and which chips show.
+  const loadGroups = useMemo(() => effectiveFeedGroups(filters.groups, department), [filters.groups, department]);
   const { timezone } = useProfile();
   const router = useRouter();
   const pathname = usePathname();
@@ -83,10 +86,10 @@ export function FeedView({
   };
 
   // Realtime: new events within ~2 seconds, no refresh (RLS: only the founder receives rows).
-  const filtersRef = useRef({ filters, range });
+  const filtersRef = useRef({ filters, range, loadGroups });
   useEffect(() => {
-    filtersRef.current = { filters, range };
-  }, [filters, range]);
+    filtersRef.current = { filters, range, loadGroups };
+  }, [filters, range, loadGroups]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -101,10 +104,10 @@ export function FeedView({
         .channel("feed-events")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "feed_events" }, (payload) => {
           const e = toEvent(payload.new as Record<string, unknown>);
-          const { filters: f, range: r } = filtersRef.current;
+          const { filters: f, range: r, loadGroups: g } = filtersRef.current;
           if (e.createdAt < r.fromUtc || e.createdAt >= r.toUtc) return;
           if (f.person && e.subjectUserId !== f.person && e.actorId !== f.person) return;
-          if (f.groups.length && !kindsFor(f.groups).includes(e.kind)) return;
+          if (g.length && !kindsFor(g).includes(e.kind)) return;
           if (window.scrollY > 160) {
             setPending((p) => (p.some((x) => x.id === e.id) ? p : [e, ...p]));
           } else {
@@ -140,14 +143,14 @@ export function FeedView({
       fromUtc: range.fromUtc,
       toUtc: range.toUtc,
       person: filters.person,
-      groups: filters.groups,
+      groups: loadGroups,
       beforeId: events[events.length - 1]!.id,
     });
     setLoadingMore(false);
     if (!res.ok) return;
     setEvents((list) => [...list, ...res.data.filter((e) => !list.some((x) => x.id === e.id))]);
     if (res.data.length < 50) setDone(true);
-  }, [done, loadingMore, events, range, filters]);
+  }, [done, loadingMore, events, range, filters, loadGroups]);
 
   useEffect(() => {
     const el = sentinel.current;
@@ -169,7 +172,12 @@ export function FeedView({
       <PageHeader
         title="Feed"
         meta={
-          <span className="inline-flex items-center gap-1.5" data-testid="feed-status" data-live={live ? "1" : "0"} aria-live="polite">
+          <span
+            className="inline-flex items-center gap-1.5"
+            data-testid="feed-status"
+            data-live={live ? "1" : "0"}
+            aria-live="polite"
+          >
             <span className={cn("size-2 rounded-full", live ? "bg-ok" : "bg-ink-faint")} aria-hidden />
             {live ? "Live" : "Connecting"}
           </span>
@@ -214,12 +222,14 @@ export function FeedView({
             value={filters.person}
             onChange={(v) => setParams({ person: v })}
             noneLabel="Everyone"
-            options={lists.members.map((m) => ({ value: m.id, label: m.full_name || m.email }))}
+            options={lists.members
+              .filter((m) => inDepartment(m.role, department))
+              .map((m) => ({ value: m.id, label: m.full_name || m.email }))}
             className="h-8"
           />
         </div>
         <div role="group" aria-label="Event types" className="flex flex-wrap gap-1.5">
-          {FEED_GROUP_KEYS.map((g) => (
+          {feedGroupsFor(department).map((g) => (
             <button
               key={g}
               type="button"

@@ -5,6 +5,8 @@ import { getLists } from "@/server/queries/lists";
 import { getMyTasks, getTasksForDay } from "@/server/queries/tasks";
 import { FounderTasks } from "./founder-tasks";
 import { MyTasks } from "./my-tasks";
+import { getDepartment } from "@/server/department";
+import { inDepartment } from "@/lib/department";
 
 export const metadata: Metadata = { title: "Tasks" };
 
@@ -17,12 +19,19 @@ export default async function TasksPage({ searchParams }: PageProps<"/tasks">) {
   }
   const today = todayIn(viewer.timezone);
   const date = typeof sp.date === "string" && isLocalDate(sp.date) ? sp.date : today;
-  const lists = await getLists();
-  const active = lists.members.filter((m) => m.is_active);
-  const data = await getTasksForDay(
+  const [lists, department] = await Promise.all([getLists(), getDepartment(viewer)]);
+  // The founder's department view: only that department's people and their tasks.
+  const inView = new Set(lists.members.filter((m) => inDepartment(m.role, department)).map((m) => m.id));
+  const active = lists.members.filter((m) => m.is_active && inView.has(m.id));
+  const all = await getTasksForDay(
     date,
     active.map((m) => m.id),
   );
+  const data = {
+    day: all.day.filter((t) => inView.has(t.assigneeId)),
+    overdue: all.overdue.filter((t) => inView.has(t.assigneeId)),
+    templates: all.templates.filter((t) => inView.has(t.assigneeId)),
+  };
   return (
     <FounderTasks
       date={date}

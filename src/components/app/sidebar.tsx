@@ -36,6 +36,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useProfile } from "./profile-provider";
+import { useApp } from "./app-provider";
+import { DepartmentSwitcher } from "./department-switcher";
+import { pathInDepartment, type Department } from "@/lib/department";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[]; shortcut?: string };
 
@@ -54,16 +57,18 @@ const NAV: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings, roles: ["founder"] },
 ];
 
-export function navFor(role: Role) {
-  return NAV.filter((n) => n.roles.includes(role));
+/** The role's pages, minus the other department's when the founder views one department. */
+export function navFor(role: Role, department: Department = "all") {
+  return NAV.filter((n) => n.roles.includes(role) && pathInDepartment(n.href, department));
 }
 
 function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; reviewCount: number }) {
   const pathname = usePathname();
   const { role } = useProfile();
+  const { department } = useApp();
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5 px-3">
-      {navFor(role).map((item) => {
+      {navFor(role, department).map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
         return (
@@ -169,6 +174,7 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
             <span className="text-section text-ink">Client Acquisition OS</span>
             <NotificationBell />
           </div>
+          <DepartmentSwitcher className="mx-3 mb-3 w-auto" />
           <div className="flex-1 overflow-y-auto">
             <NavLinks reviewCount={reviewCount} />
           </div>
@@ -188,6 +194,7 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[272px] gap-0 p-0 sm:max-w-[272px]">
           <SheetTitle className="px-5 pt-5 pb-4">Client Acquisition OS</SheetTitle>
+          <DepartmentSwitcher className="mx-3 mb-3 w-auto" />
           <div className="flex-1 overflow-y-auto">
             <NavLinks onNavigate={() => setOpen(false)} reviewCount={reviewCount} />
           </div>

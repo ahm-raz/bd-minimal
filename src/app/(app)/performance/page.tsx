@@ -4,6 +4,7 @@ import { getPerformance, parsePerformanceFilters } from "@/server/queries/perfor
 import { getSocialPerformance } from "@/server/queries/social-metrics";
 import { PerformanceView } from "./performance-view";
 import { SocialPerformanceView } from "./social-view";
+import { getDepartment } from "@/server/department";
 
 export const metadata: Metadata = { title: "Performance" };
 
@@ -12,7 +13,9 @@ export default async function PerformancePage({ searchParams }: PageProps<"/perf
   const viewer = await requireViewer();
   const sp = await searchParams;
   const { filters, range } = parsePerformanceFilters(sp, viewer);
-  const tab = viewer.role === "social" ? "social" : viewer.role === "founder" && sp.tab === "social" ? "social" : "sales";
+  // The founder's department view fixes the tab; with All departments ?tab=social switches.
+  const department = await getDepartment(viewer);
+  const tab = department === "all" ? (sp.tab === "social" ? "social" : "sales") : department;
   if (tab === "social") {
     const data = await getSocialPerformance(viewer, filters, range);
     return <SocialPerformanceView data={data} filters={filters} range={range} />;

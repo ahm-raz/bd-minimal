@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
+import { DEPARTMENT_COOKIE, parseDepartment, pathInDepartment } from "@/lib/department";
 
 // Pages anyone may open without a session.
 const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz", "/privacy"];
@@ -13,6 +14,8 @@ const ROLE_BLOCKED: Record<string, string[]> = {
   bd: ["/content"],
 };
 const ROLE_CHECKED = [...new Set([...FOUNDER_PREFIXES, ...Object.values(ROLE_BLOCKED).flat()])];
+// Pages of one department only (src/lib/department.ts): checked for the founder's department view.
+const DEPARTMENT_CHECKED = ["/leads", "/pipeline", "/content", "/settings"];
 
 function matches(pathname: string, prefixes: string[]) {
   return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -70,7 +73,7 @@ export async function proxy(request: NextRequest) {
     return redirect("/my-day");
   }
 
-  if (matches(pathname, ROLE_CHECKED)) {
+  if (matches(pathname, ROLE_CHECKED) || matches(pathname, DEPARTMENT_CHECKED)) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
     const role = profile?.role ?? "";
     if (matches(pathname, ROLE_BLOCKED[role] ?? [])) {
@@ -78,6 +81,11 @@ export async function proxy(request: NextRequest) {
     }
     if (role !== "founder" && matches(pathname, FOUNDER_PREFIXES)) {
       return redirect("/my-day", { notice: "founder-only" });
+    }
+    // The founder's department view (a UX filter, not security: RLS still decides access).
+    const department = parseDepartment(request.cookies.get(DEPARTMENT_COOKIE)?.value);
+    if (role === "founder" && !pathInDepartment(pathname, department)) {
+      return redirect(pathname.startsWith("/settings/") ? "/settings/lists" : "/my-day", { notice: "department-only" });
     }
   }
 

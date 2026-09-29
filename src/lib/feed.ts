@@ -1,3 +1,4 @@
+import type { Department } from "@/lib/department";
 /** Feed event types grouped for the filter (docs/07 section 9). */
 export const FEED_GROUPS = {
   leads: { label: "Leads added", kinds: ["lead_created"] },
@@ -25,6 +26,21 @@ export const FEED_GROUPS = {
 } as const;
 export type FeedGroup = keyof typeof FEED_GROUPS;
 export const FEED_GROUP_KEYS = Object.keys(FEED_GROUPS) as FeedGroup[];
+
+/** The event groups in a department view: Sales is everything but social; Social media is tasks and social. */
+export function feedGroupsFor(department: Department): FeedGroup[] {
+  if (department === "sales") return FEED_GROUP_KEYS.filter((g) => g !== "social");
+  if (department === "social") return ["tasks", "social"];
+  return FEED_GROUP_KEYS;
+}
+
+/** The groups to load: the chosen ones inside the view, or the whole view when none are chosen ([] = everything). */
+export function effectiveFeedGroups(chosen: FeedGroup[], department: Department): FeedGroup[] {
+  const allowed = feedGroupsFor(department);
+  const picked = chosen.filter((g) => allowed.includes(g));
+  if (picked.length) return picked;
+  return department === "all" ? [] : allowed;
+}
 
 export type FeedEvent = {
   id: number;

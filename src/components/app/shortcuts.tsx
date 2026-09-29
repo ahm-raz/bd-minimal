@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { pathInDepartment, showsSales } from "@/lib/department";
 import { useApp } from "./app-provider";
 import { useProfile } from "./profile-provider";
 
@@ -31,7 +32,7 @@ function overlayOpen(): boolean {
  */
 export function Shortcuts() {
   const router = useRouter();
-  const { openNewLead, openLogActivity, currentLeadId } = useApp();
+  const { openNewLead, openLogActivity, currentLeadId, department } = useApp();
   const { role } = useProfile();
   const gPressed = useRef<number>(0);
 
@@ -49,7 +50,7 @@ export function Shortcuts() {
             : role === "founder"
               ? { m: "/my-day", l: "/leads", p: "/pipeline", c: "/content", n: "/notifications" }
               : { m: "/my-day", l: "/leads", p: "/pipeline", n: "/notifications" };
-        const dest = dests[key];
+        const dest = dests[key] && pathInDepartment(dests[key], department) ? dests[key] : undefined;
         if (dest) {
           e.preventDefault();
           router.push(dest);
@@ -62,7 +63,14 @@ export function Shortcuts() {
           gPressed.current = Date.now();
           return;
       }
-      if (role === "social") return;
+      // T (new task) works in every founder view; the sales keys don't exist in Social media.
+      if (key === "t" && role === "founder") {
+        e.preventDefault();
+        if (window.location.pathname === "/tasks") window.dispatchEvent(new Event("cao:new-task"));
+        else router.push("/tasks?new=1");
+        return;
+      }
+      if (!showsSales(department)) return;
 
       switch (key) {
         case "n":
@@ -84,18 +92,11 @@ export function Shortcuts() {
           else router.push("/leads?focus=search");
           return;
         }
-        case "t":
-          if (role === "founder") {
-            e.preventDefault();
-            if (window.location.pathname === "/tasks") window.dispatchEvent(new Event("cao:new-task"));
-            else router.push("/tasks?new=1");
-          }
-          return;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router, openNewLead, openLogActivity, currentLeadId, role]);
+  }, [router, openNewLead, openLogActivity, currentLeadId, role, department]);
 
   return null;
 }

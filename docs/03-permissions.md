@@ -2,7 +2,7 @@
 
 ## 1. Principle
 
-Row Level Security (RLS) in Postgres is the only security boundary. The UI hides things a user can't do, but hiding is for comfort, not safety. Every rule below is already enforced by the migration and checked by `supabase/tests/02_smoke_test.sql`.
+Row Level Security (RLS) in Postgres is the only security boundary. The UI hides things a user can't do, but hiding is for comfort, not safety. The founder's department view (docs/07, Navigation) is the same kind of hiding: a UX filter over what RLS already allows. Every rule below is already enforced by the migration and checked by `supabase/tests/02_smoke_test.sql`.
 
 ## 2. Matrix
 

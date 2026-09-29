@@ -1,3 +1,4 @@
+import type { Department } from "@/lib/department";
 /**
  * Notifications (docs/10 section 3): "What happened" items are stored per recipient by the database;
  * "What's upcoming" items are computed on request. This file is shared by server and client.
@@ -23,9 +24,10 @@ export const GROUP_HELP: Record<NotificationGroup, string> = {
 };
 
 /** Groups that make sense for a role (SMMs never see sales items). */
-export function groupsFor(role: "founder" | "bd" | "social"): NotificationGroup[] {
-  if (role === "social") return ["tasks", "social"];
-  if (role === "bd") return ["meetings", "deals", "leads", "tasks"];
+/** The groups a role hears about; the founder's department view narrows them (src/lib/department.ts). */
+export function groupsFor(role: "founder" | "bd" | "social", department: Department = "all"): NotificationGroup[] {
+  if (role === "social" || department === "social") return ["tasks", "social"];
+  if (role === "bd" || department === "sales") return ["meetings", "deals", "leads", "tasks"];
   return [...NOTIFICATION_GROUPS];
 }
 

@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/browser";
 import { useProfile } from "@/components/app/profile-provider";
+import { useApp } from "@/components/app/app-provider";
 import { localDateOf, todayIn } from "@/lib/dates";
 import { reminderLabel } from "@/lib/validation/meeting";
 import {
   defaultPrefs,
+  groupsFor,
   urgentCount,
   type NotificationGroup,
   type NotificationItem,
@@ -84,7 +86,10 @@ export function NotificationsProvider({
   children: React.ReactNode;
 }) {
   const profile = useProfile();
+  const { department } = useApp();
   const router = useRouter();
+  // The layout remounts this provider when the founder switches department, so this stays current.
+  const groupsRef = useRef(groupsFor(profile.role, department));
   const [unread, setUnread] = useState(initialUnread);
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -176,6 +181,8 @@ export function NotificationsProvider({
           { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${profile.id}` },
           (payload) => {
             const r = payload.new as Record<string, unknown>;
+            // Outside the founder's department view: it waits in the other view.
+            if (!groupsRef.current.includes(r.kind_group as NotificationGroup)) return;
             const n: NotificationItem = {
               id: Number(r.id),
               kind: String(r.kind),

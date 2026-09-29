@@ -6,12 +6,14 @@ import { createClient } from "@/lib/supabase/server";
 import {
   NOTIFICATION_GROUPS,
   defaultPrefs,
+  groupsFor,
   type NotificationItem,
   type NotificationPref,
   type UpcomingItem,
 } from "@/lib/notifications";
 import { MAX_REMINDERS, MAX_REMINDER_MINUTES } from "@/lib/validation/meeting";
 import { getViewer } from "@/server/auth";
+import { getDepartment } from "@/server/department";
 import { loadUpcoming } from "@/server/queries/upcoming";
 import { dbErrorMessage, fail, ok, parseInput, type ActionResult } from "@/server/result";
 
@@ -30,23 +32,31 @@ const listSchema = z.object({
 export async function listNotifications(
   input: z.input<typeof listSchema> = {},
 ): Promise<ActionResult<{ items: NotificationItem[]; unread: number; hasMore: boolean }>> {
-  if (!(await getViewer())) return fail(SESSION_ENDED);
+  const viewer = await getViewer();
+  if (!viewer) return fail(SESSION_ENDED);
   const parsed = parseInput(listSchema, input);
   if (!parsed.ok) return parsed;
   const { beforeId, group, unreadOnly } = parsed.data;
+  // The founder's department view: only that department's groups (a UX filter; RLS keeps rows private).
+  const groups = groupsFor(viewer.role, await getDepartment(viewer));
   const limit = parsed.data.limit ?? NOTIFICATIONS_PAGE;
   const supabase = await createClient();
   let q = supabase
     .from("notifications")
     .select("id, kind, kind_group, priority, title, link, created_at, read_at")
     .order("id", { ascending: false })
-    .limit(limit + 1);
+    .limit(limit + 1)
+    .in("kind_group", groups);
   if (beforeId) q = q.lt("id", beforeId);
   if (group) q = q.eq("kind_group", group);
   if (unreadOnly) q = q.is("read_at", null);
   const [{ data, error }, { count }] = await Promise.all([
     q,
-    supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null)
+      .in("kind_group", groups),
   ]);
   if (error) return fail(dbErrorMessage(error, "Notifications didn't load. Try again."));
   const rows = data ?? [];
@@ -74,14 +84,18 @@ const readSchema = z.object({
 
 /** Mark some (or all) as read; `unread: true` marks them unread again. */
 export async function markNotificationsRead(input: z.input<typeof readSchema>): Promise<ActionResult> {
-  if (!(await getViewer())) return fail(SESSION_ENDED);
+  const viewer = await getViewer();
+  if (!viewer) return fail(SESSION_ENDED);
   const parsed = parseInput(readSchema, input);
   if (!parsed.ok) return parsed;
   const { ids, all, unread } = parsed.data;
   if (!all && !ids?.length) return ok();
   const supabase = await createClient();
   let q = supabase.from("notifications").update({ read_at: unread ? null : new Date().toISOString() });
-  q = all ? q.is("read_at", null) : q.in("id", ids!);
+  // "Mark all" stays inside the department view the founder is looking at.
+  q = all
+    ? q.is("read_at", null).in("kind_group", groupsFor(viewer.role, await getDepartment(viewer)))
+    : q.in("id", ids!);
   const { error } = await q;
   if (error) return fail(dbErrorMessage(error, "That didn't save. Try again."));
   return ok();
@@ -90,7 +104,7 @@ export async function markNotificationsRead(input: z.input<typeof readSchema>): 
 export async function getUpcoming(): Promise<ActionResult<UpcomingItem[]>> {
   const viewer = await getViewer();
   if (!viewer) return fail(SESSION_ENDED);
-  return ok(await loadUpcoming(viewer));
+  return ok(await loadUpcoming(viewer, await getDepartment(viewer)));
 }
 
 export async function getNotificationPrefs(): Promise<
@@ -118,14 +132,12 @@ export async function saveNotificationPref(input: z.input<typeof prefSchema>): P
   const parsed = parseInput(prefSchema, input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("notification_prefs")
-    .upsert({
-      user_id: viewer.id,
-      kind_group: parsed.data.group,
-      in_app: parsed.data.inApp,
-      browser: parsed.data.browser,
-    });
+  const { error } = await supabase.from("notification_prefs").upsert({
+    user_id: viewer.id,
+    kind_group: parsed.data.group,
+    in_app: parsed.data.inApp,
+    browser: parsed.data.browser,
+  });
   if (error) return fail(dbErrorMessage(error, "That setting didn't save. Try again."));
   return ok();
 }

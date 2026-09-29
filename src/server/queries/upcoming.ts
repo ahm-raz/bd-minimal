@@ -6,6 +6,7 @@ import { contactName } from "@/lib/format";
 import { meetingLink } from "@/lib/validation/meeting";
 import type { UpcomingItem } from "@/lib/notifications";
 import type { Viewer } from "@/server/auth";
+import { showsSales, showsSocial, type Department } from "@/lib/department";
 import { getUpcomingMeetings } from "./meetings";
 import { getMyTasks } from "./tasks";
 import { getNeedsReview, getSocialDay, refreshPosts } from "./content";
@@ -16,16 +17,15 @@ const STUCK_DAYS = 14;
  * "What's upcoming" for the viewer (docs/10 section 3). Computed on request from the same data as
  * My Day, Tasks, Pipeline and Content, so it always matches them. RLS limits every query.
  */
-export async function loadUpcoming(viewer: Viewer): Promise<UpcomingItem[]> {
+export async function loadUpcoming(viewer: Viewer, department: Department = "all"): Promise<UpcomingItem[]> {
+  // Sales items (meetings, follow-ups, deals) and review items follow the founder's department view.
+  const sales = viewer.role !== "social" && showsSales(department);
   const supabase = await createClient();
   const today = todayIn(viewer.timezone);
   const weekEnd = addDays(today, 7);
   const items: UpcomingItem[] = [];
 
-  const [tasks, meetings] = await Promise.all([
-    getMyTasks(viewer),
-    viewer.role === "social" ? [] : getUpcomingMeetings(7),
-  ]);
+  const [tasks, meetings] = await Promise.all([getMyTasks(viewer), sales ? getUpcomingMeetings(7) : []]);
 
   for (const m of meetings) {
     const mine = m.ownerId === viewer.id;
@@ -58,7 +58,7 @@ export async function loadUpcoming(viewer: Viewer): Promise<UpcomingItem[]> {
     });
   }
 
-  if (viewer.role !== "social") {
+  if (sales) {
     const [followUps, deals] = await Promise.all([
       supabase
         .from("leads")
@@ -160,7 +160,7 @@ export async function loadUpcoming(viewer: Viewer): Promise<UpcomingItem[]> {
     }
   }
 
-  if (viewer.role === "founder") {
+  if (viewer.role === "founder" && showsSocial(department)) {
     await refreshPosts(viewer);
     for (const p of await getNeedsReview()) {
       items.push({

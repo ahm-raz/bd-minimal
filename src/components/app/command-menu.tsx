@@ -13,6 +13,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
+import { showsSales, showsSocial } from "@/lib/department";
 import { useApp } from "./app-provider";
 import { useProfile } from "./profile-provider";
 import { navFor } from "./sidebar";
@@ -20,18 +21,17 @@ import { searchEverything, type SearchResults } from "@/server/actions/search";
 
 const EMPTY: SearchResults = { leads: [], contacts: [], opportunities: [] };
 
-
 /** Ctrl/Cmd+K: search leads, contacts and opportunities, plus actions and pages (docs/07 section 14). */
 export function CommandMenu() {
   const router = useRouter();
-  const { openNewLead, openLogActivity } = useApp();
+  const { openNewLead, openLogActivity, department } = useApp();
   const { role } = useProfile();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [pickLead, setPickLead] = useState(false);
-  // Social media managers have no sales records to search (docs/09 section 1).
-  const sales = role !== "social";
+  // Social media managers have no sales records to search (docs/09 section 1); nor does the founder's Social media view.
+  const sales = role !== "social" && showsSales(department);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -89,21 +89,27 @@ export function CommandMenu() {
     ...(role === "founder"
       ? [
           { label: "New task", icon: ListChecks, shortcut: "T", run: () => go("/tasks?new=1") },
-          { label: "New post", icon: Megaphone, shortcut: undefined, run: () => go("/content?new=1") },
+          ...(showsSocial(department)
+            ? [{ label: "New post", icon: Megaphone, shortcut: undefined, run: () => go("/content?new=1") }]
+            : []),
         ]
       : []),
     ...(role === "social"
       ? [{ label: "Suggest an idea", icon: Lightbulb, shortcut: undefined, run: () => go("/content?idea=1") }]
       : []),
   ].filter((a) => match(a.label));
-  const pages = [...navFor(role), { href: "/profile", label: "Profile" }].filter((p) => match(`Go to ${p.label}`));
+  const pages = [...navFor(role, department), { href: "/profile", label: "Profile" }].filter((p) =>
+    match(`Go to ${p.label}`),
+  );
 
   return (
     <CommandDialog
       open={open}
       onOpenChange={(o) => (o ? setOpen(true) : close())}
       title="Command menu"
-      description={sales ? "Search leads, contacts and opportunities, or run an action." : "Run an action or go to a page."}
+      description={
+        sales ? "Search leads, contacts and opportunities, or run an action." : "Run an action or go to a page."
+      }
     >
       <Command shouldFilter={false}>
         <CommandInput

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Lists } from "@/server/queries/lists";
 import type { LeadFormValues } from "@/lib/validation/lead";
+import type { Department } from "@/lib/department";
 
 export type LeadSheetState =
   | { mode: "new"; defaults?: Partial<LeadFormValues> }
@@ -15,6 +16,8 @@ export type PostSheetState = { mode: "new"; day?: string } | { mode: "idea" } | 
 
 type AppContextValue = {
   lists: Lists;
+  /** The department view (founder's choice; fixed for BDs and SMMs). */
+  department: Department;
   leadSheet: LeadSheetState | null;
   openNewLead: (defaults?: Partial<LeadFormValues>) => void;
   openEditLead: (state: Extract<LeadSheetState, { mode: "edit" }>) => void;
@@ -33,7 +36,15 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 /** App-wide state: settings lists (loaded once in the layout) and the global side panels. */
-export function AppProvider({ lists, children }: { lists: Lists; children: React.ReactNode }) {
+export function AppProvider({
+  lists,
+  department,
+  children,
+}: {
+  lists: Lists;
+  department: Department;
+  children: React.ReactNode;
+}) {
   const [leadSheet, setLeadSheet] = useState<LeadSheetState | null>(null);
   const openNewLead = useCallback((defaults?: Partial<LeadFormValues>) => setLeadSheet({ mode: "new", defaults }), []);
   const openEditLead = useCallback((state: Extract<LeadSheetState, { mode: "edit" }>) => setLeadSheet(state), []);
@@ -49,6 +60,7 @@ export function AppProvider({ lists, children }: { lists: Lists; children: React
   const value = useMemo(
     () => ({
       lists,
+      department,
       leadSheet,
       openNewLead,
       openEditLead,
@@ -64,6 +76,7 @@ export function AppProvider({ lists, children }: { lists: Lists; children: React
     }),
     [
       lists,
+      department,
       leadSheet,
       openNewLead,
       openEditLead,

@@ -8,6 +8,8 @@ import { getUpcomingMeetings } from "@/server/queries/meetings";
 import { getMyCalendarStatus } from "@/server/queries/calendar";
 import { MyDayView } from "./my-day-view";
 import { SocialDayView } from "./social-day";
+import { getDepartment } from "@/server/department";
+import { showsSales, showsSocial } from "@/lib/department";
 
 export const metadata: Metadata = { title: "My Day" };
 
@@ -22,14 +24,20 @@ export default async function MyDayPage() {
   if (viewer.role === "social") {
     return <SocialDayView data={await getSocialDay(viewer)} tasks={tasks.tasks} founderName={founderName} />;
   }
+  // The founder's department view decides which half of the day to load (src/lib/department.ts).
+  const department = await getDepartment(viewer);
+  const sales = showsSales(department);
   const [data, social, meetings, calendar] = await Promise.all([
-    getMyDay(viewer),
-    viewer.role === "founder" && lists.socialAccounts.length > 0 ? getFounderSocialDay(viewer) : null,
-    getUpcomingMeetings(7),
-    getMyCalendarStatus(),
+    sales ? getMyDay(viewer) : null,
+    viewer.role === "founder" && showsSocial(department) && lists.socialAccounts.length > 0
+      ? getFounderSocialDay(viewer)
+      : null,
+    sales ? getUpcomingMeetings(7) : [],
+    sales ? getMyCalendarStatus() : null,
   ]);
   return (
     <MyDayView
+      today={tasks.today}
       data={data}
       tasks={tasks.tasks}
       founderName={founderName}
