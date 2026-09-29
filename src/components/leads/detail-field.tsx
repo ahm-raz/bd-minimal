@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export type DetailFieldProps = {
 
 /**
  * One row of the lead page's Details panel, editable in place: click the value, change it, Enter or Save.
- * Esc or Cancel leaves it as it was. Lists save as soon as an option is picked.
+ * The tick saves too; Esc or a click outside leaves it as it was. Lists save as soon as an option is picked.
  */
 export function DetailField(props: DetailFieldProps) {
   const { leadId, field, label, value, display, country } = props;
@@ -43,6 +43,24 @@ export function DetailField(props: DetailFieldProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const isList = props.kind === "select" || props.kind === "combobox";
+
+  // Clicking anywhere outside the editor cancels the edit (a list's own dropdown counts as inside).
+  useEffect(() => {
+    if (!editing) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Element | null;
+      if (!target || boxRef.current?.contains(target)) return;
+      if (target.closest("[data-radix-popper-content-wrapper], [role='listbox'], [role='dialog'] [cmdk-root]")) return;
+      if (!pending) {
+        setEditing(false);
+        setError(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [editing, pending]);
   const inputId = `detail-${field}`;
   const empty = display === null || display === undefined || display === "" || (Array.isArray(value) && value.length === 0 && !display);
 
@@ -155,24 +173,20 @@ export function DetailField(props: DetailFieldProps) {
       </dt>
       <dd className="min-w-0" data-testid={`detail-${field}`}>
         {editing ? (
-          <div className="flex flex-col gap-1.5" onKeyDown={props.kind === "select" || props.kind === "combobox" ? keys : undefined}>
-            {control}
+          <div ref={boxRef} className="flex flex-col gap-1.5" onKeyDown={isList ? keys : undefined}>
+            <div className="flex items-start gap-1.5">
+              <div className="min-w-0 flex-1">{control}</div>
+              {!isList && (
+                <Button type="button" size="icon" disabled={pending} onClick={() => save(draft)} aria-label={`Save ${label}`} title="Save">
+                  <Check />
+                </Button>
+              )}
+            </div>
             {error && (
               <p role="alert" className="text-small text-bad">
                 {error}
               </p>
             )}
-            <div className="flex items-center gap-2">
-              {props.kind !== "select" && props.kind !== "combobox" && (
-                <Button type="button" size="sm" disabled={pending} onClick={() => save(draft)}>
-                  Save
-                </Button>
-              )}
-              <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={cancel}>
-                Cancel
-              </Button>
-              {props.kind === "textarea" && <span className="text-micro font-normal text-ink-faint">Ctrl+Enter to save</span>}
-            </div>
           </div>
         ) : (
           <button
