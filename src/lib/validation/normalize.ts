@@ -106,16 +106,19 @@ export function countryName(code: CountryCode): string {
   return COUNTRIES.find((c) => c.code === code)?.name ?? code;
 }
 
-/** Phones: parse with the lead's country as default; store E.164. */
+/**
+ * Phones: any format is accepted (owner's decision). A number that parses as valid for the lead's country
+ * (US if blank) is stored as E.164, e.g. "512 555 0100" → "+15125550100"; anything else is kept as typed.
+ */
 export function normalizePhone(raw: string | null | undefined, country?: string | null): Normalized {
   if (blank(raw)) return ok(null);
   const code = countryCode(country);
-  const v = raw!.trim();
-  const message = `This phone number isn't valid for ${countryName(code)}. Include the area code.`;
-  if (!/^[+\d\s().\-/x]+$/i.test(v)) return bad(message);
-  if (!isValidPhoneNumber(v, code)) return bad(message);
-  const parsed = parsePhoneNumberFromString(v, code);
-  return parsed ? ok(parsed.number) : bad(message);
+  const v = raw!.trim().replace(/\s+/g, " ");
+  if (/^[+\d\s().\-/x]+$/i.test(v) && isValidPhoneNumber(v, code)) {
+    const parsed = parsePhoneNumberFromString(v, code);
+    if (parsed) return ok(parsed.number);
+  }
+  return ok(v);
 }
 
 /** Google Maps URL: trim; host contains google. or goo.gl or maps.app.goo.gl. */

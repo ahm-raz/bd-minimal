@@ -123,11 +123,15 @@ describe("lead schema: clean-up", () => {
         "lead_timezone",
         "tags",
         "contacts.0.email",
-        "contacts.0.phone",
         "contacts.0.linkedin_url",
       ].sort(),
     );
-    expect(e["contacts.0.phone"]).toBe("This phone number isn't valid for United States. Include the area code.");
+  });
+
+  it("any phone format saves; unrecognised numbers are kept as typed", () => {
+    const r = schema.safeParse(lead({}, { phone: "555 123 4567", mobile_phone: "512 555 0100" }));
+    expect(r.success && r.data.contacts[0]!.phone).toBe("555 123 4567");
+    expect(r.success && r.data.contacts[0]!.mobile_phone).toBe("+15125550100");
   });
 
   it("cleans every field", () => {

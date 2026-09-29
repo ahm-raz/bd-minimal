@@ -111,11 +111,10 @@ describe("normalizePhone", () => {
   it("an international number works with any default country", () => {
     expect(value(normalizePhone("+44 20 7946 0958", "United States"))).toBe("+442079460958");
   });
-  it("rejects bad numbers with a helpful message", () => {
-    const r = normalizePhone("555 0100", "United States");
-    expect(r).toEqual({ ok: false, error: "This phone number isn't valid for United States. Include the area code." });
-    expect(normalizePhone("call me", "United States").ok).toBe(false);
-    expect(normalizePhone("12", "United States").ok).toBe(false);
+  it("keeps any other format as typed (every format is allowed)", () => {
+    expect(normalizePhone("555 0100", "United States")).toEqual({ ok: true, value: "555 0100" });
+    expect(normalizePhone("  555   123 4567 ", "United States")).toEqual({ ok: true, value: "555 123 4567" });
+    expect(normalizePhone("ext. 204, front desk", "United States")).toEqual({ ok: true, value: "ext. 204, front desk" });
   });
   it("empty is null", () => expect(value(normalizePhone("  "))).toBeNull());
   it("maps country names", () => {

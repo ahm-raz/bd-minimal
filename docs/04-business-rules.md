@@ -22,7 +22,7 @@ The app's goal is detailed leads, so the form asks for a lot but requires only w
 | Company LinkedIn | strip query string and trailing slash; force `https://www.linkedin.com/company/<slug>` | path starts with `/company/` or `/school/` |
 | Contact LinkedIn | same; force `https://www.linkedin.com/in/<slug>` | path starts with `/in/` |
 | Emails | trim, lowercase | standard email pattern |
-| Phones | parse with libphonenumber-js, default country from lead country (US if blank); store E.164 | `isValidPhoneNumber` |
+| Phones | any format is accepted. If libphonenumber-js recognises it as valid for the lead country (US if blank), store E.164; otherwise keep it as typed | none (never blocks saving) |
 | Google Maps URL | trim | host contains `google.` or `goo.gl` or `maps.app.goo.gl` |
 | Upwork job URL | trim | host ends with `upwork.com` |
 | Google rating | one decimal | 0.0–5.0 |

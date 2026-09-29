@@ -94,7 +94,7 @@ test("phone 512 555 0100 is stored as E.164 and displayed nicely; completeness m
   await expect(page.getByText("50%").first()).toBeVisible();
 });
 
-test("an invalid phone shows the country-specific error inline", async ({ page }) => {
+test("any phone format saves; an unrecognised number is kept as typed", async ({ page }) => {
   await signIn(page, "ahmed");
   await openNewLead(page);
   const dialog = page.getByRole("dialog", { name: "New lead" });
@@ -103,7 +103,9 @@ test("an invalid phone shows the country-specific error inline", async ({ page }
   await dialog.getByLabel("First name").first().fill("Ann");
   await dialog.getByLabel("Phone", { exact: true }).first().fill("555 0100");
   await dialog.getByRole("button", { name: "Save lead", exact: true }).click();
-  await expect(dialog.getByText("This phone number isn't valid for United States. Include the area code.")).toBeVisible();
+  await expect(page.getByText("Lead saved")).toBeVisible();
+  const { data } = await admin().from("contacts").select("phone, leads!inner(company_name)").eq("leads.company_name", "Short Phone Dental").single();
+  expect(data!.phone).toBe("555 0100");
 });
 
 test("the duplicate notice checks only your own leads", async ({ page }) => {
