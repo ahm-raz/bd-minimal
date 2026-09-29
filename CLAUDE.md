@@ -19,6 +19,7 @@ Single team, single company. No multi-tenancy. Laptop-first web app. USD only.
 | `docs/07-screens.md` | Every route: layout, fields, actions, states, acceptance checks |
 | `docs/08-build-plan.md` | Milestones in order, with a checklist for each |
 | `docs/09-social-media.md` | M10: Social media manager role and content scheduling |
+| `docs/10-meetings-notifications.md` | M11: Meetings, Google Calendar sync and notifications |
 | `supabase/migrations/20260924000000_init.sql` | The database. Tables, triggers, RLS, metric functions. Already tested. |
 
 The docs are the spec. If code and docs disagree, the docs win. If the docs are unclear or contradict each other, stop and ask. Don't guess.

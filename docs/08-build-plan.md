@@ -10,6 +10,11 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=        # server only, used in src/lib/supabase/admin.ts
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# M11, Google Calendar (all server only; the section is hidden unless GOOGLE_CALENDAR=on)
+# GOOGLE_CALENDAR=on
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# GOOGLE_TOKEN_KEY=               # 32 random bytes, base64; encrypts stored refresh tokens
 ```
 
 In Supabase Auth settings:
@@ -125,6 +130,21 @@ In Supabase Auth settings:
 - ☐ schedules create slots at the right time across DST, idempotently
 - ☐ draft → review → changes → approve → posted works with feed events, count task and Performance
 - ☐ missed posts are marked once and can be posted late
+- ☐ every existing test still passes
+
+## M11: Meetings, Google Calendar and notifications
+- Spec: `docs/10-meetings-notifications.md`
+- Phase 0: Google Cloud project, OAuth consent screen (External, published, unverified), refresh token checked after 8 days
+- Migrations: `meetings` (table, book_meeting, reassignment, feed kinds), `notifications` (table, prefs, routing trigger, realtime), `google_calendar` (connections, encrypted token, cleanup queue)
+- Meeting section in Log activity, lead Meetings panel, My Day Meetings block, bell with What's upcoming / What happened, `/notifications`, Profile sections, Team Calendar column
+- Demo data: meetings in every status, unread notifications for each role
+
+**Done when:**
+- ☐ a booked meeting appears in the owner's Google Calendar at the right time with its reminders; reschedule and cancel follow
+- ☐ Google errors never lose a meeting; retries and Reconnect work
+- ☐ every routed event reaches the right people live, never the actor, and never another BD
+- ☐ What's upcoming matches My Day, Tasks and Content for each role
+- ☐ no service-role key use; the refresh token can't be selected by any user
 - ☐ every existing test still passes
 
 ## Demo data (`pnpm seed:demo`, local only)

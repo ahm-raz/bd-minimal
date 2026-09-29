@@ -33,6 +33,8 @@ Example team used across these docs:
 - **Lead**: one company a BD is pursuing, owned by one BD. It holds company details and one or more contacts. Two BDs may each have a lead for the same real company (duplicates are allowed).
 - **Contact**: a person at the lead's company. One is marked primary.
 - **Activity**: something a user did or received on a lead, like a LinkedIn message, email, call, reply received, meeting or proposal. Every activity has an outcome.
+- **Meeting** (M11): a booked call or visit with an exact start time, duration and time zone. It is created by logging a Meeting booked outcome and can be synced to the owner's Google Calendar.
+- **Notification** (M11): an item in the bell. *What's upcoming* is work due soon; *What happened* is something another person did that you should know about.
 - **Outcome**: the result of an activity: No response, Bounced / wrong contact, Interested, Not now, Not interested, Meeting booked, or Done.
 - **Next action**: a note plus a due date on the lead ("Send case study" on Wed). It drives follow-ups.
 - **Opportunity**: real buying interest from a lead, tracked through stages. A won opportunity is a **deal**. There's no separate deal table.
@@ -68,7 +70,7 @@ Example team used across these docs:
 
 ### Out of scope for v1
 
-Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app; email or push reminders; payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), browser/push/email notifications, multi-step or client approvals, AI caption generation.
+Job Platform; importing data (CSV or spreadsheet); sending email or LinkedIn messages from the app (M11 allows only Google Calendar invites the BD ticks); email, SMS or closed-app push reminders (M11 adds in-app and browser alerts while the app is open, see docs/10); payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), push/email notifications, multi-step or client approvals, AI caption generation.
 
 ## 5. User stories and acceptance criteria
 
