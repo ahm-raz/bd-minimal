@@ -19,7 +19,7 @@ test("a hidden niche disappears from dropdowns but still shows on existing recor
   await expect(page.getByTestId(`member-${TEAM.sara.email}`).getByText("Law")).toBeVisible();
 
   // ...but the invite dropdown no longer offers it
-  await page.getByRole("button", { name: "Invite member" }).click();
+  await page.getByRole("button", { name: "Add member" }).click();
   await page.getByLabel("Primary niche").click();
   await expect(page.getByRole("option", { name: "Dental" })).toBeVisible();
   await expect(page.getByRole("option", { name: "Law" })).toHaveCount(0);

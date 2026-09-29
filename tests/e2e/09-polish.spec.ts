@@ -67,18 +67,17 @@ test("unknown pages show the 404 page", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Go to Leads" })).toBeVisible();
 });
 
-test("a new BD goes from invite email to a first logged activity, keyboard only", async ({ page, browser }) => {
+test("a new BD goes from invite email to a first logged activity, keyboard only", async ({ browser, baseURL }) => {
   const email = `newbd${RUN}@example.com`;
   await clearInbox();
-  await signIn(page, "zain");
-  await page.goto("/team");
-  await page.getByRole("button", { name: "Invite member" }).click();
-  await page.getByLabel("Full name").fill("Omar Farooq");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Primary niche").click();
-  await page.getByRole("option", { name: "Dental" }).click();
-  await page.getByRole("button", { name: "Send invite" }).click();
-  await expect(page.getByText(`Invite sent to ${email}`)).toBeVisible();
+  // Invite emails are off in the Team UI until a sending domain exists; the link flow itself stays supported.
+  const { data: invited, error } = await admin().auth.admin.inviteUserByEmail(email, {
+    data: { full_name: "Omar Farooq" },
+    redirectTo: `${baseURL}/accept-invite`,
+  });
+  expect(error).toBeNull();
+  const { data: dental } = await admin().from("niches").select("id").eq("name", "Dental").single();
+  await admin().from("profiles").update({ primary_niche_id: dental!.id }).eq("id", invited.user!.id);
 
   const link = await latestEmailLink(email, /href="([^"]*\/auth\/confirm[^"]*)"/);
   const ctx = await browser.newContext();

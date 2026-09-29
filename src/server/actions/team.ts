@@ -5,8 +5,16 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CLOSED_LEAD_STATUSES } from "@/lib/domain";
-import { inviteSchema, memberEditSchema, type InviteInput, type MemberEditInput } from "@/lib/validation/auth";
+import {
+  inviteSchema,
+  memberEditSchema,
+  setMemberPasswordSchema,
+  type InviteInput,
+  type MemberEditInput,
+  type SetMemberPasswordInput,
+} from "@/lib/validation/auth";
 import { FOUNDER_ONLY, requireFounder } from "@/server/auth";
+import { emailInvitesEnabled } from "@/server/email";
 import { dbErrorMessage, fail, ok, parseInput, type ActionResult } from "@/server/result";
 
 function siteUrl() {
@@ -14,23 +22,30 @@ function siteUrl() {
 }
 
 const idSchema = z.uuid();
+const EMAIL_OFF = "Invite emails are off until an email domain is set up. Set a password instead.";
 
-export async function inviteMember(input: InviteInput): Promise<ActionResult<{ id: string; email: string }>> {
+/**
+ * Add member. "password": the founder sets the password now and the account can sign in at once (no email).
+ * "email": an invite email to set their own password; only when invite emails are on (server/email.ts).
+ */
+export async function inviteMember(input: InviteInput): Promise<ActionResult<{ id: string; email: string; method: "password" | "email" }>> {
   const parsed = parseInput(inviteSchema, input);
   if (!parsed.ok) return parsed;
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
 
-  const { fullName, email, role, primaryNicheId, timezone } = parsed.data;
+  const { fullName, email, role, primaryNicheId, timezone, method, password } = parsed.data;
+  if (method === "email" && !emailInvitesEnabled()) return fail(EMAIL_OFF);
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
-    redirectTo: `${siteUrl()}/accept-invite`,
-  });
+  const { data, error } =
+    method === "password"
+      ? await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } })
+      : await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: `${siteUrl()}/accept-invite` });
   if (error || !data.user) {
     if (error?.code === "email_exists" || error?.status === 422) {
       return fail("Someone with this email is already on the team.", { email: "This email is already on the team." });
     }
-    return fail("The invite wasn't sent. Check the email address and try again.");
+    if (error?.code === "weak_password") return fail("Pick a stronger password.", { password: "Pick a stronger password." });
+    return fail(method === "password" ? "The member wasn't added. Check the details and try again." : "The invite wasn't sent. Check the email address and try again.");
   }
 
   // The trigger created the profile as a BD; now set role, niche and time zone.
@@ -38,15 +53,35 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
     .from("profiles")
     .update({ full_name: fullName, role, primary_niche_id: primaryNicheId, timezone })
     .eq("id", data.user.id);
-  if (upErr) return fail("The invite was sent, but the role, niche and time zone weren't saved. Edit the member to set them.");
+  if (upErr) return fail("They were added, but the role, niche and time zone weren't saved. Edit the member to set them.");
 
   revalidatePath("/team");
-  return ok({ id: data.user.id, email });
+  return ok({ id: data.user.id, email, method });
+}
+
+/** Team → Set password: for a member who forgot theirs. Never the founder's own (they use Profile). */
+export async function setMemberPassword(input: SetMemberPasswordInput): Promise<ActionResult> {
+  const parsed = parseInput(setMemberPasswordSchema, input);
+  if (!parsed.ok) return parsed;
+  const founder = await requireFounder();
+  if (!founder) return fail(FOUNDER_ONLY);
+  if (founder.id === parsed.data.id) return fail("Change your own password from Profile.");
+  const supabase = await createClient();
+  const { data: member } = await supabase.from("profiles").select("role").eq("id", parsed.data.id).maybeSingle();
+  if (!member) return fail("That member wasn't found.");
+  if (member.role === "founder") return fail("The founder's password can't be set here.");
+  const { error } = await createAdminClient().auth.admin.updateUserById(parsed.data.id, { password: parsed.data.password });
+  if (error) {
+    if (error.code === "weak_password") return fail("Pick a stronger password.", { password: "Pick a stronger password." });
+    return fail("The password wasn't changed. Try again.");
+  }
+  return ok();
 }
 
 export async function resendInvite(id: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return fail("That member wasn't found.");
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
+  if (!emailInvitesEnabled()) return fail(EMAIL_OFF);
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.getUserById(id);
   if (error || !data.user?.email) return fail("That member wasn't found.");

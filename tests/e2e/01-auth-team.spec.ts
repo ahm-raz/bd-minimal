@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { formatLocalDate, todayIn } from "../../src/lib/dates";
-import { PASSWORD, TEAM, clearInbox, expect, latestEmailLink, signIn, test } from "./helpers";
+import { PASSWORD, TEAM, admin, clearInbox, expect, latestEmailLink, signIn, test } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -28,39 +28,45 @@ test("the founder is created via /setup, and /setup then returns 404", async ({ 
   expect(res2?.status()).toBe(404);
 });
 
-test("an invited BD sets a password from the email and lands on My Day", async ({ page, browser }) => {
-  await clearInbox();
+test("the founder adds a BD with a password (invite email is off) and the BD signs in to My Day", async ({ page, browser }) => {
   await signIn(page, "zain");
   await page.goto("/team");
-  await page.getByRole("button", { name: "Invite member" }).click();
-  await page.getByLabel("Full name").fill(TEAM.ahmed.name);
-  await page.getByLabel("Email").fill(TEAM.ahmed.email);
-  await page.getByLabel("Primary niche").click();
+  await page.getByRole("button", { name: "Add member" }).click();
+  const sheet = page.getByRole("dialog", { name: "Add member" });
+
+  // No email domain yet: the invite-email option and its button are disabled
+  await expect(sheet.getByRole("radio", { name: /Send an invite email/ })).toBeDisabled();
+  await expect(sheet.getByText("Off until an email domain is set up.")).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Send invite" })).toBeDisabled();
+  await expect(sheet.getByRole("radio", { name: /Set a password now/ })).toBeChecked();
+
+  await sheet.getByLabel("Full name").fill(TEAM.ahmed.name);
+  await sheet.getByRole("textbox", { name: "Email", exact: true }).fill(TEAM.ahmed.email);
+  await sheet.getByLabel("Primary niche").click();
   await page.getByRole("option", { name: "Dental" }).click();
-  await page.getByRole("button", { name: "Send invite" }).click();
-  await expect(page.getByText(`Invite sent to ${TEAM.ahmed.email}`)).toBeVisible();
+  await sheet.getByRole("textbox", { name: "Password", exact: true }).fill("short");
+  await sheet.getByLabel("Confirm password").fill("short");
+  await sheet.getByRole("button", { name: "Add member" }).click();
+  await expect(sheet.getByText("Use at least 10 characters.")).toBeVisible();
+  await sheet.getByRole("textbox", { name: "Password", exact: true }).fill(PASSWORD);
+  await sheet.getByLabel("Confirm password").fill(`${PASSWORD}x`);
+  await sheet.getByRole("button", { name: "Add member" }).click();
+  await expect(sheet.getByText("The passwords don't match.")).toBeVisible();
+  await sheet.getByLabel("Confirm password").fill(PASSWORD);
+  await sheet.getByRole("button", { name: "Add member" }).click();
+  await expect(page.getByText(`${TEAM.ahmed.email} added. They can sign in now.`)).toBeVisible();
 
   const row = page.getByTestId(`member-${TEAM.ahmed.email}`);
-  await expect(row.getByText("Invited")).toBeVisible();
+  await expect(row.getByText("Not signed in yet")).toBeVisible();
   await expect(row.getByText("Dental")).toBeVisible();
+  // Resending an invite needs email too
+  await page.getByRole("button", { name: `Actions for ${TEAM.ahmed.name}` }).click();
+  await expect(page.getByRole("menuitem", { name: "Resend invite (email off)" })).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
 
-  const link = await latestEmailLink(TEAM.ahmed.email, /href="([^"]*\/auth\/confirm[^"]*)"/);
   const ctx = await browser.newContext();
   const bd = await ctx.newPage();
-  await bd.goto(link);
-  await expect(bd).toHaveURL(/\/accept-invite/);
-  await expect(bd.getByRole("heading", { name: "Welcome, Ahmed." })).toBeVisible();
-  await expect(bd.getByText("Set a password to start.")).toBeVisible();
-
-  await bd.getByLabel("Password", { exact: true }).fill("short");
-  await bd.getByLabel("Confirm password").fill("short");
-  await bd.getByRole("button", { name: "Set password" }).click();
-  await expect(bd.getByText("Use at least 10 characters.")).toBeVisible();
-
-  await bd.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await bd.getByLabel("Confirm password").fill(PASSWORD);
-  await bd.getByRole("button", { name: "Set password" }).click();
-  await bd.waitForURL(/\/my-day/);
+  await signIn(bd, "ahmed");
   await expect(bd.getByRole("heading", { name: "My Day" })).toBeVisible();
   // BDs don't see founder-only navigation
   await expect(bd.getByRole("link", { name: /Team/ })).toHaveCount(0);
@@ -68,6 +74,70 @@ test("an invited BD sets a password from the email and lands on My Day", async (
 
   await page.reload();
   await expect(page.getByTestId(`member-${TEAM.ahmed.email}`).getByText("Active")).toBeVisible();
+});
+
+test("an invite link (sent while email is on) still lets the person set a password", async ({ page, baseURL }) => {
+  // Invite emails are off in the UI, so start one through the Auth admin API; the link and page stay supported.
+  const email = `invitee${Date.now()}@example.com`;
+  await clearInbox();
+  const { error } = await admin().auth.admin.inviteUserByEmail(email, {
+    data: { full_name: "Nadia Invitee" },
+    redirectTo: `${baseURL}/accept-invite`,
+  });
+  expect(error).toBeNull();
+
+  const link = await latestEmailLink(email, /href="([^"]*\/auth\/confirm[^"]*)"/);
+  await page.goto(link);
+  await expect(page).toHaveURL(/\/accept-invite/);
+  await expect(page.getByRole("heading", { name: "Welcome, Nadia." })).toBeVisible();
+  await expect(page.getByText("Set a password to start.")).toBeVisible();
+
+  await page.getByLabel("Password", { exact: true }).fill("short");
+  await page.getByLabel("Confirm password").fill("short");
+  await page.getByRole("button", { name: "Set password" }).click();
+  await expect(page.getByText("Use at least 10 characters.")).toBeVisible();
+
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByLabel("Confirm password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Set password" }).click();
+  await page.waitForURL(/\/my-day/);
+  await expect(page.getByRole("heading", { name: "My Day" })).toBeVisible();
+});
+
+test("the founder sets a new password for a member; the old one stops working", async ({ page, browser }) => {
+  const NEW = "brand-new-pass-456";
+  const setPassword = async (password: string) => {
+    await page.goto("/team");
+    await page.getByRole("button", { name: `Actions for ${TEAM.ahmed.name}` }).click();
+    await page.getByRole("menuitem", { name: "Set password" }).click();
+    const dialog = page.getByRole("dialog", { name: "Set a new password for Ahmed" });
+    await dialog.getByLabel("New password").fill(password);
+    await dialog.getByLabel("Confirm password").fill(password);
+    await dialog.getByRole("button", { name: "Set password" }).click();
+    await expect(page.getByText("New password set for Ahmed")).toBeVisible();
+  };
+
+  await signIn(page, "zain");
+  // The founder's own row has no Set password (they use Profile)
+  await page.goto("/team");
+  await page.getByRole("button", { name: `Actions for ${TEAM.zain.name}` }).click();
+  await expect(page.getByRole("menuitem", { name: "Set password" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await setPassword(NEW);
+  const ctx = await browser.newContext();
+  const bd = await ctx.newPage();
+  await bd.goto("/login");
+  await bd.getByLabel("Email").fill(TEAM.ahmed.email);
+  await bd.getByLabel("Password").fill(PASSWORD);
+  await bd.getByRole("button", { name: "Sign in" }).click();
+  await expect(bd.getByText("Email or password is incorrect.")).toBeVisible();
+  await signIn(bd, { email: TEAM.ahmed.email, password: NEW });
+  await expect(bd.getByRole("heading", { name: "My Day" })).toBeVisible();
+  await ctx.close();
+
+  // Back to the shared test password for the later tests
+  await setPassword(PASSWORD);
 });
 
 test("a BD opening founder pages is redirected to My Day", async ({ page }) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS, type Role } from "@/lib/domain";
-import { THEMES, THEME_KEY, THEME_LABELS, applyTheme, readTheme, type Theme } from "@/lib/theme";
+import { THEMES, THEME_LABELS, readTheme, saveTheme, type Theme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -97,19 +97,11 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
   );
 }
 
-/** Light / dark / system, remembered per browser. "Same as system" follows OS changes live. */
+/** Light / dark / system, remembered per browser (cookie). "Same as system" is pure CSS, so it follows OS changes live. */
 function useTheme() {
   const [theme, setTheme] = useState<Theme>(readTheme);
-  useEffect(() => {
-    applyTheme(theme);
-    if (theme !== "system") return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
   const choose = (t: Theme) => {
-    window.localStorage.setItem(THEME_KEY, t);
+    saveTheme(t);
     setTheme(t);
   };
   return [theme, choose] as const;

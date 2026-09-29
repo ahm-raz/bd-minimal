@@ -2,8 +2,20 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the .dark class on <html> (set before paint by the theme script), not the OS setting. */
-@custom-variant dark (&:where(.dark, .dark *));
+/*
+ * Dark mode: <html class="dark"> forces it, <html class="light"> forces light, and no class follows the OS
+ * setting ("Same as system"). The server sets the class from the theme cookie, so no script is needed.
+ */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light), :root:not(.light) *) {
+      @slot;
+    }
+  }
+}
 
 /* Design tokens: docs/06-design-system.md, section 2. Light theme here; the dark theme overrides below. */
 :root {
@@ -134,6 +146,56 @@
   --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.6);
   --chart-2: #8db8e6;
   --chart-3: #6fcbb0;
+}
+
+/* "Same as system": the same dark tokens when the OS is dark and light isn't forced. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --canvas: #0a0a0b;
+    --surface: #141416;
+    --surface-muted: #1d1d21;
+    --line: #2a2a30;
+    --ink: #ededf0;
+    --ink-muted: #a3a3ad;
+    --ink-faint: #6e6e78;
+    --accent: #4fb3c2;
+    --accent-hover: #6cc3d0;
+    --accent-soft: #12292d;
+    --ok: #5cc28a;
+    --ok-soft: #10261a;
+    --warn: #e0a24a;
+    --warn-soft: #2a1f0e;
+    --bad: #f07a70;
+    --bad-soft: #2e1513;
+    --ok-ink: #5cc28a;
+    --warn-ink: #e0a24a;
+    --lost-ink: #b3a4a1;
+    --on-accent: #0a0a0b;
+    --on-bad: #0a0a0b;
+    --bad-hover: #f4958d;
+    --info-bg: #14202d;
+    --info-fg: #8db8e6;
+    --heat-light: #173236;
+    --heat-medium: #2a6a74;
+
+    --stage-qualified-bg: #1d1d21;
+    --stage-qualified-fg: #a3a3ad;
+    --stage-meeting-bg: #14202d;
+    --stage-meeting-fg: #8db8e6;
+    --stage-proposal-bg: #12292d;
+    --stage-proposal-fg: #4fb3c2;
+    --stage-negotiation-bg: #10251f;
+    --stage-negotiation-fg: #6fcbb0;
+    --stage-won-bg: #10261a;
+    --stage-won-fg: #5cc28a;
+    --stage-lost-bg: #1f1c1c;
+    --stage-lost-fg: #b3a4a1;
+
+    --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --chart-2: #8db8e6;
+    --chart-3: #6fcbb0;
+  }
 }
 
 @theme inline {

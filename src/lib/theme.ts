@@ -1,19 +1,31 @@
-/** Light / dark / follow the system. Stored per browser in localStorage; applied as the .dark class on <html>. */
+/**
+ * Light / dark / follow the system, remembered per browser in a cookie. The root layout reads the cookie and
+ * puts "dark" or "light" on <html>; "system" leaves it off and globals.css follows the OS (no script needed).
+ */
 export const THEMES = ["light", "dark", "system"] as const;
 export type Theme = (typeof THEMES)[number];
 export const THEME_LABELS: Record<Theme, string> = { light: "Light", dark: "Dark", system: "Same as system" };
-export const THEME_KEY = "cao:theme";
+export const THEME_COOKIE = "cao-theme";
 
+export function parseTheme(value: string | undefined | null): Theme {
+  return (THEMES as readonly string[]).includes(value ?? "") ? (value as Theme) : "system";
+}
+
+/** The class for <html>: forced dark, forced light, or none for "system". */
+export function themeClass(theme: Theme): string {
+  return theme === "system" ? "" : theme;
+}
+
+/** Browser only: the saved choice. */
 export function readTheme(): Theme {
-  if (typeof window === "undefined") return "system";
-  const v = window.localStorage.getItem(THEME_KEY);
-  return (THEMES as readonly string[]).includes(v ?? "") ? (v as Theme) : "system";
+  if (typeof document === "undefined") return "system";
+  return parseTheme(document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=([^;]*)`))?.[1]);
 }
 
-export function applyTheme(theme: Theme) {
-  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.toggle("dark", dark);
+/** Browser only: save the choice for a year and apply it without a reload. */
+export function saveTheme(theme: Theme) {
+  document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=31536000; samesite=lax`;
+  const root = document.documentElement.classList;
+  root.remove("dark", "light");
+  if (theme !== "system") root.add(theme);
 }
-
-/** Runs in <head> before the first paint, so there's no flash of the wrong theme. Keep in sync with applyTheme. */
-export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_KEY)});var d=t==="dark"||((t!=="light")&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`;

@@ -181,7 +181,8 @@ describe("social schemas", () => {
     expect(scheduleSchema.safeParse({ ...base, draftLeadHours: "400" }).success).toBe(false);
   });
   it("needs a niche for BDs only when inviting", () => {
-    const base = { fullName: "Hina Raza", email: "hina@example.com", timezone: "Asia/Karachi" };
+    // Invite-email path, so the password rules (tests/unit/members.test.ts) don't apply here.
+    const base = { fullName: "Hina Raza", email: "hina@example.com", timezone: "Asia/Karachi", method: "email" };
     expect(inviteSchema.safeParse({ ...base, role: "social" }).success).toBe(true);
     expect(inviteSchema.safeParse({ ...base, role: "bd" }).success).toBe(false);
     expect(inviteSchema.safeParse({ ...base, role: "bd", primaryNicheId: ID }).success).toBe(true);

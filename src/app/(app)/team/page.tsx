@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CLOSED_LEAD_STATUSES } from "@/lib/domain";
 import { requireFounder, requireViewer } from "@/server/auth";
+import { emailInvitesEnabled } from "@/server/email";
 import { getLists } from "@/server/queries/lists";
 import { TeamView, type TeamRow } from "./team-view";
 
@@ -50,5 +51,5 @@ export default async function TeamPage() {
     }),
   );
 
-  return <TeamView rows={rows} niches={lists.niches} />;
+  return <TeamView rows={rows} niches={lists.niches} emailInvites={emailInvitesEnabled()} />;
 }

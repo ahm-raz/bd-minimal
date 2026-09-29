@@ -297,11 +297,15 @@ Fields and defaults per docs/04, section 3:
 
 ## 11. Team `/team` (founder)
 
-- **Table:** name, email, role, niche, time zone, status (Active / Invited / Deactivated), open leads, last active (last activity time).
-- **Invite member (side panel):** full name*, email*, primary niche*, time zone* (searchable; default Asia/Karachi). **Send invite** → toast "Invite sent to ahmed@…". Also offer "Set targets now" to jump to Settings → Targets for that person.
+- **Table:** name, email, role, niche, time zone, status (Active / Not signed in yet / Deactivated), open leads, last active (last activity time).
+- **Add member (side panel):** full name*, email*, role*, primary niche* (BD only), time zone* (searchable; default Asia/Karachi), then **How they get in**:
+  - **Set a password now** (default): password* + confirm*, min 10 characters. **Add member** → toast "ahmed@… added. They can sign in now."
+  - **Send an invite email**: disabled with "Off until an email domain is set up." unless `EMAIL_INVITES=on`; the footer's **Send invite** button is disabled too.
+  - Both offer "Set targets now" to jump to Settings → Targets for that person.
 - **Row menu:**
-  - Edit (name, niche, time zone)
-  - Resend invite (invited only)
+  - Edit (name, role, niche, time zone)
+  - Set password (not for the founder): new password + confirm → toast "New password set for Ahmed"
+  - Resend invite (not signed in yet; disabled as "Resend invite (email off)" while email is off)
   - Reassign open leads
   - Deactivate / Reactivate
 - **Deactivate dialog:** "Ahmed will lose access immediately. His past work stays in reports. He has 140 open leads." Buttons: **Deactivate and reassign leads** (opens a picker for the new owner) / **Deactivate only** / **Cancel**.

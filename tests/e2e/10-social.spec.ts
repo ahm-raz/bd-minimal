@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { addDays, isoWeekday, todayIn } from "../../src/lib/dates";
-import { PASSWORD, admin, clearInbox, clientAs, ensureTeam, ensureUser, expect, latestEmailLink, signIn, test, type Member } from "./helpers";
+import { PASSWORD, admin, clientAs, ensureTeam, ensureUser, expect, signIn, test, type Member } from "./helpers";
 
 /** Social media module (docs/09 section 7): the five end-to-end flows. */
 test.describe.configure({ mode: "serial" });
@@ -55,35 +55,29 @@ async function openPost(page: Page, id: string) {
   return sheet;
 }
 
-test("the founder invites an SMM via the inbox link; the SMM lands on My Day and is blocked from sales pages", async ({ page, browser }) => {
+test("the founder adds an SMM with a password; the SMM lands on My Day and is blocked from sales pages", async ({ page, browser }) => {
   const email = `smm${RUN}@example.com`;
-  await clearInbox();
   await signIn(page, "zain");
   await page.goto("/team");
-  await page.getByRole("button", { name: "Invite member" }).click();
-  const sheet = page.getByRole("dialog", { name: "Invite member" });
+  await page.getByRole("button", { name: "Add member" }).click();
+  const sheet = page.getByRole("dialog", { name: "Add member" });
   await sheet.getByLabel("Full name").fill("Sana Social");
-  await sheet.getByLabel("Email").fill(email);
+  await sheet.getByRole("textbox", { name: "Email", exact: true }).fill(email);
   await pick(page, "Role", "Social media manager");
   // A social media manager has no niche
   await expect(sheet.getByRole("combobox", { name: "Primary niche" })).toHaveCount(0);
-  await sheet.getByRole("button", { name: "Send invite" }).click();
-  await expect(page.getByText(`Invite sent to ${email}`)).toBeVisible();
+  await sheet.getByRole("textbox", { name: "Password", exact: true }).fill(PASSWORD);
+  await sheet.getByLabel("Confirm password").fill(PASSWORD);
+  await sheet.getByRole("button", { name: "Add member" }).click();
+  await expect(page.getByText(`${email} added. They can sign in now.`)).toBeVisible();
   await expect(page.getByTestId(`member-${email}`)).toContainText("Social media manager");
   const { data } = await admin().from("profiles").select("role, primary_niche_id").eq("email", email).single();
   expect(data).toEqual({ role: "social", primary_niche_id: null });
 
-  // The invitee opens the email link, sets a password and lands on My Day
-  const link = await latestEmailLink(email, /href="([^"]*\/auth\/confirm[^"]*)"/);
+  // They sign in with the password the founder set and land on My Day
   const ctx = await browser.newContext();
   const smm = await ctx.newPage();
-  await smm.goto(link);
-  await expect(smm).toHaveURL(/\/accept-invite/);
-  await expect(smm.getByRole("heading", { name: "Welcome, Sana." })).toBeVisible();
-  await smm.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await smm.getByLabel("Confirm password").fill(PASSWORD);
-  await smm.getByRole("button", { name: "Set password" }).click();
-  await smm.waitForURL(/\/my-day/);
+  await signIn(smm, { email, password: PASSWORD });
   await expect(smm.getByRole("heading", { name: "My Day" })).toBeVisible();
   await expect(smm.getByRole("heading", { name: "Today's posts" })).toBeVisible();
 

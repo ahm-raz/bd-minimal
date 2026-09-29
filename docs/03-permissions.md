@@ -45,7 +45,18 @@ Notes:
 
 `/setup` must refuse to work if any profile exists. Remove it or keep it behind that check.
 
-### Invite a BD
+### Add a member with a password (default)
+Invite emails need a sending domain (custom SMTP). Until one exists, the founder adds people directly:
+1. Team → **Add member**: name, email, role, niche (BD), time zone, and a password typed twice (min 10 characters).
+2. A server action checks the caller is the founder, then calls `auth.admin.createUser({ email, password, email_confirm: true })` with the admin client. No email is sent.
+3. The trigger creates the profile as `bd`; the action sets role, niche and time zone, as for invites.
+4. The founder shares the password; the member signs in on `/login`. Team shows **Not signed in yet** until their first sign-in.
+
+**Set password.** Team → row menu → **Set password** replaces a member's password (`auth.admin.updateUserById(id, { password })`) after the founder check. Not offered for the founder, who uses Profile. The app never shows, stores or logs passwords.
+
+**Email invites are off** unless the server env has `EMAIL_INVITES=on`. While off, the form's "Send an invite email" option and its **Send invite** button are disabled, **Resend invite** is disabled, and the server actions refuse them. The steps below apply once email is turned on.
+
+### Invite a BD (only when `EMAIL_INVITES=on`)
 1. Founder fills the Invite form: name, email, niche, time zone.
 2. A server action checks the caller is the founder, then calls `auth.admin.inviteUserByEmail(email, { data: { full_name }, redirectTo: <site>/accept-invite })` with the admin client.
 3. The trigger creates the profile with role `bd`.
@@ -79,8 +90,9 @@ The founder cannot be deactivated or demoted; the database rejects it.
 
 Only in `src/lib/supabase/admin.ts`, imported only by server actions that first confirm the caller is an active founder:
 
-- invite and resend invite
+- add a member with a password, and invite / resend invite (when email is on)
+- set a member's password (never the founder's)
 - deactivate and reactivate (ban / unban)
-- set niche and time zone on a newly invited profile
+- set role, niche and time zone on a newly added profile
 
 The key is never sent to the browser. It must not be prefixed `NEXT_PUBLIC_`.

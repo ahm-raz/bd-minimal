@@ -36,13 +36,23 @@ import { MEMBER_ROLES, ROLE_LABELS } from "@/lib/domain";
 import type { z } from "zod";
 import { formatNumber, firstName } from "@/lib/format";
 import { applyFieldErrors } from "@/lib/forms";
-import { inviteSchema, memberEditSchema, type InviteInput, type MemberEditInput } from "@/lib/validation/auth";
+import {
+  inviteSchema,
+  memberEditSchema,
+  setMemberPasswordSchema,
+  type AddMethod,
+  type InviteInput,
+  type MemberEditInput,
+  type SetMemberPasswordInput,
+} from "@/lib/validation/auth";
+import { cn } from "@/lib/utils";
 import {
   deactivateMember,
   inviteMember,
   reactivateMember,
   reassignOpenLeads,
   resendInvite,
+  setMemberPassword,
   updateMember,
 } from "@/server/actions/team";
 import type { ListItem, MemberItem } from "@/server/queries/lists";
@@ -55,16 +65,18 @@ export type TeamRow = MemberItem & {
 
 const STATUS_CHIP = {
   active: { tone: "ok", label: "Active" },
-  invited: { tone: "warn", label: "Invited" },
+  invited: { tone: "warn", label: "Not signed in yet" },
   deactivated: { tone: "muted", label: "Deactivated" },
 } as const;
 
-export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[] }) {
+/** emailInvites: invite emails need a sending domain; while off, members are added with a password (server/email.ts). */
+export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; niches: ListItem[]; emailInvites: boolean }) {
   const { timezone } = useProfile();
   const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editing, setEditing] = useState<TeamRow | null>(null);
   const [deactivating, setDeactivating] = useState<TeamRow | null>(null);
+  const [settingPassword, setSettingPassword] = useState<TeamRow | null>(null);
   const [reassigning, setReassigning] = useState<{ row: TeamRow; afterDeactivate: boolean } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -89,7 +101,7 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
         title="Team"
         actions={
           <Button onClick={() => setInviteOpen(true)}>
-            <Plus aria-hidden /> Invite member
+            <Plus aria-hidden /> Add member
           </Button>
         }
       />
@@ -140,11 +152,15 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onSelect={() => setEditing(r)}>Edit</DropdownMenuItem>
+                          {r.role !== "founder" && (
+                            <DropdownMenuItem onSelect={() => setSettingPassword(r)}>Set password</DropdownMenuItem>
+                          )}
                           {r.status === "invited" && (
                             <DropdownMenuItem
+                              disabled={!emailInvites}
                               onSelect={() => run(() => resendInvite(r.id), `Invite resent to ${r.email}`)}
                             >
-                              Resend invite
+                              Resend invite{!emailInvites && " (email off)"}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -182,7 +198,10 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
         </div>
       </Panel>
 
-      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} niches={niches} />
+      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} niches={niches} emailInvites={emailInvites} />
+      {settingPassword && (
+        <SetPasswordDialog key={settingPassword.id} member={settingPassword} onClose={() => setSettingPassword(null)} />
+      )}
       {editing && (
         <EditSheet
           key={editing.id}
@@ -251,25 +270,44 @@ export function TeamView({ rows, niches }: { rows: TeamRow[]; niches: ListItem[]
   );
 }
 
+const METHOD_LABELS: Record<AddMethod, string> = { password: "Set a password now", email: "Send an invite email" };
+
 function InviteSheet({
   open,
   onOpenChange,
   niches,
+  emailInvites,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   niches: ListItem[];
+  emailInvites: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
-  const empty: InviteInput = { fullName: "", email: "", role: "bd", primaryNicheId: null, timezone: "Asia/Karachi" };
+  const empty: InviteInput = {
+    fullName: "",
+    email: "",
+    role: "bd",
+    primaryNicheId: null,
+    timezone: "Asia/Karachi",
+    method: "password",
+    password: "",
+    confirm: "",
+  };
   const form = useForm<InviteInput, unknown, z.output<typeof inviteSchema>>({
     resolver: zodResolver(inviteSchema),
     defaultValues: empty,
   });
   const errors = form.formState.errors;
   const role = useWatch({ control: form.control, name: "role" });
+  const method = useWatch({ control: form.control, name: "method" }) ?? "password";
+  const emailBlocked = method === "email" && !emailInvites;
+  const hints: Record<AddMethod, string> = {
+    password: "They sign in right away. Share the password with them yourself.",
+    email: emailInvites ? "They get an email to set their own password." : "Off until an email domain is set up.",
+  };
 
   const close = () => {
     form.reset(empty);
@@ -281,16 +319,22 @@ function InviteSheet({
     <FormSheet
       open={open}
       onOpenChange={(o) => (o ? onOpenChange(true) : close())}
-      title="Invite member"
-      description="They get an email to set a password, then land on My Day."
+      title="Add member"
+      description="They land on My Day after signing in."
       dirty={form.formState.isDirty}
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={close}>
             Cancel
           </Button>
-          <Button type="submit" form="invite-form" disabled={pending}>
-            Send invite
+          {/* While invite emails are off, "Send invite" stays visible but disabled. */}
+          {!emailInvites && (
+            <Button type="button" variant="secondary" disabled title="Off until an email domain is set up.">
+              Send invite
+            </Button>
+          )}
+          <Button type="submit" form="invite-form" disabled={pending || emailBlocked}>
+            {method === "email" ? "Send invite" : "Add member"}
           </Button>
         </div>
       }
@@ -309,7 +353,7 @@ function InviteSheet({
               return;
             }
             const { id, email } = res.data;
-            toast.success(`Invite sent to ${email}`, {
+            toast.success(res.data.method === "email" ? `Invite sent to ${email}` : `${email} added. They can sign in now.`, {
               action: { label: "Set targets now", onClick: () => router.push(`/settings/targets?person=${id}`) },
             });
             close();
@@ -367,8 +411,128 @@ function InviteSheet({
             render={({ field }) => <TimezoneSelect id="invite-tz" value={field.value} onChange={field.onChange} />}
           />
         </FormField>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-small font-medium text-ink">How they get in</legend>
+          {(["password", "email"] as const).map((m) => {
+            const disabled = m === "email" && !emailInvites;
+            return (
+              <label
+                key={m}
+                className={cn(
+                  "flex items-start gap-2.5 rounded-md border border-line px-3 py-2.5",
+                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-surface-muted",
+                  method === m && !disabled && "border-accent-strong bg-accent-soft",
+                )}
+              >
+                <input type="radio" value={m} disabled={disabled} className="mt-0.5 accent-[var(--accent)]" {...form.register("method")} />
+                <span className="flex flex-col">
+                  <span className="text-body text-ink">{METHOD_LABELS[m]}</span>
+                  <span className="text-small text-ink-muted">{hints[m]}</span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+
+        {method === "password" && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Password" htmlFor="invite-password" required error={errors.password?.message} helper="At least 10 characters.">
+              <Input
+                id="invite-password"
+                type="password"
+                autoComplete="new-password"
+                aria-invalid={!!errors.password}
+                {...form.register("password")}
+              />
+            </FormField>
+            <FormField label="Confirm password" htmlFor="invite-confirm" required error={errors.confirm?.message}>
+              <Input
+                id="invite-confirm"
+                type="password"
+                autoComplete="new-password"
+                aria-invalid={!!errors.confirm}
+                {...form.register("confirm")}
+              />
+            </FormField>
+          </div>
+        )}
       </form>
     </FormSheet>
+  );
+}
+
+/** Team → Set password: the founder types a new password for a member who forgot theirs. No email is sent. */
+function SetPasswordDialog({ member, onClose }: { member: TeamRow; onClose: () => void }) {
+  const [pending, startTransition] = useTransition();
+  const [formError, setFormError] = useState<string | null>(null);
+  const name = firstName(member.full_name) || member.email;
+  const form = useForm<SetMemberPasswordInput>({
+    resolver: zodResolver(setMemberPasswordSchema),
+    defaultValues: { id: member.id, password: "", confirm: "" },
+  });
+  const errors = form.formState.errors;
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set a new password for {name}</DialogTitle>
+          <DialogDescription>
+            Their old password stops working. They sign in with {member.email} and the new one. Share it with them yourself.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          id="set-password-form"
+          noValidate
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit((values) =>
+            startTransition(async () => {
+              setFormError(null);
+              const res = await setMemberPassword(values);
+              if (!res.ok) {
+                applyFieldErrors(form.setError, res.fieldErrors);
+                setFormError(res.error);
+                return;
+              }
+              toast.success(`New password set for ${name}`);
+              onClose();
+            }),
+          )}
+        >
+          {formError && (
+            <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">
+              {formError}
+            </p>
+          )}
+          <FormField label="New password" htmlFor="member-password" required error={errors.password?.message} helper="At least 10 characters.">
+            <Input
+              id="member-password"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={!!errors.password}
+              {...form.register("password")}
+            />
+          </FormField>
+          <FormField label="Confirm password" htmlFor="member-confirm" required error={errors.confirm?.message}>
+            <Input
+              id="member-confirm"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={!!errors.confirm}
+              {...form.register("confirm")}
+            />
+          </FormField>
+        </form>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="set-password-form" disabled={pending}>
+            Set password
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

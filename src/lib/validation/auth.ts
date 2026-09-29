@@ -49,7 +49,12 @@ export type SetupInput = z.infer<typeof setupSchema>;
 /** Roles the founder gives a member: BD (sales) or Social media manager (docs/09 section 1). */
 export const memberRoleField = z.enum(MEMBER_ROLES, "Pick a role.");
 
-/** A BD needs a primary niche; a social media manager doesn't. */
+/** How a new member gets in: a password the founder sets now, or an invite email (needs a sending domain). */
+export const ADD_METHODS = ["password", "email"] as const;
+export type AddMethod = (typeof ADD_METHODS)[number];
+export const PASSWORD_MIN = 10;
+
+/** Add member. A BD needs a primary niche; a social media manager doesn't. "password" needs it typed twice. */
 export const inviteSchema = z
   .object({
     fullName: fullNameField,
@@ -57,11 +62,28 @@ export const inviteSchema = z
     role: memberRoleField.default("bd"),
     primaryNicheId: z.uuid("Pick a niche.").nullable().optional().transform((v) => v ?? null),
     timezone: timezoneField,
+    method: z.enum(ADD_METHODS).default("password"),
+    password: z.string().optional().default(""),
+    confirm: z.string().optional().default(""),
   })
   .superRefine((v, ctx) => {
     if (v.role === "bd" && !v.primaryNicheId) ctx.addIssue({ code: "custom", path: ["primaryNicheId"], message: "Pick a niche." });
+    if (v.method === "password") {
+      if (v.password.length < PASSWORD_MIN) ctx.addIssue({ code: "custom", path: ["password"], message: `Use at least ${PASSWORD_MIN} characters.` });
+      else if (v.password !== v.confirm) ctx.addIssue({ code: "custom", path: ["confirm"], message: "The passwords don't match." });
+    }
   });
 export type InviteInput = z.input<typeof inviteSchema>;
+
+/** Team → Set password: the founder sets a member's password (no email involved). */
+export const setMemberPasswordSchema = z
+  .object({
+    id: z.uuid(),
+    password: z.string().min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters.`),
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The passwords don't match." });
+export type SetMemberPasswordInput = z.infer<typeof setMemberPasswordSchema>;
 
 export const memberEditSchema = z.object({
   id: z.uuid(),
