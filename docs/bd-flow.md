@@ -167,3 +167,48 @@ flowchart LR
     MB[Outcome Meeting booked] --> M5[Meetings booked]
     MB --> OPP[Prompt: Create an opportunity?]
 ```
+
+## 5. A lead's status over its life
+
+Worked example from the walkthrough (Smile Dental Austin):
+
+```mermaid
+flowchart LR
+    N[New] -- "5a: LinkedIn connection request<br/>(outreach)" --> C[Contacted]
+    C -- "5b: LinkedIn follow-up<br/>No response: no change" --> C
+    C -- "5c: Reply received · Interested" --> R[Replied]
+    R -- "5e: set by hand" --> NU[Nurture]
+    NU -- "any reply outcome" --> R
+    R -- "Reply · Not interested" --> NI[Not interested]
+    NI -- "a later reply" --> R
+    R -- "6: opportunity created" --> Q[Qualified]
+    Q -- "7: deal Won" --> CU[Customer]
+    CU -- "7b: won deal moved back to an open stage" --> Q
+    Q -- "7b: last open deal Lost<br/>and no won deal" --> L[Lost]
+    L -- "deal reopened" --> Q
+    X["Bad fit (by hand)"] -. "activities never change it" .- X
+```
+
+- Editing an activity (5d, own activities, 24 hours) never changes the status.
+- Customer, Lost, Not interested and Bad fit leads leave My Day follow-ups and the **My open leads** view; **All my leads** still shows them.
+
+## 6. Opportunity and pipeline
+
+```mermaid
+flowchart TD
+    MB["Log: Meeting booked"] --> P{"Create an opportunity?"}
+    P -- Not now --> NP[Lead stays Replied]
+    P -- Create --> O
+    NB["Lead page → Opportunities → + New"] --> O["Title + Estimated value required<br/>Expected close optional<br/>Same title can't be open twice"]
+    O --> Q[Stage: Qualified<br/>Lead → Qualified]
+    Q --> MD[Meeting done] --> PS[Proposal sent] --> NG[Negotiation]
+    PSL["Log: Proposal sent"] -- "offers: Move to Proposal sent" --> PS
+    NG --> W{Won}
+    NG --> LS{Lost}
+    W -- "Final value + Contract type<br/>(+ Monthly amount if monthly)" --> WN[Won · Lead → Customer]
+    LS -- "Reason required, note optional" --> LN[Lost · Lead → Lost<br/>unless another deal is open or won]
+    WN -- "back to an open stage:<br/>'This will remove it from won revenue.'" --> Q
+    LN -- "back to an open stage:<br/>'This reopens it and clears the lost reason.'" --> Q
+```
+
+Moves: drag on **Pipeline**, or the stage dropdown in the lead page's Opportunities panel. Any stage can go to any stage; every move shows in the timeline under **Pipeline**.
