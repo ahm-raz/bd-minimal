@@ -23,6 +23,8 @@
     "screenshots": "tsx scripts/screenshots.ts",
     "lighthouse": "tsx scripts/lighthouse.ts",
     "cloud:seed": "tsx scripts/seed-demo.ts --cloud",
+    "seed:more": "tsx scripts/seed-more.ts",
+    "cloud:seed-more": "tsx scripts/seed-more.ts --cloud",
     "cloud:reset": "tsx scripts/test-users.ts --cloud",
     "cloud:users": "tsx scripts/test-users.ts --cloud --ensure",
     "cloud:reset-lead": "tsx scripts/test-lead.ts --cloud"
