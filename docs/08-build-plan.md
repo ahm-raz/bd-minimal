@@ -147,6 +147,19 @@ In Supabase Auth settings:
 - ☐ no service-role key use; the refresh token can't be selected by any user
 - ☐ every existing test still passes
 
+## M12: CSV lead import and Notifications in the sidebar
+- Rules: docs/04 section 10; screen: docs/07 section 3a; permissions: docs/03
+- Migration `lead_import`: `profiles.can_import_leads`, `lead_import_batches`, `leads.import_batch_id`, `import_conflicts`, `import_lead_batch`, Leads added excludes imports, `leads_imported` feed kind
+- Parser, column mapping and row checks in `src/lib/import/`; endpoints `POST /api/leads/import/{preview,confirm,cancel}`
+
+**Done when:**
+- ☐ a file with any bad row adds nothing and lists every problem by row and field
+- ☐ a good file imports every row in one transaction, marked with its batch and the source CSV import
+- ☐ a BD imports only with the founder's permission, checked by the database on every step
+- ☐ duplicates inside the file and against existing leads are refused
+- ☐ imported leads don't change Leads added
+- ☐ Notifications is in the sidebar for every role
+
 ## Demo data (`pnpm seed:demo`, local only)
 
 Refuse to run unless `NEXT_PUBLIC_SUPABASE_URL` points at localhost. Using the admin client, create:

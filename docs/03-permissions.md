@@ -27,12 +27,14 @@ Row Level Security (RLS) in Postgres is the only security boundary. The UI hides
 | Posts | none | own: read; create ideas for self; edit work fields and results; move status (see docs/09) | all: create, edit brief, approve, request changes, cancel, delete |
 | Post comments and history | none | on own posts | all |
 | Meetings (M11) | on own leads: book, read, reschedule, mark held / no-show, cancel, undo | none | all; delete |
+| Import leads from CSV (M12) | only if the founder turned it on; the leads are the BD's own | none | yes; can give rows to any BD (Owner email column) and turn the permission on or off per BD |
 | Notifications (M11) | own only: read, mark read, delete; mute groups | same as BD | same (own only) |
 | Google Calendar connection (M11) | own only: connect, disconnect, auto-add; the stored token is never readable | none | own; sees every member's connection status (not the token) |
 
 Notes:
 - M11: notifications and meetings follow the same RLS as their lead or recipient; Google Calendar calls run in the owner's own session with their own token. The service-role key is not used for any of it (docs/10).
 - A BD cannot create a lead owned by someone else, or change a lead's owner.
+- CSV import (M12): the database checks `can_import_leads()` on upload and again on import, so turning it off stops an import already in preview. The import runs with the user's own rights, so the same RLS as Add lead applies to every row.
 - A BD cannot change anything on a task except its completion, and cannot complete count tasks by hand.
 - The founder can have their own leads, tasks and targets, like a BD.
 - A deactivated user can read nothing, even with a valid session.

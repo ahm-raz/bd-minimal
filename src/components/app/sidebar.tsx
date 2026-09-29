@@ -1,12 +1,14 @@
 "use client";
 
 import { NotificationBell } from "@/components/notifications/bell";
+import { useNotifications } from "@/components/notifications/notifications-provider";
 import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   BarChart3,
+  Bell,
   Building2,
   ChevronsUpDown,
   Columns3,
@@ -51,6 +53,7 @@ const NAV: NavItem[] = [
   { href: "/pipeline", label: "Pipeline", icon: Columns3, roles: ["founder", "bd"], shortcut: "G P" },
   { href: "/content", label: "Content", icon: Megaphone, roles: ["founder", "social"], shortcut: "G C" },
   { href: "/tasks", label: "Tasks", icon: ListChecks, roles: ALL },
+  { href: "/notifications", label: "Notifications", icon: Bell, roles: ALL, shortcut: "G N" },
   { href: "/feed", label: "Feed", icon: Activity, roles: ["founder"] },
   { href: "/performance", label: "Performance", icon: BarChart3, roles: ALL },
   { href: "/team", label: "Team", icon: Users, roles: ["founder"] },
@@ -66,6 +69,7 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
   const pathname = usePathname();
   const { role } = useProfile();
   const { department } = useApp();
+  const { unread } = useNotifications();
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5 px-3">
       {navFor(role, department).map((item) => {
@@ -94,6 +98,12 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
               >
                 {reviewCount}
                 <span className="sr-only"> need review</span>
+              </span>
+            )}
+            {item.href === "/notifications" && unread > 0 && (
+              <span className="rounded-full bg-bad-soft px-1.5 num text-micro font-medium text-bad" data-testid="nav-unread-count">
+                {unread}
+                <span className="sr-only"> unread</span>
               </span>
             )}
             {item.shortcut && (

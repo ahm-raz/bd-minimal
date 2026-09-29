@@ -10,6 +10,7 @@ export type ProfileContextValue = {
   role: Role;
   timezone: string;
   primaryNicheId: string | null;
+  canImportLeads: boolean;
 };
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);

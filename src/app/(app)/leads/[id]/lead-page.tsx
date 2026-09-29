@@ -346,6 +346,15 @@ export function LeadPage({ detail, formValues, calendar }: { detail: LeadDetail;
                 <Detail label="Added">
                   {memberName(lead.created_by)}, {formatDateTime(lead.created_at, profile.timezone)}
                 </Detail>
+                {lead.import_batch_id && (
+                  <Detail label="Imported">
+                    <span data-testid="lead-import-info">
+                      {detail.importBatch
+                        ? `From ${detail.importBatch.filename} (${detail.importBatch.code})`
+                        : "From a CSV import"}
+                    </span>
+                  </Detail>
+                )}
               </dl>
             </Panel>
 

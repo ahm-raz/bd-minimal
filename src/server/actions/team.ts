@@ -131,6 +131,30 @@ export async function updateMember(input: MemberEditInput): Promise<ActionResult
   return ok();
 }
 
+/**
+ * Founder only: let a BD import leads from CSV, or stop them (docs/03). The database checks this flag on
+ * every import step, so a change applies at once, even to an import already in preview.
+ */
+export async function setImportPermission(input: { id: string; enabled: boolean }): Promise<ActionResult> {
+  const parsed = parseInput(importPermissionSchema, input);
+  if (!parsed.ok) return parsed;
+  if (!(await requireFounder())) return fail(FOUNDER_ONLY);
+  const supabase = await createClient();
+  const { data: member } = await supabase.from("profiles").select("role").eq("id", parsed.data.id).maybeSingle();
+  if (!member) return fail("That member wasn't found.");
+  if (member.role !== "bd") return fail("Only BDs need this permission; the founder always has it.");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ can_import_leads: parsed.data.enabled })
+    .eq("id", parsed.data.id);
+  if (error) return fail(dbErrorMessage(error, "That didn't save. Try again."));
+  revalidatePath("/team");
+  revalidatePath("/leads/import");
+  return ok();
+}
+
+const importPermissionSchema = z.object({ id: z.uuid(), enabled: z.boolean() });
+
 export async function deactivateMember(id: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return fail("That member wasn't found.");
   const founder = await requireFounder();

@@ -11,6 +11,8 @@ export type Viewer = {
   role: Role;
   timezone: string;
   primaryNicheId: string | null;
+  /** CSV lead import: always for the founder, for a BD only when the founder allows it (docs/03). */
+  canImportLeads: boolean;
 };
 
 /**
@@ -24,7 +26,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!userId) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, timezone, primary_niche_id, is_active")
+    .select("id, email, full_name, role, timezone, primary_niche_id, is_active, can_import_leads")
     .eq("id", userId)
     .maybeSingle();
   if (!data || !data.is_active) return null;
@@ -35,6 +37,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     role: data.role,
     timezone: data.timezone,
     primaryNicheId: data.primary_niche_id,
+    canImportLeads: data.role === "founder" || (data.role === "bd" && data.can_import_leads),
   };
 });
 

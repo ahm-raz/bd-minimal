@@ -105,6 +105,7 @@ export async function fetchLeads(f: LeadFilters, viewer: Viewer): Promise<{ rows
   if (f.channel) query = query.eq("channel_id", f.channel);
   if (f.campaign) query = query.eq("campaign_id", f.campaign);
   if (f.source) query = query.eq("source_id", f.source);
+  if (f.batch) query = query.eq("import_batch_id", f.batch);
   if (f.priority) query = query.eq("priority", f.priority);
   if (f.owner) query = query.eq("owner_id", f.owner);
   if (f.due === "overdue") query = query.lt("next_action_due", today);

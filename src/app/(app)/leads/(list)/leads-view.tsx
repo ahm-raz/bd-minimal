@@ -12,7 +12,7 @@ import {
   useTable,
   type RowSelectionState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ChevronDown, Columns3, Flag, ListFilter, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileUp, Flag, ListFilter, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { RelativeTime } from "@/components/common/relative-time";
@@ -332,10 +332,19 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
         title="Leads"
         meta={<span className="num">{formatNumber(total)}</span>}
         actions={
-          <Button onClick={() => openNewLead()}>
-            <Plus aria-hidden /> Lead
-            <kbd className="ml-1 font-mono text-micro font-normal opacity-80">N</kbd>
-          </Button>
+          <>
+            {profile.canImportLeads && (
+              <Button variant="secondary" asChild>
+                <Link href="/leads/import">
+                  <FileUp aria-hidden /> Import CSV
+                </Link>
+              </Button>
+            )}
+            <Button onClick={() => openNewLead()}>
+              <Plus aria-hidden /> Lead
+              <kbd className="ml-1 font-mono text-micro font-normal opacity-80">N</kbd>
+            </Button>
+          </>
         }
       />
 
@@ -373,12 +382,19 @@ export function LeadsView({ rows, total, filters }: { rows: LeadRow[]; total: nu
 
         <FiltersPopover filters={filters} count={filterCount} setParams={setParams} />
 
+        {filters.batch && (
+          <Button variant="secondary" size="sm" onClick={() => setParams({ batch: null })} data-testid="batch-filter">
+            One CSV import <X aria-hidden />
+            <span className="sr-only">Show all leads again</span>
+          </Button>
+        )}
+
         {filterCount > 0 && (
           <Button
             variant="ghost"
             onClick={() =>
               setParams({
-                status: null, niche: null, channel: null, campaign: null, source: null, priority: null,
+                status: null, niche: null, channel: null, campaign: null, source: null, batch: null, priority: null,
                 owner: null, due: null, comp: null, from: null, to: null, flagged: null, tags: null,
               })
             }

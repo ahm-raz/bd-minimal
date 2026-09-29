@@ -52,9 +52,11 @@ import {
   reactivateMember,
   reassignOpenLeads,
   resendInvite,
+  setImportPermission,
   setMemberPassword,
   updateMember,
 } from "@/server/actions/team";
+import { Switch } from "@/components/ui/switch";
 import type { ListItem, MemberItem } from "@/server/queries/lists";
 
 export type TeamRow = MemberItem & {
@@ -148,7 +150,14 @@ export function TeamView({
                   <TableRow key={r.id} data-testid={`member-${r.email}`}>
                     <TableCell className="font-medium">{r.full_name || r.email}</TableCell>
                     <TableCell className="text-ink-muted">{r.email}</TableCell>
-                    <TableCell>{ROLE_LABELS[r.role]}</TableCell>
+                    <TableCell>
+                      {ROLE_LABELS[r.role]}
+                      {r.role === "bd" && r.can_import_leads && (
+                        <Chip tone="info" className="ml-2" data-testid="csv-import-chip">
+                          CSV import
+                        </Chip>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {nicheName(r.primary_niche_id) || <span className="text-ink-muted">None</span>}
                     </TableCell>
@@ -689,7 +698,41 @@ function EditSheet({ member, niches, onClose }: { member: TeamRow; niches: ListI
           />
         </FormField>
       </form>
+      {member.role === "bd" && <ImportPermissionSwitch member={member} />}
     </FormSheet>
+  );
+}
+
+/** Saved at once, apart from the form: the database checks it on every import step (docs/03). */
+function ImportPermissionSwitch({ member }: { member: TeamRow }) {
+  const router = useRouter();
+  const [on, setOn] = useState(member.can_import_leads);
+  const [pending, startTransition] = useTransition();
+  return (
+    <div className="mt-2 flex items-start justify-between gap-4 rounded-lg border border-line p-3">
+      <label htmlFor="member-import" className="text-body text-ink">
+        Can import leads from CSV
+        <span className="block text-small text-ink-muted">Saved straight away. The founder can always import.</span>
+      </label>
+      <Switch
+        id="member-import"
+        checked={on}
+        disabled={pending}
+        onCheckedChange={(v) => {
+          setOn(v);
+          startTransition(async () => {
+            const res = await setImportPermission({ id: member.id, enabled: v });
+            if (!res.ok) {
+              setOn(!v);
+              toast.error(res.error);
+              return;
+            }
+            toast.success(v ? "CSV import turned on" : "CSV import turned off");
+            router.refresh();
+          });
+        }}
+      />
+    </div>
   );
 }
 

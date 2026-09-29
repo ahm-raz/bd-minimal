@@ -532,6 +532,90 @@ export type Database = {
           },
         ]
       }
+      lead_import_batches: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          created_by_role: Database["public"]["Enums"]["user_role"]
+          default_owner_id: string | null
+          duplicate_rows: number
+          error_summary: string | null
+          errors: Json
+          expires_at: string
+          file_sha256: string
+          filename: string
+          id: string
+          imported_at: string | null
+          imported_rows: number
+          invalid_rows: number
+          rows: Json | null
+          status: string
+          total_rows: number
+          valid_rows: number
+          warning_count: number
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          created_by_role: Database["public"]["Enums"]["user_role"]
+          default_owner_id?: string | null
+          duplicate_rows?: number
+          error_summary?: string | null
+          errors?: Json
+          expires_at?: string
+          file_sha256: string
+          filename: string
+          id?: string
+          imported_at?: string | null
+          imported_rows?: number
+          invalid_rows?: number
+          rows?: Json | null
+          status: string
+          total_rows?: number
+          valid_rows?: number
+          warning_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          created_by_role?: Database["public"]["Enums"]["user_role"]
+          default_owner_id?: string | null
+          duplicate_rows?: number
+          error_summary?: string | null
+          errors?: Json
+          expires_at?: string
+          file_sha256?: string
+          filename?: string
+          id?: string
+          imported_at?: string | null
+          imported_rows?: number
+          invalid_rows?: number
+          rows?: Json | null
+          status?: string
+          total_rows?: number
+          valid_rows?: number
+          warning_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_import_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_batches_default_owner_id_fkey"
+            columns: ["default_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_owner_events: {
         Row: {
           changed_at: string
@@ -632,6 +716,7 @@ export type Database = {
           google_rating: number | null
           google_review_count: number | null
           id: string
+          import_batch_id: string | null
           last_activity_at: string | null
           lead_timezone: string | null
           next_action: string | null
@@ -670,6 +755,7 @@ export type Database = {
           google_rating?: number | null
           google_review_count?: number | null
           id?: string
+          import_batch_id?: string | null
           last_activity_at?: string | null
           lead_timezone?: string | null
           next_action?: string | null
@@ -708,6 +794,7 @@ export type Database = {
           google_rating?: number | null
           google_review_count?: number | null
           id?: string
+          import_batch_id?: string | null
           last_activity_at?: string | null
           lead_timezone?: string | null
           next_action?: string | null
@@ -747,6 +834,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "lead_import_batches"
             referencedColumns: ["id"]
           },
           {
@@ -1624,6 +1718,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_import_leads: boolean
           created_at: string
           deactivated_at: string | null
           email: string
@@ -1637,6 +1732,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          can_import_leads?: boolean
           created_at?: string
           deactivated_at?: string | null
           email: string
@@ -1650,6 +1746,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          can_import_leads?: boolean
           created_at?: string
           deactivated_at?: string | null
           email?: string
@@ -1973,6 +2070,7 @@ export type Database = {
       }
       calendar_active_for: { Args: { p_user: string }; Returns: boolean }
       can_access_lead: { Args: { p_lead_id: string }; Returns: boolean }
+      can_import_leads: { Args: never; Returns: boolean }
       check_count_tasks: {
         Args: { p_ts: string; p_user: string }
         Returns: undefined
@@ -1999,6 +2097,14 @@ export type Database = {
         Args: { p_day: string; p_user: string }
         Returns: number
       }
+      import_conflicts: {
+        Args: { p_batch: string }
+        Returns: {
+          reason: string
+          row_number: number
+        }[]
+      }
+      import_lead_batch: { Args: { p_batch: string }; Returns: number }
       is_active_user: { Args: never; Returns: boolean }
       is_founder: { Args: never; Returns: boolean }
       is_system: { Args: never; Returns: boolean }

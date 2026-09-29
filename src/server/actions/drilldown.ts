@@ -50,6 +50,8 @@ export async function drilldown(input: DrillInput): Promise<ActionResult<DrillRo
       .select("id, company_name, city, state_region, created_at, created_by, niche_id, channel_id, campaign_id")
       .gte("created_at", fromUtc)
       .lt("created_at", toUtc)
+      // Imported leads don't count as Leads added (docs/05), so the list matches the number.
+      .is("import_batch_id", null)
       .order("created_at", { ascending: false })
       .limit(LIMIT);
     if (userId) q = q.eq("created_by", userId);

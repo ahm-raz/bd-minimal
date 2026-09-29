@@ -12,6 +12,8 @@ export type LeadDetail = {
   activities: Tables<"activities">[];
   stageEvents: Tables<"opportunity_stage_events">[];
   meetings: Tables<"meetings">[];
+  /** Set when the lead came from a CSV import; details only if the viewer may read that batch. */
+  importBatch: { code: string; filename: string; createdBy: string; importedAt: string | null } | null;
 };
 
 /** Everything the lead page needs. Returns null when RLS hides the lead (the page 404s). */
@@ -27,6 +29,13 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
     supabase.from("opportunities").select("*").eq("lead_id", id).order("created_at", { ascending: false }),
     supabase.from("meetings").select("*").eq("lead_id", id).order("starts_at", { ascending: false }).limit(100),
   ]);
+  const { data: batch } = lead.import_batch_id
+    ? await supabase
+        .from("lead_import_batches")
+        .select("code, filename, created_by, imported_at")
+        .eq("id", lead.import_batch_id)
+        .maybeSingle()
+    : { data: null };
   const oppIds = (opportunities.data ?? []).map((o) => o.id);
   const [activities, stageEvents] = await Promise.all([
     supabase.from("activities").select("*").eq("lead_id", id).order("occurred_at", { ascending: false }).limit(500),
@@ -43,6 +52,9 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
     activities: activities.data ?? [],
     stageEvents: stageEvents.data ?? [],
     meetings: meetings.data ?? [],
+    importBatch: batch
+      ? { code: batch.code, filename: batch.filename, createdBy: batch.created_by, importedAt: batch.imported_at }
+      : null,
   };
 }
 

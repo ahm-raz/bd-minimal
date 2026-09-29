@@ -15,6 +15,8 @@ export type LeadFilters = {
   channel: string | null;
   campaign: string | null;
   source: string | null;
+  /** One CSV import batch (docs/04 section 10). */
+  batch: string | null;
   priority: LeadPriority | null;
   owner: string | null;
   due: DueFilter | null;
@@ -77,6 +79,7 @@ export function parseLeadFilters(sp: Params, isFounder: boolean): LeadFilters {
     channel: uuid(get(sp, "channel")),
     campaign: uuid(get(sp, "campaign")),
     source: uuid(get(sp, "source")),
+    batch: uuid(get(sp, "batch")),
     priority: priority && PRIORITIES.includes(priority) ? priority : null,
     owner: isFounder ? uuid(get(sp, "owner")) : null,
     due: due && ["overdue", "today", "week", "none"].includes(due) ? due : null,
@@ -99,6 +102,7 @@ export function activeFilterCount(f: LeadFilters): number {
     f.channel,
     f.campaign,
     f.source,
+    f.batch,
     f.priority,
     f.owner,
     f.due,

@@ -178,3 +178,32 @@ On any lead: **Flag lead** → note (required). This creates a lead-fix task for
 | Task | no | yes |
 | List item | – | hide only |
 | Team member | – | deactivate only |
+
+## 10. CSV lead import (M12)
+
+**Who:** the founder, and BDs the founder allowed (docs/03). Always in two steps: **Check file**, then **Import**.
+
+**File:** `.csv` (UTF-8, as saved by Excel's "CSV UTF-8" or Google Sheets), up to 2 MB and 2,000 rows. Excel files are refused with "save as CSV first". Quoted commas, quotes and line breaks, a BOM, and CRLF or LF all work.
+
+**Columns** are matched ignoring case, spaces and punctuation, with common aliases ("Company", "Business" → Company name; "First Name", "first_name" → Contact first name). The preview lists every column and what it became.
+- Unknown columns: not imported, with a warning.
+- Two columns for the same field, or the same header twice: error.
+- Plain "Name": error, rename it. Plain "Email" / "Phone" / "LinkedIn": the contact's when the file has a contact name column, otherwise the company's (stated in the preview).
+- Status, Source, Next action: ignored with a warning (status is automatic; the source is CSV import).
+
+**Rows:**
+- **Missing column:** the field is empty, or the default picked on screen (niche, channel, owner), or United States / Medium.
+- **Empty cell:** the same as a missing column.
+- **Invalid value:** a row error naming the field (bad email, unknown niche, channel or campaign, priority, company size, country, over-long text).
+- **Required:** company name (2–120 characters); niche and channel (column or default); a contact's first name whenever any contact detail is given. A row with no contact is allowed, with a warning.
+- Values are never used to create list items: an unknown niche is an error, not a new niche.
+- Cells starting like a spreadsheet formula (`=`, `@`, `+` or `-` then a letter) are refused. `+1 512…` phones are fine.
+- Owner email (founder only) must be an active BD or the founder. A BD's imported leads are always their own.
+
+**Duplicates** use the Add lead rule (section 1): same owner and the same website, company name, or contact email / LinkedIn. Checked inside the file (both rows reported) and against existing leads at Check file, and again inside the import.
+
+**All or nothing:** any error blocks the whole file, and "Import failed. No leads were added." is shown with every problem by row and field (downloadable as a CSV). The import runs as one database transaction: if anything fails at any row, nothing is saved. A checked file must be imported within 30 minutes.
+
+**Marking:** every imported lead has the source **CSV import** and its batch (code, file, who, when); the lead page shows "Imported: from prospects.csv (IMP-…)", and Leads can be filtered to one import. The feed gets one line per import, not one per lead, and the founder is notified of a BD's import.
+
+**Metrics:** imported leads don't count toward Leads added, its targets, or count tasks (docs/05). Everything done with them afterwards (outreach, replies, deals) counts as usual.

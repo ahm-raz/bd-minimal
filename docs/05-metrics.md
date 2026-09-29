@@ -8,7 +8,7 @@ All counts are for a time range `[from, to)` (see docs/04, section 8) and are cr
 
 | Metric | Definition | Credited to | Date used |
 |---|---|---|---|
-| Leads added | leads created | `created_by` (never moves on reassignment) | created_at |
+| Leads added | leads created by hand (CSV imports excluded, docs/04 section 10) | `created_by` (never moves on reassignment) | created_at |
 | Outreach | activities with category `outreach` (first touch) | activity `user_id` | occurred_at |
 | Follow-ups | activities with category `follow_up` | activity `user_id` | occurred_at |
 | Replies | activities whose outcome is a reply (Interested, Not now, Not interested, Meeting booked) | activity `user_id` | occurred_at |

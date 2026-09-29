@@ -33,6 +33,7 @@ export type MemberItem = {
   is_active: boolean;
   timezone: string;
   primary_niche_id: string | null;
+  can_import_leads: boolean;
 };
 
 export type SocialAccountItem = {
@@ -74,7 +75,7 @@ export const getLists = cache(async (): Promise<Lists> => {
     supabase.from("outcomes").select("*").order("sort_order"),
     supabase.from("stages").select("*").order("sort_order"),
     supabase.from("campaigns").select("id, name, niche_id, channel_id, owner_id, status, notes").order("name"),
-    supabase.from("profiles").select("id, full_name, email, role, is_active, timezone, primary_niche_id").order("role").order("full_name"),
+    supabase.from("profiles").select("id, full_name, email, role, is_active, timezone, primary_niche_id, can_import_leads").order("role").order("full_name"),
     supabase
       .from("social_accounts")
       .select("id, name, platform, profile_url, audience_timezone, is_active, sort_order")

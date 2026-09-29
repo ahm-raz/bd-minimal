@@ -180,6 +180,38 @@ if [ "$M11_ERRORS" -ne 8 ]; then
   FAILED=1
 fi
 
+# ---------- 05: CSV lead import (docs/04 section 10) ----------
+echo "Resetting local database for the CSV import test..."
+reset_db
+OUT=$(run_psql < supabase/tests/05_lead_import_test.sql 2>&1)
+echo "$OUT"
+
+expect "AHMED_CAN|f"
+expect "AHMED_CAN_2|t"
+expect "AFTER_BAD|0"
+expect "BAD_STATUS|validated"
+expect "CODE|t"
+expect "IMPORT|2"
+expect "LEADS|2|2|t|t"
+expect "CONTACTS|1|t"
+expect "BATCH|imported|2|t|t"
+expect "SCOREBOARD|0"
+expect "DAILY|0"
+expect "CONFLICTS|2:same website as Acme Dental | 3:same company name as an existing lead"
+expect "AFTER_DUP|2"
+expect "CANCELLED|cancelled|t"
+expect "SARA_BATCHES|0"
+expect "HINA_CAN|f"
+expect "FOUNDER_BATCHES|5"
+expect "FEED|1|0"
+expect "FOUNDER_NOTIF|leads_imported|t|/leads/import"
+
+IMPORT_ERRORS=$(grep -c '^ERROR:' <<<"$OUT")
+if [ "$IMPORT_ERRORS" -ne 10 ]; then
+  echo "Expected 10 ERROR lines in the CSV import test (SHOULD_FAIL checks), got $IMPORT_ERRORS"
+  FAILED=1
+fi
+
 echo "Resetting local database..."
 reset_db
 
@@ -187,4 +219,4 @@ if [ "$FAILED" -ne 0 ]; then
   echo "db:test FAILED"
   exit 1
 fi
-echo "db:test passed: all checks present, 11 + 18 + 8 expected errors."
+echo "db:test passed: all checks present, 11 + 18 + 8 + 10 expected errors."

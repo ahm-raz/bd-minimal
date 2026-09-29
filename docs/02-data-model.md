@@ -213,3 +213,32 @@ Full field lists and rules are in `docs/10-meetings-notifications.md`.
 
 Also: `profiles.meeting_reminders` (default reminders), `feed_events.meeting_id`, and new feed kinds `meeting_booked`, `meeting_rescheduled`, `meeting_cancelled`, `meeting_held`, `meeting_no_show`, `task_assigned`, `post_assigned`, `post_comment`.
 Functions: `book_meeting`, `my_google_token`, `save_google_connection`, `mark_google_needs_reconnect`, `team_calendar_status`, `prune_my_notifications`.
+
+## 8. CSV lead import (M12)
+
+### profiles.can_import_leads
+Boolean, default false. The founder turns it on per BD; only the founder can change it (`guard_profile_update`). `can_import_leads()` is true for the founder, or an active BD with the flag.
+
+### lead_import_batches
+One row per uploaded file: the audit log and the staging area.
+
+| Column | Notes |
+|---|---|
+| `code` | `IMP-2026-00124`, from a sequence |
+| `created_by`, `created_by_role` | who uploaded (role recorded from the profile) |
+| `filename`, `file_sha256` | the file, to spot the same file imported twice |
+| `default_owner_id` | owner for rows without an Owner email |
+| `status` | `validated` → `imported`, `failed` or `cancelled` |
+| `total_rows`, `valid_rows`, `invalid_rows`, `duplicate_rows`, `warning_count`, `imported_rows` | counts |
+| `errors` (jsonb, first 200), `error_summary` | what was wrong |
+| `rows` (jsonb) | the validated, normalised rows; cleared after import or failure |
+| `expires_at` | 30 minutes after upload |
+
+RLS: read your own (founder: all); insert only with `can_import_leads()`; updates only as allowed by `guard_import_batch_update` (validated → failed / cancelled by the owner; → imported only inside `import_lead_batch`). At most 10 uploads per person per 10 minutes.
+
+### leads.import_batch_id
+Null for leads added by hand. Imported leads also get the source **CSV import** (a hidden `lead_sources` row).
+
+### Functions
+- `import_conflicts(batch)`: rows that match an existing lead of the same owner (docs/04 section 10).
+- `import_lead_batch(batch)`: the import. One transaction; returns the number of leads.

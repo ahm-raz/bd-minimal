@@ -11,6 +11,7 @@ Each screen lists who sees it, its layout, data, actions, states and acceptance 
 | Pipeline | `/pipeline` | own | – | all |
 | Content | `/content` | – | own | all |
 | Tasks | `/tasks` | own (read) | own (read) | assign and track |
+| Notifications | `/notifications` | ✓ | ✓ | ✓ |
 | Feed | `/feed` | – | – | ✓ |
 | Performance | `/performance` | own | own social | team |
 | Team | `/team` | – | – | ✓ |
@@ -117,6 +118,15 @@ Leads                          [Search…]  [Filters ▾]  [Saved views ▾]  [+
 - **Row click** opens the lead page.
 
 **Acceptance:** a BD never sees another BD's lead through search, filters or URL guessing (the lead page returns 404). Filters combine with AND. Filters are kept in the URL query string, so views can be shared.
+
+### 3a. Import leads `/leads/import` (M12)
+For the founder and allowed BDs (others are sent to Leads with "Importing leads needs the founder's permission."). Opened from **Import CSV** on Leads.
+- **1. Choose the file:** drop zone or file picker; Owner (founder), Default niche, Default channel; **Check file** (shows upload progress, then "Checking rows…"). **Download template** in the header.
+- **2. Check and import:** file, batch code, "Source: CSV import"; counts (rows, valid, with problems, duplicates, warnings); problems by row and field with **Download report**; columns and defaults; warnings. On any problem: red "Import failed. No leads were added." and Import is disabled. Otherwise **Import N leads**.
+- **Done:** "N leads imported", **View these leads** (Leads filtered to the batch), **Import another file**.
+- **Who can import** (founder): a switch per BD. **Import history:** everyone's (founder) or your own.
+
+**Acceptance:** a file with one bad row adds no leads; a BD without permission gets 403 from the API; the same file twice is refused as duplicates.
 
 ---
 
