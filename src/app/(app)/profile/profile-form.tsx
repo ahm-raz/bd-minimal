@@ -41,7 +41,12 @@ export function ProfileForm({ fullName, timezone, email }: { fullName: string; t
         )}
       >
         <FormField label="Full name" htmlFor="profile-name" error={errors.fullName?.message}>
-          <Input id="profile-name" autoComplete="name" aria-invalid={!!errors.fullName} {...form.register("fullName")} />
+          <Input
+            id="profile-name"
+            autoComplete="name"
+            aria-invalid={!!errors.fullName}
+            {...form.register("fullName")}
+          />
         </FormField>
         <FormField
           label="Time zone"

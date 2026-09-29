@@ -10,7 +10,13 @@ function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;
   const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable || !!el.closest("[role=combobox],[cmdk-root]");
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    el.isContentEditable ||
+    !!el.closest("[role=combobox],[cmdk-root]")
+  );
 }
 
 function overlayOpen(): boolean {
@@ -39,10 +45,10 @@ export function Shortcuts() {
         gPressed.current = 0;
         const dests: Record<string, string> =
           role === "social"
-            ? { m: "/my-day", c: "/content" }
+            ? { m: "/my-day", c: "/content", n: "/notifications" }
             : role === "founder"
-              ? { m: "/my-day", l: "/leads", p: "/pipeline", c: "/content" }
-              : { m: "/my-day", l: "/leads", p: "/pipeline" };
+              ? { m: "/my-day", l: "/leads", p: "/pipeline", c: "/content", n: "/notifications" }
+              : { m: "/my-day", l: "/leads", p: "/pipeline", n: "/notifications" };
         const dest = dests[key];
         if (dest) {
           e.preventDefault();

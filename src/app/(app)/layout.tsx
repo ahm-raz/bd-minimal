@@ -11,28 +11,42 @@ import { LogActivitySheet } from "@/components/activities/log-activity-sheet";
 import { Shortcuts } from "@/components/app/shortcuts";
 import { CommandMenu } from "@/components/app/command-menu";
 import { PostSheet } from "@/components/content/post-sheet";
+import { NotificationsProvider } from "@/components/notifications/notifications-provider";
+import { unreadNotificationCount } from "@/server/queries/notifications";
+import { after } from "next/server";
+import { syncMyPending } from "@/server/google/sync";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const viewer = await requireViewer();
-  const [lists, reviewCount] = await Promise.all([getLists(), viewer.role === "founder" ? needsReviewCount() : 0]);
+  const [lists, reviewCount, unread] = await Promise.all([
+    getLists(),
+    viewer.role === "founder" ? needsReviewCount() : 0,
+    unreadNotificationCount(),
+  ]);
+  // Housekeeping after the response: due Google Calendar retries and old notifications (docs/10).
+  after(async () => {
+    await syncMyPending();
+  });
 
   return (
     <ProfileProvider value={viewer}>
       <AppProvider lists={lists}>
-        <div className="flex min-h-screen flex-col lg:flex-row">
-          <Sidebar reviewCount={reviewCount} />
-          <main id="main" className="min-w-0 flex-1">
-            <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">{children}</div>
-          </main>
-        </div>
-        <LeadSheet />
-        <LogActivitySheet />
-        {viewer.role !== "bd" && <PostSheet />}
-        <Shortcuts />
-        <CommandMenu />
-        <Suspense>
-          <RouteNotice />
-        </Suspense>
+        <NotificationsProvider initialUnread={unread}>
+          <div className="flex min-h-screen flex-col lg:flex-row">
+            <Sidebar reviewCount={reviewCount} />
+            <main id="main" className="min-w-0 flex-1">
+              <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">{children}</div>
+            </main>
+          </div>
+          <LeadSheet />
+          <LogActivitySheet />
+          {viewer.role !== "bd" && <PostSheet />}
+          <Shortcuts />
+          <CommandMenu />
+          <Suspense>
+            <RouteNotice />
+          </Suspense>
+        </NotificationsProvider>
       </AppProvider>
     </ProfileProvider>
   );

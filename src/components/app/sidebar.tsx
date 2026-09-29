@@ -1,5 +1,6 @@
 "use client";
 
+import { NotificationBell } from "@/components/notifications/bell";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -80,7 +81,7 @@ function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; review
             <span className="flex-1">{item.label}</span>
             {item.href === "/content" && reviewCount > 0 && (
               <span
-                className="num rounded-full bg-warn-soft px-1.5 text-micro font-medium text-warn-ink"
+                className="rounded-full bg-warn-soft px-1.5 num text-micro font-medium text-warn-ink"
                 data-testid="nav-review-count"
               >
                 {reviewCount}
@@ -164,7 +165,10 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
     <>
       <div className="hidden w-[232px] shrink-0 border-r border-line bg-surface lg:block">
         <aside className="sticky top-0 flex h-screen flex-col">
-          <div className="px-5 pt-5 pb-4 text-section text-ink">Client Acquisition OS</div>
+          <div className="flex items-center justify-between gap-2 pt-4 pr-3 pb-3 pl-5">
+            <span className="text-section text-ink">Client Acquisition OS</span>
+            <NotificationBell />
+          </div>
           <div className="flex-1 overflow-y-auto">
             <NavLinks reviewCount={reviewCount} />
           </div>
@@ -178,7 +182,8 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
         <Button variant="ghost" size="icon" aria-label="Open menu" onClick={() => setOpen(true)}>
           <Menu />
         </Button>
-        <span className="text-section text-ink">Client Acquisition OS</span>
+        <span className="flex-1 text-section text-ink">Client Acquisition OS</span>
+        <NotificationBell />
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[272px] gap-0 p-0 sm:max-w-[272px]">

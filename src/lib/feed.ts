@@ -2,13 +2,25 @@
 export const FEED_GROUPS = {
   leads: { label: "Leads added", kinds: ["lead_created"] },
   activities: { label: "Activities", kinds: ["activity_logged"] },
+  meetings: {
+    label: "Meetings",
+    kinds: ["meeting_booked", "meeting_rescheduled", "meeting_cancelled", "meeting_held", "meeting_no_show"],
+  },
   pipeline: { label: "Pipeline", kinds: ["stage_changed", "lead_reassigned"] },
   outcomes: { label: "Wins and losses", kinds: ["opportunity_won", "opportunity_lost"] },
-  tasks: { label: "Tasks", kinds: ["task_completed"] },
+  tasks: { label: "Tasks", kinds: ["task_assigned", "task_completed"] },
   flags: { label: "Flags", kinds: ["lead_flagged"] },
   social: {
     label: "Social",
-    kinds: ["post_submitted", "post_approved", "changes_requested", "post_published", "post_missed"],
+    kinds: [
+      "post_submitted",
+      "post_approved",
+      "changes_requested",
+      "post_published",
+      "post_missed",
+      "post_assigned",
+      "post_comment",
+    ],
   },
 } as const;
 export type FeedGroup = keyof typeof FEED_GROUPS;

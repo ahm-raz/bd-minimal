@@ -31,3 +31,6 @@ export const google = {
 
 /** Every Google request gives up after this long; the meeting stays saved and retries later. */
 export const GOOGLE_TIMEOUT_MS = 8000;
+
+/** Holds the OAuth state and PKCE verifier between Connect and the callback (10 minutes, httpOnly). */
+export const OAUTH_COOKIE = "cao-google-oauth";
