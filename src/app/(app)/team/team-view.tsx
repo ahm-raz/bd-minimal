@@ -61,7 +61,15 @@ export type TeamRow = MemberItem & {
   status: "active" | "invited" | "deactivated";
   openLeads: number;
   lastActive: string | null;
+  /** Google Calendar connection (null when the feature is off, or for SMMs). */
+  calendar: "active" | "needs_reconnect" | "not_connected" | null;
 };
+
+const CALENDAR_CHIP = {
+  active: { tone: "ok", label: "Connected" },
+  needs_reconnect: { tone: "warn", label: "Needs reconnect" },
+  not_connected: { tone: "neutral", label: "Not connected" },
+} as const;
 
 const STATUS_CHIP = {
   active: { tone: "ok", label: "Active" },
@@ -70,7 +78,15 @@ const STATUS_CHIP = {
 } as const;
 
 /** emailInvites: invite emails need a sending domain; while off, members are added with a password (server/email.ts). */
-export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; niches: ListItem[]; emailInvites: boolean }) {
+export function TeamView({
+  rows,
+  niches,
+  emailInvites,
+}: {
+  rows: TeamRow[];
+  niches: ListItem[];
+  emailInvites: boolean;
+}) {
   const { timezone } = useProfile();
   const router = useRouter();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -119,6 +135,7 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Open leads</TableHead>
                 <TableHead>Last active</TableHead>
+                {rows.some((r) => r.calendar) && <TableHead>Calendar</TableHead>}
                 <TableHead className="w-10">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -132,17 +149,28 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
                     <TableCell className="font-medium">{r.full_name || r.email}</TableCell>
                     <TableCell className="text-ink-muted">{r.email}</TableCell>
                     <TableCell>{ROLE_LABELS[r.role]}</TableCell>
-                    <TableCell>{nicheName(r.primary_niche_id) || <span className="text-ink-muted">None</span>}</TableCell>
+                    <TableCell>
+                      {nicheName(r.primary_niche_id) || <span className="text-ink-muted">None</span>}
+                    </TableCell>
                     <TableCell>{r.timezone.replace(/_/g, " ")}</TableCell>
                     <TableCell>
                       <Chip tone={chip.tone}>{chip.label}</Chip>
                     </TableCell>
-                    <TableCell className="num text-right">
+                    <TableCell className="text-right num">
                       {r.role === "social" ? <span className="text-ink-muted">None</span> : formatNumber(r.openLeads)}
                     </TableCell>
                     <TableCell className="text-ink-muted">
                       {r.lastActive ? <RelativeTime at={r.lastActive} tz={timezone} /> : "No activity yet"}
                     </TableCell>
+                    {rows.some((x) => x.calendar) && (
+                      <TableCell>
+                        {r.calendar ? (
+                          <Chip tone={CALENDAR_CHIP[r.calendar].tone}>{CALENDAR_CHIP[r.calendar].label}</Chip>
+                        ) : (
+                          <span className="text-ink-muted">None</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -175,7 +203,10 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
                               {r.status === "deactivated" ? (
                                 <DropdownMenuItem
                                   onSelect={() =>
-                                    run(() => reactivateMember(r.id), `${firstName(r.full_name) || r.email} reactivated`)
+                                    run(
+                                      () => reactivateMember(r.id),
+                                      `${firstName(r.full_name) || r.email} reactivated`,
+                                    )
                                   }
                                 >
                                   Reactivate
@@ -202,14 +233,7 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
       {settingPassword && (
         <SetPasswordDialog key={settingPassword.id} member={settingPassword} onClose={() => setSettingPassword(null)} />
       )}
-      {editing && (
-        <EditSheet
-          key={editing.id}
-          member={editing}
-          niches={niches}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {editing && <EditSheet key={editing.id} member={editing} niches={niches} onClose={() => setEditing(null)} />}
 
       <Dialog open={!!deactivating} onOpenChange={(o) => !o && setDeactivating(null)}>
         <DialogContent>
@@ -232,8 +256,10 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
                   disabled={pending}
                   onClick={() => {
                     const r = deactivating;
-                    run(() => deactivateMember(r.id), `${firstName(r.full_name) || r.email} deactivated`, () =>
-                      setDeactivating(null),
+                    run(
+                      () => deactivateMember(r.id),
+                      `${firstName(r.full_name) || r.email} deactivated`,
+                      () => setDeactivating(null),
                     );
                   }}
                 >
@@ -244,10 +270,14 @@ export function TeamView({ rows, niches, emailInvites }: { rows: TeamRow[]; nich
                   disabled={pending}
                   onClick={() => {
                     const r = deactivating;
-                    run(() => deactivateMember(r.id), `${firstName(r.full_name) || r.email} deactivated`, () => {
-                      setDeactivating(null);
-                      setReassigning({ row: r, afterDeactivate: true });
-                    });
+                    run(
+                      () => deactivateMember(r.id),
+                      `${firstName(r.full_name) || r.email} deactivated`,
+                      () => {
+                        setDeactivating(null);
+                        setReassigning({ row: r, afterDeactivate: true });
+                      },
+                    );
                   }}
                 >
                   Deactivate and reassign leads
@@ -353,9 +383,12 @@ function InviteSheet({
               return;
             }
             const { id, email } = res.data;
-            toast.success(res.data.method === "email" ? `Invite sent to ${email}` : `${email} added. They can sign in now.`, {
-              action: { label: "Set targets now", onClick: () => router.push(`/settings/targets?person=${id}`) },
-            });
+            toast.success(
+              res.data.method === "email" ? `Invite sent to ${email}` : `${email} added. They can sign in now.`,
+              {
+                action: { label: "Set targets now", onClick: () => router.push(`/settings/targets?person=${id}`) },
+              },
+            );
             close();
             router.refresh();
           }),
@@ -425,7 +458,13 @@ function InviteSheet({
                   method === m && !disabled && "border-accent-strong bg-accent-soft",
                 )}
               >
-                <input type="radio" value={m} disabled={disabled} className="mt-0.5 accent-[var(--accent)]" {...form.register("method")} />
+                <input
+                  type="radio"
+                  value={m}
+                  disabled={disabled}
+                  className="mt-0.5 accent-[var(--accent)]"
+                  {...form.register("method")}
+                />
                 <span className="flex flex-col">
                   <span className="text-body text-ink">{METHOD_LABELS[m]}</span>
                   <span className="text-small text-ink-muted">{hints[m]}</span>
@@ -437,7 +476,13 @@ function InviteSheet({
 
         {method === "password" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Password" htmlFor="invite-password" required error={errors.password?.message} helper="At least 10 characters.">
+            <FormField
+              label="Password"
+              htmlFor="invite-password"
+              required
+              error={errors.password?.message}
+              helper="At least 10 characters."
+            >
               <Input
                 id="invite-password"
                 type="password"
@@ -478,7 +523,8 @@ function SetPasswordDialog({ member, onClose }: { member: TeamRow; onClose: () =
         <DialogHeader>
           <DialogTitle>Set a new password for {name}</DialogTitle>
           <DialogDescription>
-            Their old password stops working. They sign in with {member.email} and the new one. Share it with them yourself.
+            Their old password stops working. They sign in with {member.email} and the new one. Share it with them
+            yourself.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -504,7 +550,13 @@ function SetPasswordDialog({ member, onClose }: { member: TeamRow; onClose: () =
               {formError}
             </p>
           )}
-          <FormField label="New password" htmlFor="member-password" required error={errors.password?.message} helper="At least 10 characters.">
+          <FormField
+            label="New password"
+            htmlFor="member-password"
+            required
+            error={errors.password?.message}
+            helper="At least 10 characters."
+          >
             <Input
               id="member-password"
               type="password"
@@ -641,15 +693,7 @@ function EditSheet({ member, niches, onClose }: { member: TeamRow; niches: ListI
   );
 }
 
-function ReassignDialog({
-  from,
-  candidates,
-  onClose,
-}: {
-  from: TeamRow;
-  candidates: TeamRow[];
-  onClose: () => void;
-}) {
+function ReassignDialog({ from, candidates, onClose }: { from: TeamRow; candidates: TeamRow[]; onClose: () => void }) {
   const router = useRouter();
   const [toId, setToId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

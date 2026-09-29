@@ -322,6 +322,8 @@ Tabs:
 
 Full name, time zone (searchable IANA list, with the current local time shown), email (read-only), and a "Change password" link.
 
+M11 adds two panels: **Notifications** (per-group In app / Browser alert switches, **Allow browser alerts**, default meeting reminders) and **Google Calendar** (Connect, Disconnect, Sync now, "Add booked meetings to my calendar", Reconnect banner). See docs/10 section 4.
+
 ## 14. Command menu (Ctrl/Cmd+K)
 
 - Search across own (or all, for the founder) leads, contacts and opportunities. Show up to 8 results per group.
@@ -342,3 +344,11 @@ Full detail in `docs/09-social-media.md`, section 4.
   tasks and a Posts published pace bar; the founder gets Needs your review and Today's posts.
 - **Performance**: tab Social. **Feed**: filter Social. **Settings**: Social accounts, Content pillars.
   **Team**: Role column and field.
+
+## 16. Meetings and notifications (M11)
+
+Specified in `docs/10-meetings-notifications.md` section 4:
+- Log activity → **Meeting** section when the outcome is Meeting booked.
+- Lead page → **Meetings** panel (right column, above Opportunities).
+- My Day → **Meetings** block above tasks; Reconnect banner when Google needs it.
+- **Bell** at the top of the sidebar (phone: top bar) with **What's upcoming** and **What happened**; `/notifications` for the full history (shortcut G N).

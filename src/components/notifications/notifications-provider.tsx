@@ -89,7 +89,13 @@ export function NotificationsProvider({
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [upcoming, setUpcoming] = useState<UpcomingItem[] | null>(null);
-  const [prefs, setPrefs] = useState<NotificationPref[]>(defaultPrefs);
+  const [prefs, setPrefsState] = useState<NotificationPref[]>(defaultPrefs);
+  /** Set once the user changes a setting, so the first load can't overwrite their click. */
+  const prefsTouched = useRef(false);
+  const setPrefs = useCallback((p: NotificationPref[]) => {
+    prefsTouched.current = true;
+    setPrefsState(p);
+  }, []);
   const [nowMs, setNowMs] = useState(0);
   const prefsRef = useRef(prefs);
   useEffect(() => {
@@ -139,7 +145,9 @@ export function NotificationsProvider({
       void refreshUpcoming();
     }, 0);
     const clock = setInterval(tick, REMINDER_TICK_MS);
-    void getNotificationPrefs().then((r) => r.ok && setPrefs(r.data.prefs));
+    void getNotificationPrefs().then((r) => {
+      if (r.ok && !prefsTouched.current) setPrefsState(r.data.prefs);
+    });
     const timer = setInterval(() => void refreshUpcoming(), UPCOMING_REFRESH_MS);
     const onFocus = () => void refreshUpcoming();
     window.addEventListener("focus", onFocus);
@@ -243,7 +251,7 @@ export function NotificationsProvider({
       refreshUpcoming,
       markRead,
     }),
-    [unread, urgent, items, hasMore, upcoming, prefs, loadHappened, loadMore, refreshUpcoming, markRead],
+    [unread, urgent, items, hasMore, upcoming, prefs, setPrefs, loadHappened, loadMore, refreshUpcoming, markRead],
   );
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

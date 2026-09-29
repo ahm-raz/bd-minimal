@@ -88,9 +88,15 @@ test("status follows the docs/04 table as activities are logged", async ({ page 
   await page.getByRole("button", { name: /^Log activity/ }).click();
   await chooseType(page, "Reply received");
   await chooseOutcome(page, "Meeting booked");
-  await page.getByRole("dialog", { name: "Log activity" }).getByLabel("What's next").fill("Prepare for the call");
-  await page.getByRole("dialog", { name: "Log activity" }).getByRole("button", { name: "+3 days" }).click();
-  await page.getByRole("dialog", { name: "Log activity" }).getByRole("button", { name: "Log activity" }).click();
+  // Meeting booked asks for the meeting itself; the next action becomes "Meeting with …" (docs/10).
+  const meetingDay = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  const logSheet = page.getByRole("dialog", { name: "Log activity" });
+  await expect(logSheet.getByTestId("meeting-section")).toBeVisible();
+  await logSheet.getByRole("button", { name: "Log activity" }).click();
+  await expect(logSheet.getByText("Pick a date and time.")).toBeVisible();
+  await logSheet.getByLabel("Date and time").fill(`${meetingDay}T10:00`);
+  await logSheet.getByLabel("Location or link").fill("https://meet.example.com/intake");
+  await logSheet.getByRole("button", { name: "Log activity" }).click();
   const prompt = page.getByRole("dialog", { name: "Create an opportunity for Status Flow Dental?" });
   await expect(prompt).toBeVisible();
   await prompt.getByLabel("Title").fill("AI patient intake setup");
@@ -98,6 +104,8 @@ test("status follows the docs/04 table as activities are logged", async ({ page 
   await prompt.getByRole("button", { name: "Create" }).click();
   await expect(page.getByText("Opportunity created")).toBeVisible();
   await expect(page.getByRole("button", { name: /Status: Qualified/ })).toBeVisible();
+  await expect(page.getByTestId("meetings-panel")).toContainText("Scheduled");
+  await expect(page.getByTestId("meetings-panel").getByRole("link", { name: "Join" })).toBeVisible();
 
   // An activity never overrides Qualified
   const c = await clientAs("ahmed");
@@ -244,7 +252,7 @@ test("BDs can edit their own activity for 24 hours, then it locks", async ({ pag
   await page.goto(`/leads/${lead}`);
   await page.getByRole("button", { name: "Actions for Cold email" }).click();
   await page.getByRole("menuitem", { name: "Edit" }).click();
-  await page.getByLabel("Notes").fill("Sent the intake one-pager");
+  await page.getByRole("dialog", { name: "Edit activity" }).getByLabel("Notes").fill("Sent the intake one-pager");
   await page.getByRole("button", { name: "Save activity" }).click();
   await expect(page.getByText("Activity saved")).toBeVisible();
 

@@ -8,7 +8,7 @@ This milestone adds three things:
   - **What happened**: moves by other people that you should know about. These are stored per person and arrive live.
 
 Where each rule lives:
-- **(DB)** rules are enforced in SQL, in migrations `2026100100000_meetings.sql`, `2026100100100_notifications.sql` and `2026100100200_google_calendar.sql`.
+- **(DB)** rules are enforced in SQL, in migrations `20260929000100_google_calendar.sql`, `20260929000200_meetings.sql` and `20260929000300_notifications.sql`.
 - **(App)** rules are built in TypeScript.
 
 The service-role key is **not** used anywhere in this milestone. Every Google call runs in the signed-in user's own request.
@@ -169,7 +169,7 @@ New feed kinds: `meeting_booked`, `meeting_rescheduled`, `meeting_cancelled`, `m
 - Rows: upcoming first, then past. Each shows the title, dual-zone time, duration, status chip, calendar chip, and **Join** when the location is a link.
 - Row menu: **Reschedule**, **Mark held**, **No-show**, **Cancel meeting**, **Undo** (on held, no-show or cancelled).
 - Empty: "No meetings yet. Log a Meeting booked outcome to add one."
-- The timeline shows "Meeting booked for Tue 6 Oct, 10:00 AM Chicago", "Meeting rescheduled…" and "Meeting cancelled: <reason>" under **All** and **Activities**.
+- The timeline shows the "Meeting booked" activity as before; the meeting's later changes (moved, cancelled, held) live in the Meetings panel and the founder's Feed.
 
 ### My Day
 - A **Meetings** block above Follow-ups, covering today and the next 7 days, with a countdown for today's.

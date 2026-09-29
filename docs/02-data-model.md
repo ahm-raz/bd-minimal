@@ -197,3 +197,19 @@ Full field lists and rules are in `docs/09-social-media.md`, section 2.
 - New functions: `current_user_role()`, `ensure_post_slots(p_from, p_to)`, `mark_missed_posts()`,
   `request_post_changes(p_post, p_body)`, `social_metrics(p_from, p_to, p_user?)`.
 - `metrics_scoreboard` and `metrics_daily` now exclude SMMs; `count_task_progress` counts posts_published.
+
+## 7. Meetings, notifications and Google Calendar (M11)
+
+Added by `20260929000100_google_calendar.sql`, `20260929000200_meetings.sql` and `20260929000300_notifications.sql`.
+Full field lists and rules are in `docs/10-meetings-notifications.md`.
+
+| Table | Purpose |
+|---|---|
+| meetings | A booked meeting: lead, contact, exact start (UTC) + its time zone, duration, location or link, agenda, reminders, status (scheduled, held, no_show, cancelled) and Google sync state. Owner follows the lead. |
+| notifications | "What happened" items, one row per recipient, written by a trigger on feed_events. Only `read_at` can change. |
+| notification_prefs | Per user and group (meetings, deals, leads, tasks, social): in app on/off, browser alert on/off. |
+| google_connections | One per user: Google email, calendar, encrypted refresh token (never selectable), status, auto-add. |
+| calendar_cleanup | Calendar events the old owner's session must delete (after reassignment or lead deletion). |
+
+Also: `profiles.meeting_reminders` (default reminders), `feed_events.meeting_id`, and new feed kinds `meeting_booked`, `meeting_rescheduled`, `meeting_cancelled`, `meeting_held`, `meeting_no_show`, `task_assigned`, `post_assigned`, `post_comment`.
+Functions: `book_meeting`, `my_google_token`, `save_google_connection`, `mark_google_needs_reconnect`, `team_calendar_status`, `prune_my_notifications`.

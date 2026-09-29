@@ -111,6 +111,17 @@
 - Settings → Social accounts follows the list pattern: add, rename (Edit), reorder (move up / down), hide.
 - Bug found by the new e2e and fixed: the post panel reloads after an action, which wiped text typed right after it; confirmations now appear once the panel has reloaded.
 
+### M11: Meetings, Google Calendar and notifications
+- [x] Spec: docs/10 + updates to docs/01, 02, 03, 07, 08, DEPLOY and CLAUDE.md
+- [x] Google Cloud project, consent screen published, web client; public /privacy page
+- [x] Migrations: 20260929000100_google_calendar, 20260929000200_meetings, 20260929000300_notifications; db:types
+- [x] Meetings: Meeting section in Log activity (book_meeting), lead Meetings panel (reschedule, held, no-show, cancel, undo), My Day Meetings
+- [x] Notifications: bell with What's upcoming / What happened, live over Realtime, /notifications, Profile settings, in-app meeting reminders, browser alerts (opt-in), Feed Meetings filter, G N
+- [x] Google Calendar: connect (state + PKCE), encrypted token, one-way sync with idempotent event ids, retries with backoff after page loads, Reconnect, disconnect with revoke, Team Calendar column
+- [x] Tests: unit meeting (8), google-calendar (14), upcoming (6); SQL 04 (31 checks, 8 expected errors); e2e 11 (3 flows); updated 04 (meeting step, scoped Notes locator) and db-test FEED_P1
+- [x] Demo data: 12 meetings (scheduled today and later, held, cancelled), unread notifications per role
+- [ ] Cloud: `supabase db push` (3 M11 migrations + 20260929000000 status fix) and the Vercel env vars: needs the owner (blocked for the assistant as a production deploy)
+
 ## Decisions
 - 2026-09-24: Local Supabase uses ports 55420–55429 (API 55421, DB 55422, Studio 55423, Mailpit 55424). Another local Supabase project ("bdms") already occupies 5432x; stopping someone else's stack would be destructive.
 - 2026-09-24: Storage, edge runtime and analytics containers disabled in config.toml; the spec uses none of them and it speeds up `db:start`.
@@ -187,6 +198,8 @@
 - 2026-09-29: Fixed lead status from opportunities (migration 20260929000000_lead_status_from_won.sql). The init trigger kept a lead as Customer for good, so after its only won deal was moved back or lost it still said Customer. Now, as docs/04 section 2 says, Customer means "has a won opportunity": an open stage gives Qualified (Customer if another deal is won), and losing the last open deal gives Lost unless a deal is won. The migration also repairs leads stuck as Customer. Checked by hand in a rolled-back transaction; not yet added to supabase/tests (db:test resets the database).
 - 2026-09-29 (M11): Plan approved for meetings, Google Calendar and notifications (spec docs/10). Per-user Google OAuth with the calendar.events.owned scope (a service account can't set reminders for the owner or invite attendees without Workspace), one-way sync, no new libraries, no service-role use. "What's upcoming" is computed live; "What happened" is stored per recipient by a trigger on feed_events. docs/01 scope now allows in-app and browser alerts while the app is open; email and closed-app push stay out.
 - 2026-09-29 (M11, Phase 0): Google Cloud project `client-acquisition-os-510114` (owner ahmrazsal7@gmail.com): Calendar API enabled; OAuth consent screen External, scope calendar.events.owned, published "In production" (unverified, 100-user cap); web client with redirect URIs localhost:3000 and bd-minimal.vercel.app `/api/google/callback`. Branding needed a privacy policy, so a public `/privacy` page was added. Credentials live only in .env.local (checked with Google: client accepted). Still to check: the refresh token works after 8 days.
+- 2026-09-29 (M11): Built as planned (docs/10). Choices: the meeting belongs to the lead owner and follows reassignment; only the owner's session talks to Google, so a founder's change to a BD's meeting syncs on the BD's next page load. Event id = meeting id, so retries never duplicate; an event deleted inside Google is reported ("Removed from your calendar · Add again"), not recreated. No background jobs: retries and old-event cleanup run after the page response with `after()`. The seed writes as the system, so it drops actor-less notifications except missed posts and leaves the newest 5 per person unread.
+- 2026-09-29 (M11): The lead timeline doesn't get separate meeting entries (docs/10 updated): the "Meeting booked" activity is there, and moves, cancellations and holds are in the Meetings panel and the Feed. Deactivating a member doesn't touch their Google connection: they can't sign in, and my_google_token() refuses inactive users, so the token is never used again.
 
 ## Deviations
 - @supabase/ssr's browser client doesn't hand the session to the Realtime socket on its own; the feed calls `supabase.realtime.setAuth(access_token)` before subscribing, otherwise RLS treats the socket as anonymous and no rows arrive.

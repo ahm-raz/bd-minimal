@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CLOSED_LEAD_STATUSES } from "@/lib/domain";
 import { requireFounder, requireViewer } from "@/server/auth";
 import { emailInvitesEnabled } from "@/server/email";
+import { googleCalendarEnabled } from "@/server/google/config";
 import { getLists } from "@/server/queries/lists";
 import { TeamView, type TeamRow } from "./team-view";
 
@@ -21,6 +22,11 @@ export default async function TeamPage() {
   // Reading sign-in status needs the Auth admin API; the caller is a verified founder.
   const { data: authUsers } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
   const lastSignIn = new Map((authUsers?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null]));
+
+  // Google Calendar status per member (no tokens), docs/10 section 4.
+  const calendarOn = googleCalendarEnabled();
+  const { data: calendars } = calendarOn ? await supabase.rpc("team_calendar_status") : { data: null };
+  const calendarOf = new Map((calendars ?? []).map((c) => [c.user_id, c.status]));
 
   const rows: TeamRow[] = await Promise.all(
     lists.members.map(async (m) => {
@@ -47,7 +53,9 @@ export default async function TeamPage() {
               .maybeSingle(),
       ]);
       const status: TeamRow["status"] = !m.is_active ? "deactivated" : lastSignIn.get(m.id) ? "active" : "invited";
-      return { ...m, status, openLeads: count ?? 0, lastActive: last?.occurred_at ?? null };
+      const calendar: TeamRow["calendar"] =
+        !calendarOn || m.role === "social" ? null : (calendarOf.get(m.id) ?? "not_connected");
+      return { ...m, status, openLeads: count ?? 0, lastActive: last?.occurred_at ?? null, calendar };
     }),
   );
 

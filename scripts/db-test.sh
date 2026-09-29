@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SQL tests against the LOCAL Supabase stack.
-# db reset -> 02_smoke_test.sql -> check; db reset -> 03_social_test.sql -> check; db reset.
+# db reset -> 02_smoke_test.sql -> check; db reset -> 03 -> check; db reset -> 04 -> check; db reset.
 # Never runs 00_supabase_stub.sql (that file is for plain Postgres only).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -110,7 +110,8 @@ expect "P1_POSTED|posted|t"
 expect "TASK_AFTER|done|1"
 expect "HISTORY|->planned planned>drafting drafting>in_review in_review>changes_requested changes_requested>in_review in_review>approved approved>in_review in_review>approved approved>posted"
 expect "HINA_FEED_ROWS|0"
-expect "FEED_P1|changes_requested:1 post_approved:2 post_published:1 post_submitted:3"
+# M11 added post_assigned (the founder gave P1 to Hina) and post_comment (a plain comment).
+expect "FEED_P1|changes_requested:1 post_approved:2 post_assigned:1 post_comment:1 post_published:1 post_submitted:3"
 expect "FEED_TEXT|submitted 'How AI intake cuts missed calls' for review"
 expect "TASK_FEED|1"
 expect "MARK1|1"
@@ -135,6 +136,50 @@ if [ "$SOCIAL_ERRORS" -ne 18 ]; then
   FAILED=1
 fi
 
+# ---------- 04: meetings, notifications, Google connections (docs/10 section 5) ----------
+echo "Resetting local database for the meetings and notifications test..."
+reset_db
+OUT=$(run_psql < supabase/tests/04_meetings_notifications_test.sql 2>&1)
+echo "$OUT"
+
+expect "BOOK|t"
+expect "MEETING|Meeting with Sarah Mitchell (Smile Dental)|scheduled|off|t|{30,10}"
+expect "NEXT|Meeting with Sarah Mitchell|t"
+expect "ACT|1"
+expect "AHMED_OWN_NOTIFS|0"
+expect "SARA_SEES|0"
+expect "HINA_SEES|0"
+expect "FOUNDER_KINDS|meeting_booked,meeting_rescheduled"
+expect "UNDO|scheduled|t"
+expect "FOUNDER_KINDS_2|meeting_booked,meeting_rescheduled"
+expect "AHMED_KINDS|meeting_cancelled,task_assigned"
+expect "AHMED_TITLE|Zain cancelled the meeting with Smile Dental: Clinic closed that day"
+expect "AHMED_UNREAD|0"
+expect "VISIBLE_TO_AHMED|2"
+expect "DEDUPE|0"
+expect "SAVE_CONN|1"
+expect "CONN|ahmed@gmail.com|active"
+expect "MY_TOKEN|v1:iv:tag:ct"
+expect "PENDING_AFTER_CONNECT|pending"
+expect "TEAM_STATUS_BD|0"
+expect "SARA_TOKEN|0"
+expect "SARA_CONN|0"
+expect "TEAM_STATUS|1"
+expect "MEETING_OWNER|t|t"
+expect "CLEANUP|t|evt1"
+expect "REASSIGN_TO|Ahmed,Sara"
+expect "SARA_MUTED_TASKS|0"
+expect "TITLE_REASSIGN|Zain reassigned lead Smile Dental"
+expect "HINA_KINDS|post_assigned,post_comment"
+expect "HINA_LINK|/content?post=60000000-0000-0000-0000-000000000001"
+expect "PRUNE|0"
+
+M11_ERRORS=$(grep -c '^ERROR:' <<<"$OUT")
+if [ "$M11_ERRORS" -ne 8 ]; then
+  echo "Expected 8 ERROR lines in the meetings and notifications test (SHOULD_FAIL checks), got $M11_ERRORS"
+  FAILED=1
+fi
+
 echo "Resetting local database..."
 reset_db
 
@@ -142,4 +187,4 @@ if [ "$FAILED" -ne 0 ]; then
   echo "db:test FAILED"
   exit 1
 fi
-echo "db:test passed: all checks present, 11 + 18 expected errors."
+echo "db:test passed: all checks present, 11 + 18 + 8 expected errors."

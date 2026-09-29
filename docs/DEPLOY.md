@@ -184,6 +184,20 @@ Supabase → Authentication → **URL Configuration**:
   - Then run `pnpm supabase db push`, then `git push`.
 - **Backups:** Supabase free tier has limited backups. On a paid plan, turn on daily backups or point-in-time recovery before real data piles up.
 
+## 9. Meetings, notifications and Google Calendar (M11)
+
+1. Apply the three M11 migrations to the cloud database: `pnpm supabase db push` (it lists what it will apply; say yes). Do this **before** pushing the code.
+2. Google Cloud (done once, project `client-acquisition-os-510114`): Calendar API on; OAuth consent screen External, scope `calendar.events.owned`, published; web client with redirect URIs `http://localhost:3000/api/google/callback` and `https://bd-minimal.vercel.app/api/google/callback`. Branding uses `https://bd-minimal.vercel.app/privacy`.
+3. Vercel → Project → Settings → Environment Variables (Production), then redeploy:
+   - `GOOGLE_CALENDAR` = `on`
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (from the downloaded client JSON)
+   - `GOOGLE_TOKEN_KEY`: 32 random bytes, base64. Use a **new** value for production (don't reuse the local one).
+   - Check `NEXT_PUBLIC_SITE_URL` is `https://bd-minimal.vercel.app` (the Google redirect is built from it).
+4. Each person: Profile → **Connect Google Calendar**. Google says it hasn't verified the app: **Advanced** → **Go to Client Acquisition OS**.
+5. Changing `GOOGLE_TOKEN_KEY` later makes stored tokens unreadable: everyone sees **Reconnect**.
+
+Notifications need nothing extra: they use Supabase Realtime, which is already on.
+
 ---
 
 ## Troubleshooting
