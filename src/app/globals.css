@@ -328,6 +328,11 @@
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
+  /* Scroll boxes contain their absolutely positioned children (e.g. sr-only labels in wide tables), so
+     those don't widen the page. Zero specificity: an explicit position class still wins. */
+  :where(.overflow-auto, .overflow-x-auto) {
+    position: relative;
+  }
   ::selection {
     background: color-mix(in srgb, var(--accent) 22%, transparent);
   }
