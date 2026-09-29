@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
 // Pages anyone may open without a session.
-const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz"];
+const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz", "/privacy"];
 // Pages only the founder may open (docs/03, Sessions).
 const FOUNDER_PREFIXES = ["/feed", "/team", "/settings", "/content/schedules"];
 // Pages outside a role's work (docs/09 section 1): social media managers never see sales pages,
