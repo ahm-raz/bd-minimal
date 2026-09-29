@@ -62,13 +62,20 @@ test("phone 512 555 0100 is stored as E.164 and displayed nicely; completeness m
   await dialog.getByLabel("First name").first().fill("Raj");
   await dialog.getByLabel("Job title").first().fill("Owner");
   await dialog.getByLabel("Phone", { exact: true }).first().fill("512 555 0100");
-  await dialog.getByLabel("City").fill("Austin");
-  await dialog.getByLabel("State or region").fill("TX");
-  await expect(dialog.getByTestId("completeness-score")).toHaveText("40%");
-  // the missing-item links focus the field
+  await expect(dialog.getByTestId("completeness-score")).toHaveText("30%");
+  // Quick add: the optional details start closed
+  await expect(dialog.getByRole("button", { name: /More details/ })).toHaveAttribute("aria-expanded", "false");
+  await expect(dialog.getByLabel("City")).toBeHidden();
+  // the missing-item list is folded under Completeness; a link opens More details and focuses the field
+  await expect(dialog.getByRole("button", { name: "Add a pain point" })).toBeHidden();
+  await dialog.getByRole("button", { name: "Completeness", exact: true }).click();
   await dialog.getByRole("button", { name: "Add a pain point" }).click();
   await expect(dialog.getByLabel("Pain point")).toBeFocused();
+  await expect(dialog.getByRole("button", { name: /More details/ })).toHaveAttribute("aria-expanded", "true");
   await dialog.getByLabel("Pain point").fill("Missed calls after hours");
+  await expect(dialog.getByTestId("completeness-score")).toHaveText("40%");
+  await dialog.getByLabel("City").fill("Austin");
+  await dialog.getByLabel("State or region").fill("TX");
   await expect(dialog.getByTestId("completeness-score")).toHaveText("50%");
   // lead time zone suggested from the state
   await expect(dialog.getByRole("combobox", { name: "Lead time zone" })).toContainText("America/Chicago");

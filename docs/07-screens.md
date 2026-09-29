@@ -108,42 +108,34 @@ Leads                          [Search…]  [Filters ▾]  [Saved views ▾]  [+
 
 Opened with **+ Lead** or N from anywhere. The same form is used for editing.
 
-**Sections** (all on one scrolling panel; sections 1–2 always open, the others collapsible and remembered per user):
+**Quick add first.** The top of the panel holds only what's needed to start outreach (about 30 seconds to fill):
 
-1. **Company**
-   - Company name*
-   - Website (duplicate check runs on blur)
-   - Company LinkedIn URL
-   - Company phone
-   - Company email
-   - Company size
-   - Sub-niche (free text, e.g. "Pediatric dentistry", "Personal injury")
-2. **Primary contact**
-   - First name*
-   - Last name
-   - Job title
-   - Decision maker (toggle)
-   - Email + status
-   - Phone
-   - Mobile
-   - LinkedIn URL
-   - Preferred channel
-3. **More contacts:** "+ Add contact" repeats the contact fields (max 10), with "Make primary" and "Remove".
-4. **Location:** address, city, state/region, country (default United States), lead time zone (suggested from state).
-5. **Online presence:** Google Maps URL, Google rating, review count, Upwork job URL (shown when channel = Upwork, and then required if no other contact method is given), other social URL (per contact).
-6. **Classification:** niche*, channel*, source, campaign (filtered to the chosen niche, active only), priority, tags.
-7. **Sales context:** pain point ("What problem do they likely have?"), offer ("What we'd sell them"), notes.
-8. **First step:** next action + due date (quick chips). Optional; skipping it puts the lead in the "No next action" view.
+1. **Company:** company name*, website (duplicate check runs on blur), company LinkedIn URL
+2. **Primary contact:** first name*, last name, job title, email, phone, LinkedIn URL
+3. **Classification:** niche* (pre-filled with the BD's primary niche), channel*, lead source. Upwork job URL appears here when channel = Upwork (then it counts as a way to reach them).
+4. **First step** ("Next action" when editing): next action + due date (quick chips). Optional; skipping it puts the lead in the "No next action" view.
+
+**More details** (one section below; always starts closed, for new leads and edits):
+
+- **Company details:** company phone, company email, company size, sub-niche (free text, e.g. "Pediatric dentistry")
+- **<Contact>: more:** decision maker (toggle), email status, mobile, preferred channel, other social URL, secondary email
+- **More contacts:** "+ Add contact" repeats all contact fields (max 10), with "Make primary" and "Remove"
+- **Location:** address, city, state/region, country (default United States), lead time zone (suggested from state)
+- **Online presence:** Google Maps URL, Google rating, review count
+- **Campaign and tags:** campaign (filtered to the chosen niche, active only), priority, tags; owner (founder, edit only)
+- **Sales context:** pain point ("What problem do they likely have?"), offer ("What we'd sell them"), notes
+
+A completeness link or a validation error for a field under More details opens it and scrolls to the field. Details can be filled later from **Edit**; Leads → **Incomplete** lists leads that need them.
 
 **Footer:**
-- Live completeness meter with missing-item links
+- Live completeness meter; click **Completeness** to show or hide the missing-item links (hidden by default)
 - **Save lead**, **Save and add another** (keeps niche, channel, campaign, source), **Cancel**
 
 **Behavior:**
 - Paste helpers: pasting a LinkedIn URL into the first-name field moves it to the LinkedIn field. Pasting a full "First Last" into first name splits it.
 - Validation per docs/04, section 1.
 - Duplicate notice per docs/04.
-- Edit mode shows who created the lead and when, plus the current owner (founder can change it here).
+- Edit mode shows who created the lead and when, plus the current owner (founder can change it under Campaign and tags).
 
 **Acceptance:**
 - A lead with only name, niche, channel, first name and LinkedIn URL saves.
