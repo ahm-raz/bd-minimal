@@ -165,6 +165,7 @@ Timeline                                   │ Jenna Ruiz  Office manager
                                            │ Ownership history (founder)
 ```
 
+- **Layout:** on laptop screens (1024px and up) the page fills the window: the header stays put and the two columns scroll independently (scrolling the right column never moves the left, and the reverse). Narrower screens scroll as one page.
 - **Header:**
   - status dropdown (manual change)
   - priority
