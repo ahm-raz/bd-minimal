@@ -9,11 +9,13 @@ import {
   makeContactSchema,
   makeLeadSchema,
   nextActionSchema,
+  REACH_ERROR,
   type ContactFormValues,
   type LeadContactData,
   type LeadFormValues,
   type NextActionInput,
 } from "@/lib/validation/lead";
+import { LEAD_FIELDS, parseLeadField, type LeadField } from "@/lib/validation/lead-field";
 import { FOUNDER_ONLY, getViewer, requireFounder } from "@/server/auth";
 import { dbErrorMessage, fail, ok, parseInput, type ActionResult } from "@/server/result";
 
@@ -379,5 +381,39 @@ export async function deleteContact(input: { contactId: string }): Promise<Actio
   if (error) return fail(dbErrorMessage(error, "The contact wasn't removed. Try again."));
   if (c.is_primary) await supabase.from("contacts").update({ is_primary: true }).eq("id", others[0]!.id);
   revalidateLead(c.lead_id);
+  return ok();
+}
+
+const leadFieldSchema = z.object({ leadId: z.uuid(), field: z.enum(LEAD_FIELDS), value: z.unknown() });
+
+/** Lead page → Details: edit one field in place. Same cleaning as the lead form; RLS decides who may edit. */
+export async function updateLeadField(input: { leadId: string; field: LeadField; value: unknown }): Promise<ActionResult> {
+  const parsed = parseInput(leadFieldSchema, input);
+  if (!parsed.ok) return parsed;
+  const { leadId, field } = parsed.data;
+  const supabase = await createClient();
+  const { data: lead } = await supabase.from("leads").select("id, country, channel_id, upwork_job_url").eq("id", leadId).maybeSingle();
+  if (!lead) return fail("That lead wasn't found.");
+
+  const cleaned = parseLeadField(field, parsed.data.value, lead.country);
+  if (!cleaned.ok) return fail(cleaned.error, { value: cleaned.error });
+
+  // The company phone can be the only way to reach them (docs/04 section 1); don't let it be cleared then.
+  if (field === "company_phone" && cleaned.value === null) {
+    const { data: contacts } = await supabase.from("contacts").select("email, phone, mobile_phone, linkedin_url").eq("lead_id", leadId);
+    const reachable = (contacts ?? []).some((c) => c.email || c.phone || c.mobile_phone || c.linkedin_url);
+    const { data: upwork } = await supabase.from("channels").select("id").ilike("name", "upwork").maybeSingle();
+    const viaUpwork = !!upwork && lead.channel_id === upwork.id && !!lead.upwork_job_url;
+    if (!reachable && !viaUpwork) return fail(REACH_ERROR, { value: "It's the only way to reach them. Add a contact method first." });
+  }
+
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ [field]: cleaned.value } as never)
+    .eq("id", leadId)
+    .select("id");
+  if (error) return fail(dbErrorMessage(error, "That wasn't saved. Try again."));
+  if (!data.length) return fail("That lead wasn't found.");
+  revalidateLead(leadId);
   return ok();
 }

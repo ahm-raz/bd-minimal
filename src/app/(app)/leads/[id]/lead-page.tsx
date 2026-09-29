@@ -39,9 +39,12 @@ import { CreateOpportunityDialog } from "@/components/activities/opportunity-pro
 import { FlagLeadDialog } from "@/components/leads/flag-dialog";
 import { OpportunitySheet } from "@/components/pipeline/opportunity-sheet";
 import { useStageChange } from "@/components/pipeline/stage-change";
-import { LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadPriority, type LeadStatus } from "@/lib/domain";
+import { DetailField } from "@/components/leads/detail-field";
+import { COMPANY_SIZES, LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadPriority, type LeadStatus } from "@/lib/domain";
 import { completenessTone } from "@/lib/completeness";
-import { formatDateTime } from "@/lib/dates";
+import { formatDateTime, timeZoneList } from "@/lib/dates";
+import { COUNTRIES } from "@/lib/validation/normalize";
+import type { LeadField, LeadFieldValue } from "@/lib/validation/lead-field";
 import { formatMoney, formatPhone } from "@/lib/format";
 import type { LeadFormValues } from "@/lib/validation/lead";
 import { deleteLead, reassignLeads, setLeadPriority, setLeadStatus } from "@/server/actions/leads";
@@ -66,6 +69,13 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
   const [openOpp, setOpenOpp] = useState<string | null>(null);
 
   const nameOf = (list: { id: string; name: string }[], id: string | null) => list.find((x) => x.id === id)?.name ?? "";
+  const activeOpts = (list: { id: string; name: string; is_active: boolean }[], current: string | null) =>
+    list.filter((x) => x.is_active || x.id === current).map((x) => ({ value: x.id, label: x.name }));
+  /** Shared props for a Details row that edits `field` in place. Text-like fields show their stored value. */
+  const df = (field: LeadField, label: string) => {
+    const value = lead[field] as LeadFieldValue;
+    return { leadId: lead.id, field, label, value, country: lead.country, display: Array.isArray(value) ? undefined : (value ?? undefined) };
+  };
   const memberName = (id: string | null) => lists.members.find((m) => m.id === id)?.full_name || "Someone";
   const place = [lead.city, lead.state_region].filter(Boolean).join(", ");
   const tone = completenessTone(lead.completeness);
@@ -263,19 +273,50 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
 
           <Panel>
             <PanelHeader title="Details" actions={<Button variant="ghost" size="sm" onClick={openEdit}>Edit</Button>} />
-            <dl className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-2 p-4 text-body">
-              <Detail label="Niche">{nameOf(lists.niches, lead.niche_id)}</Detail>
-              <Detail label="Sub-niche">{lead.sub_niche}</Detail>
-              <Detail label="Channel">{nameOf(lists.channels, lead.channel_id)}</Detail>
-              <Detail label="Campaign">{nameOf(lists.campaigns, lead.campaign_id)}</Detail>
-              <Detail label="Source">{nameOf(lists.sources, lead.source_id)}</Detail>
-              <Detail label="Company size">{lead.company_size}</Detail>
-              <Detail label="Email">{lead.company_email && <a href={`mailto:${lead.company_email}`} className="hover:underline">{lead.company_email}</a>}</Detail>
-              <Detail label="Address">{[lead.address, place, lead.country].filter(Boolean).join(", ")}</Detail>
-              <Detail label="Pain point">{lead.pain_point}</Detail>
-              <Detail label="Offer">{lead.offer}</Detail>
-              <Detail label="Tags">{lead.tags.length ? lead.tags.map((t) => <Chip key={t} className="mr-1">{t}</Chip>) : null}</Detail>
-              <Detail label="Notes">{lead.notes && <span className="whitespace-pre-line">{lead.notes}</span>}</Detail>
+            {/* Every row edits in place: click the value (or "Not set"), change it, Enter or Save. */}
+            <dl className="grid grid-cols-[120px_1fr] items-start gap-x-3 gap-y-2 p-4 text-body">
+              <DetailField {...df("website", "Website")} kind="text" placeholder="brightsmile.com" display={lead.domain ?? lead.website} />
+              <DetailField {...df("company_linkedin_url", "Company LinkedIn")} kind="text" placeholder="linkedin.com/company/…" />
+              <DetailField {...df("company_phone", "Company phone")} kind="text" display={formatPhone(lead.company_phone)} />
+              <DetailField {...df("company_email", "Email")} kind="text" />
+              <DetailField {...df("company_size", "Company size")} kind="select" noneLabel="Not set" options={COMPANY_SIZES.map((s) => ({ value: s, label: s }))} />
+              <DetailField {...df("niche_id", "Niche")} kind="select" options={activeOpts(lists.niches, lead.niche_id)} display={nameOf(lists.niches, lead.niche_id)} />
+              <DetailField {...df("sub_niche", "Sub-niche")} kind="text" placeholder="Pediatric dentistry" />
+              <DetailField {...df("channel_id", "Channel")} kind="select" options={activeOpts(lists.channels, lead.channel_id)} display={nameOf(lists.channels, lead.channel_id)} />
+              <DetailField {...df("source_id", "Source")} kind="select" noneLabel="Not set" options={activeOpts(lists.sources, lead.source_id)} display={nameOf(lists.sources, lead.source_id)} />
+              <DetailField
+                {...df("campaign_id", "Campaign")}
+                kind="select"
+                noneLabel="No campaign"
+                options={lists.campaigns
+                  .filter((c) => (c.status === "active" && (!c.niche_id || c.niche_id === lead.niche_id)) || c.id === lead.campaign_id)
+                  .map((c) => ({ value: c.id, label: c.name }))}
+                display={nameOf(lists.campaigns, lead.campaign_id)}
+              />
+              <DetailField {...df("address", "Address")} kind="text" />
+              <DetailField {...df("city", "City")} kind="text" />
+              <DetailField {...df("state_region", "State or region")} kind="text" placeholder="TX" />
+              <DetailField {...df("country", "Country")} kind="combobox" options={COUNTRIES.map((c) => ({ value: c.name, label: c.name }))} searchPlaceholder="Search countries" />
+              <DetailField
+                {...df("lead_timezone", "Time zone")}
+                kind="combobox"
+                clearLabel="Not set"
+                options={timeZoneList().map((tz) => ({ value: tz, label: tz.replace(/_/g, " ") }))}
+                searchPlaceholder="Search time zones"
+                display={lead.lead_timezone?.replace(/_/g, " ")}
+              />
+              <DetailField {...df("google_maps_url", "Google Maps")} kind="text" placeholder="maps.app.goo.gl/…" />
+              <DetailField {...df("google_rating", "Google rating")} kind="text" inputMode="decimal" placeholder="4.7" />
+              <DetailField {...df("google_review_count", "Review count")} kind="text" inputMode="numeric" placeholder="212" />
+              <DetailField {...df("pain_point", "Pain point")} kind="textarea" placeholder="What problem do they likely have?" />
+              <DetailField {...df("offer", "Offer")} kind="textarea" placeholder="What we'd sell them." />
+              <DetailField
+                {...df("tags", "Tags")}
+                kind="tags"
+                placeholder="texas, pediatric"
+                display={lead.tags.length ? lead.tags.map((t) => <Chip key={t} className="mr-1">{t}</Chip>) : null}
+              />
+              <DetailField {...df("notes", "Notes")} kind="textarea" display={lead.notes && <span className="whitespace-pre-line">{lead.notes}</span>} />
               <Detail label="Owner">{memberName(lead.owner_id)}</Detail>
               <Detail label="Added">
                 {memberName(lead.created_by)}, {formatDateTime(lead.created_at, profile.timezone)}
