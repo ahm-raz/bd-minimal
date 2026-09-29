@@ -51,7 +51,7 @@ import { deleteLead, reassignLeads, setLeadPriority, setLeadStatus } from "@/ser
 import type { LeadDetail } from "@/server/queries/lead-detail";
 
 /** A lead page column: scrolls on its own on laptop screens (px/-mx keep focus rings from being clipped). */
-const COLUMN = "flex min-w-0 flex-col gap-6 lg:-mx-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-2";
+const COLUMN = "flex min-w-0 flex-col gap-6 lg:-mx-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-2 lg:scrollbar-none";
 
 export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValues: LeadFormValues }) {
   const { lead, contacts, ownerEvents, openFlags, opportunities, activities, stageEvents } = detail;

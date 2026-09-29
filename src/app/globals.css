@@ -333,3 +333,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Scrolls with wheel, touch and keyboard, but shows no scrollbar (lead page columns). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
