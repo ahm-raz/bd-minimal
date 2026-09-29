@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ActivityCategory } from "@/lib/domain";
 import { isLocalDate, localDateTimeToUtc, MAX_BACKDATE_DAYS } from "@/lib/dates";
+import { checkMeeting, meetingFields, type MeetingData } from "@/lib/validation/meeting";
 
 /**
  * Log activity form (docs/04 section 3; docs/07 section 6). One schema for form and server action.
@@ -10,6 +11,9 @@ import { isLocalDate, localDateTimeToUtc, MAX_BACKDATE_DAYS } from "@/lib/dates"
 
 export type ActivityTypeRef = { id: string; category: ActivityCategory; name: string };
 export type OutcomeRef = { key: string; allowed_categories: ActivityCategory[] };
+
+/** The outcome that books a meeting (docs/10 section 1). */
+export const MEETING_OUTCOME = "meeting_booked";
 
 /** Outcomes that don't need a next action. */
 export const NO_NEXT_ACTION_OUTCOMES = ["not_interested", "bounced"];
@@ -46,6 +50,8 @@ export const logActivityFields = z.object({
   nextActionDue: z.string().nullable().optional().default(null),
   noNextStep: z.boolean().optional().default(false),
   opportunityId: z.string().nullable().optional(),
+  /** Required when the outcome is Meeting booked. */
+  meeting: meetingFields.optional(),
 });
 export type LogActivityValues = z.input<typeof logActivityFields>;
 
@@ -60,6 +66,8 @@ export type LogActivityData = {
   nextActionDue: string | null;
   clearNextAction: boolean;
   opportunityId: string | null;
+  /** Set for Meeting booked; the database then sets the next action to the meeting. */
+  meeting: MeetingData | null;
 };
 
 export function makeLogActivitySchema({
@@ -90,15 +98,22 @@ export function makeLogActivitySchema({
       issue("occurredAt", `You can backdate up to ${MAX_BACKDATE_DAYS} days.`);
     }
 
+    const booking = v.outcomeKey === MEETING_OUTCOME;
+    let meeting: MeetingData | null = null;
+    if (booking) {
+      if (!v.meeting) issue("meeting.startsAt", "Pick a date and time.");
+      else meeting = checkMeeting(v.meeting, issue, { now: current, mode: "book", prefix: "meeting" });
+    }
+
     const optional = v.noNextStep || NO_NEXT_ACTION_OUTCOMES.includes(v.outcomeKey);
     const hasAction = v.nextAction !== "" || !!v.nextActionDue;
-    if (!v.noNextStep && (hasAction || !optional)) {
+    if (!booking && !v.noNextStep && (hasAction || !optional)) {
       if (!v.nextAction) issue("nextAction", "Say what the next step is, or tick No next step.");
       if (!v.nextActionDue) issue("nextActionDue", "Pick a due date.");
       else if (!isLocalDate(v.nextActionDue)) issue("nextActionDue", "Pick a date.");
     }
 
-    const setNext = !v.noNextStep && !!v.nextAction && !!v.nextActionDue;
+    const setNext = !booking && !v.noNextStep && !!v.nextAction && !!v.nextActionDue;
     return {
       leadId: v.leadId,
       activityTypeId: v.activityTypeId,
@@ -108,8 +123,9 @@ export function makeLogActivitySchema({
       notes: v.notes || null,
       nextAction: setNext ? v.nextAction : null,
       nextActionDue: setNext ? v.nextActionDue : null,
-      clearNextAction: !setNext,
+      clearNextAction: !booking && !setNext,
       opportunityId: v.opportunityId || null,
+      meeting,
     };
   });
 }

@@ -14,6 +14,8 @@ import {
   type LogActivityValues,
 } from "@/lib/validation/activity";
 import { getViewer } from "@/server/auth";
+import { googleCalendarEnabled } from "@/server/google/config";
+import { syncMeeting } from "@/server/google/sync";
 import { dbErrorMessage, fail, ok, parseInput, type ActionResult } from "@/server/result";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -32,8 +34,13 @@ export type LeadForLog = {
   status: LeadStatus;
   next_action: string | null;
   next_action_due: string | null;
-  contacts: { id: string; name: string; is_primary: boolean }[];
+  lead_timezone: string | null;
+  contacts: { id: string; name: string; is_primary: boolean; email: string | null }[];
   openOpportunities: { id: string; title: string; stage_key: string }[];
+  /** The viewer's default meeting reminders (Profile). */
+  meetingReminders: number[];
+  /** The viewer's Google Calendar: null when the feature is off. */
+  calendar: "not_connected" | "active" | "needs_reconnect" | null;
 };
 
 /** What the Log activity panel needs about a lead. */
@@ -42,28 +49,52 @@ export async function getLeadForLog(leadId: string): Promise<ActionResult<LeadFo
   const supabase = await createClient();
   const { data: lead } = await supabase
     .from("leads")
-    .select("id, company_name, status, next_action, next_action_due, contacts(id, first_name, last_name, is_primary, created_at), opportunities(id, title, stage_key)")
+    .select(
+      "id, company_name, status, next_action, next_action_due, lead_timezone, contacts(id, first_name, last_name, is_primary, email, created_at), opportunities(id, title, stage_key)",
+    )
     .eq("id", leadId)
     .maybeSingle();
   if (!lead) return fail("That lead wasn't found.");
+  const viewer = await getViewer();
+  const [{ data: me }, { data: conn }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("meeting_reminders")
+      .eq("id", viewer?.id ?? "")
+      .maybeSingle(),
+    googleCalendarEnabled()
+      ? supabase.from("google_connections").select("status, auto_add").maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const contacts = [...lead.contacts]
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.created_at.localeCompare(b.created_at))
-    .map((c) => ({ id: c.id, name: contactName(c), is_primary: c.is_primary }));
+    .map((c) => ({ id: c.id, name: contactName(c), is_primary: c.is_primary, email: c.email }));
   return ok({
     id: lead.id,
     company_name: lead.company_name,
     status: lead.status,
     next_action: lead.next_action,
     next_action_due: lead.next_action_due,
+    lead_timezone: lead.lead_timezone,
     contacts,
     openOpportunities: lead.opportunities
       .filter((o) => (OPEN_STAGE_KEYS as string[]).includes(o.stage_key))
       .map((o) => ({ id: o.id, title: o.title, stage_key: o.stage_key })),
+    meetingReminders: me?.meeting_reminders ?? [30, 10],
+    calendar: !googleCalendarEnabled()
+      ? null
+      : !conn
+        ? "not_connected"
+        : conn.status === "active"
+          ? "active"
+          : "needs_reconnect",
   });
 }
 
 export type LogActivityResult = {
   activityId: string;
+  /** Set when a meeting was booked. */
+  meetingId: string | null;
   /** Meeting booked on a lead without an open opportunity: offer "Create opportunity?" */
   offerOpportunity: boolean;
   /** Proposal sent on a lead with exactly one open opportunity not yet at Proposal sent */
@@ -80,19 +111,48 @@ export async function logActivity(input: LogActivityValues): Promise<ActionResul
   if (!parsed.ok) return parsed;
   const d = parsed.data;
 
-  const { data: activityId, error } = await supabase.rpc("log_activity", {
-    p_lead_id: d.leadId,
-    p_activity_type_id: d.activityTypeId,
-    p_outcome_key: d.outcomeKey,
-    p_occurred_at: d.occurredAtUtc,
-    p_contact_id: d.contactId ?? undefined,
-    p_opportunity_id: d.opportunityId ?? undefined,
-    p_notes: d.notes ?? undefined,
-    p_next_action: d.nextAction ?? undefined,
-    p_next_action_due: d.nextActionDue ?? undefined,
-    p_clear_next_action: d.clearNextAction,
-  });
-  if (error || !activityId) return fail(dbErrorMessage(error, "The activity wasn't logged. Try again."));
+  let activityId: string | null = null;
+  let meetingId: string | null = null;
+  if (d.meeting) {
+    const m = d.meeting;
+    const { data, error } = await supabase.rpc("book_meeting", {
+      p_lead_id: d.leadId,
+      p_activity_type_id: d.activityTypeId,
+      p_starts_at: m.startsAtUtc,
+      p_timezone: m.timezone,
+      p_duration_min: m.durationMin,
+      p_location: m.location ?? undefined,
+      p_agenda: m.agenda ?? undefined,
+      p_reminder_minutes: m.reminders,
+      p_invite_contact: m.inviteContact,
+      p_add_to_calendar: m.addToCalendar,
+      p_occurred_at: d.occurredAtUtc,
+      p_contact_id: d.contactId ?? undefined,
+      p_opportunity_id: d.opportunityId ?? undefined,
+      p_notes: d.notes ?? undefined,
+    });
+    if (error || !data) return fail(dbErrorMessage(error, "The meeting wasn't booked. Try again."));
+    meetingId = data;
+    const { data: act } = await supabase.from("meetings").select("activity_id").eq("id", data).maybeSingle();
+    activityId = act?.activity_id ?? null;
+    // Add it to Google Calendar now if we can; otherwise it retries on the next page load.
+    await Promise.race([syncMeeting(data), new Promise((r) => setTimeout(r, 5000))]);
+  } else {
+    const { data, error } = await supabase.rpc("log_activity", {
+      p_lead_id: d.leadId,
+      p_activity_type_id: d.activityTypeId,
+      p_outcome_key: d.outcomeKey,
+      p_occurred_at: d.occurredAtUtc,
+      p_contact_id: d.contactId ?? undefined,
+      p_opportunity_id: d.opportunityId ?? undefined,
+      p_notes: d.notes ?? undefined,
+      p_next_action: d.nextAction ?? undefined,
+      p_next_action_due: d.nextActionDue ?? undefined,
+      p_clear_next_action: d.clearNextAction,
+    });
+    if (error || !data) return fail(dbErrorMessage(error, "The activity wasn't logged. Try again."));
+    activityId = data;
+  }
 
   const { data: opps } = await supabase.from("opportunities").select("id, title, stage_key").eq("lead_id", d.leadId);
   const open = (opps ?? []).filter((o) => (OPEN_STAGE_KEYS as string[]).includes(o.stage_key));
@@ -103,7 +163,8 @@ export async function logActivity(input: LogActivityValues): Promise<ActionResul
   revalidatePath("/leads");
   revalidatePath("/my-day");
   return ok({
-    activityId,
+    activityId: activityId ?? "",
+    meetingId,
     offerOpportunity: d.outcomeKey === "meeting_booked" && open.length === 0,
     offerProposalMove:
       category === "proposal" && onlyOpen && ["qualified", "meeting_done"].includes(onlyOpen.stage_key)
@@ -131,15 +192,24 @@ export async function updateActivity(input: EditActivityValues): Promise<ActionR
       return fail("Activities lock 24 hours after they're logged. Ask the founder to change it.");
     }
   }
-  const { data: outcome } = await supabase.from("outcomes").select("allowed_categories").eq("key", parsed.data.outcomeKey).maybeSingle();
+  const { data: outcome } = await supabase
+    .from("outcomes")
+    .select("allowed_categories")
+    .eq("key", parsed.data.outcomeKey)
+    .maybeSingle();
   if (!outcome || !outcome.allowed_categories.includes(act.category)) {
-    return fail("Pick one of the outcomes offered for this type.", { outcomeKey: "Pick one of the outcomes offered for this type." });
+    return fail("Pick one of the outcomes offered for this type.", {
+      outcomeKey: "Pick one of the outcomes offered for this type.",
+    });
   }
   const at = localDateTimeToUtc(parsed.data.occurredAt, viewer.timezone);
   if (!at) return fail("Pick a date and time.", { occurredAt: "Pick a date and time." });
-  if (at.getTime() > Date.now() + 5 * 60_000) return fail("It can't be in the future.", { occurredAt: "It can't be in the future." });
+  if (at.getTime() > Date.now() + 5 * 60_000)
+    return fail("It can't be in the future.", { occurredAt: "It can't be in the future." });
   if (Date.now() - at.getTime() > MAX_BACKDATE_DAYS * 86_400_000) {
-    return fail(`You can backdate up to ${MAX_BACKDATE_DAYS} days.`, { occurredAt: `You can backdate up to ${MAX_BACKDATE_DAYS} days.` });
+    return fail(`You can backdate up to ${MAX_BACKDATE_DAYS} days.`, {
+      occurredAt: `You can backdate up to ${MAX_BACKDATE_DAYS} days.`,
+    });
   }
   const { data, error } = await supabase
     .from("activities")

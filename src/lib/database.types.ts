@@ -177,6 +177,38 @@ export type Database = {
           },
         ]
       }
+      calendar_cleanup: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          gcal_event_id: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          calendar_id?: string
+          created_at?: string
+          gcal_event_id: string
+          id?: never
+          user_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          gcal_event_id?: string
+          id?: never
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_cleanup_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           channel_id: string | null
@@ -368,6 +400,7 @@ export type Database = {
           id: number
           kind: string
           lead_id: string | null
+          meeting_id: string | null
           opportunity_id: string | null
           post_id: string | null
           subject_user_id: string | null
@@ -380,6 +413,7 @@ export type Database = {
           id?: never
           kind: string
           lead_id?: string | null
+          meeting_id?: string | null
           opportunity_id?: string | null
           post_id?: string | null
           subject_user_id?: string | null
@@ -392,6 +426,7 @@ export type Database = {
           id?: never
           kind?: string
           lead_id?: string | null
+          meeting_id?: string | null
           opportunity_id?: string | null
           post_id?: string | null
           subject_user_id?: string | null
@@ -411,6 +446,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_events_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
           {
@@ -439,6 +481,53 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_connections: {
+        Row: {
+          auto_add: boolean
+          calendar_id: string
+          connected_at: string
+          google_email: string
+          last_error: string | null
+          refresh_token_enc: string
+          scopes: string[]
+          status: Database["public"]["Enums"]["google_connection_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_add?: boolean
+          calendar_id?: string
+          connected_at?: string
+          google_email: string
+          last_error?: string | null
+          refresh_token_enc: string
+          scopes?: string[]
+          status?: Database["public"]["Enums"]["google_connection_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_add?: boolean
+          calendar_id?: string
+          connected_at?: string
+          google_email?: string
+          last_error?: string | null
+          refresh_token_enc?: string
+          scopes?: string[]
+          status?: Database["public"]["Enums"]["google_connection_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_connections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -707,6 +796,152 @@ export type Database = {
         }
         Relationships: []
       }
+      meetings: {
+        Row: {
+          activity_id: string | null
+          add_to_calendar: boolean
+          agenda: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          duration_min: number
+          gcal_attempts: number
+          gcal_calendar_id: string | null
+          gcal_error: string | null
+          gcal_event_id: string | null
+          gcal_next_retry_at: string | null
+          gcal_state: Database["public"]["Enums"]["calendar_sync_state"]
+          gcal_synced_version: number
+          held_activity_id: string | null
+          id: string
+          invite_contact: boolean
+          lead_id: string
+          location: string | null
+          opportunity_id: string | null
+          owner_id: string
+          reminder_minutes: number[]
+          starts_at: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          status_note: string | null
+          sync_version: number
+          timezone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id?: string | null
+          add_to_calendar?: boolean
+          agenda?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          duration_min?: number
+          gcal_attempts?: number
+          gcal_calendar_id?: string | null
+          gcal_error?: string | null
+          gcal_event_id?: string | null
+          gcal_next_retry_at?: string | null
+          gcal_state?: Database["public"]["Enums"]["calendar_sync_state"]
+          gcal_synced_version?: number
+          held_activity_id?: string | null
+          id?: string
+          invite_contact?: boolean
+          lead_id: string
+          location?: string | null
+          opportunity_id?: string | null
+          owner_id: string
+          reminder_minutes?: number[]
+          starts_at: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          status_note?: string | null
+          sync_version?: number
+          timezone: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string | null
+          add_to_calendar?: boolean
+          agenda?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          duration_min?: number
+          gcal_attempts?: number
+          gcal_calendar_id?: string | null
+          gcal_error?: string | null
+          gcal_event_id?: string | null
+          gcal_next_retry_at?: string | null
+          gcal_state?: Database["public"]["Enums"]["calendar_sync_state"]
+          gcal_synced_version?: number
+          held_activity_id?: string | null
+          id?: string
+          invite_contact?: boolean
+          lead_id?: string
+          location?: string | null
+          opportunity_id?: string | null
+          owner_id?: string
+          reminder_minutes?: number[]
+          starts_at?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          status_note?: string | null
+          sync_version?: number
+          timezone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_held_activity_id_fkey"
+            columns: ["held_activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       niches: {
         Row: {
           created_at: string
@@ -730,6 +965,152 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      notification_prefs: {
+        Row: {
+          browser: boolean
+          in_app: boolean
+          kind_group: string
+          user_id: string
+        }
+        Insert: {
+          browser?: boolean
+          in_app?: boolean
+          kind_group: string
+          user_id: string
+        }
+        Update: {
+          browser?: boolean
+          in_app?: boolean
+          kind_group?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          dedupe_key: string
+          feed_event_id: number | null
+          id: number
+          kind: string
+          kind_group: string
+          lead_id: string | null
+          link: string | null
+          meeting_id: string | null
+          opportunity_id: string | null
+          post_id: string | null
+          priority: string
+          read_at: string | null
+          recipient_id: string
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          dedupe_key: string
+          feed_event_id?: number | null
+          id?: never
+          kind: string
+          kind_group: string
+          lead_id?: string | null
+          link?: string | null
+          meeting_id?: string | null
+          opportunity_id?: string | null
+          post_id?: string | null
+          priority?: string
+          read_at?: string | null
+          recipient_id: string
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          dedupe_key?: string
+          feed_event_id?: number | null
+          id?: never
+          kind?: string
+          kind_group?: string
+          lead_id?: string | null
+          link?: string | null
+          meeting_id?: string | null
+          opportunity_id?: string | null
+          post_id?: string | null
+          priority?: string
+          read_at?: string | null
+          recipient_id?: string
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_feed_event_id_fkey"
+            columns: ["feed_event_id"]
+            isOneToOne: false
+            referencedRelation: "feed_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       opportunities: {
         Row: {
@@ -1249,6 +1630,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          meeting_reminders: number[]
           primary_niche_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           timezone: string
@@ -1261,6 +1643,7 @@ export type Database = {
           full_name?: string
           id: string
           is_active?: boolean
+          meeting_reminders?: number[]
           primary_niche_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           timezone?: string
@@ -1273,6 +1656,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          meeting_reminders?: number[]
           primary_niche_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           timezone?: string
@@ -1567,6 +1951,27 @@ export type Database = {
     }
     Functions: {
       active_mrr: { Args: { p_user?: string }; Returns: number }
+      book_meeting: {
+        Args: {
+          p_activity_type_id: string
+          p_add_to_calendar?: boolean
+          p_agenda?: string
+          p_contact_id?: string
+          p_duration_min?: number
+          p_invite_contact?: boolean
+          p_lead_id: string
+          p_location?: string
+          p_notes?: string
+          p_occurred_at?: string
+          p_opportunity_id?: string
+          p_reminder_minutes?: number[]
+          p_starts_at: string
+          p_timezone: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      calendar_active_for: { Args: { p_user: string }; Returns: boolean }
       can_access_lead: { Args: { p_lead_id: string }; Returns: boolean }
       check_count_tasks: {
         Args: { p_ts: string; p_user: string }
@@ -1612,7 +2017,12 @@ export type Database = {
         }
         Returns: string
       }
+      mark_google_needs_reconnect: {
+        Args: { p_error: string }
+        Returns: undefined
+      }
       mark_missed_posts: { Args: never; Returns: number }
+      meeting_when: { Args: { p_at: string; p_tz: string }; Returns: string }
       metrics_by_dimension: {
         Args: {
           p_dimension: string
@@ -1664,6 +2074,15 @@ export type Database = {
           won_revenue: number
         }[]
       }
+      my_google_token: {
+        Args: never
+        Returns: {
+          calendar_id: string
+          refresh_token_enc: string
+          status: Database["public"]["Enums"]["google_connection_status"]
+        }[]
+      }
+      notification_group: { Args: { p_kind: string }; Returns: string }
       pipeline_summary: {
         Args: { p_stuck_days?: number; p_user?: string }
         Returns: {
@@ -1677,12 +2096,17 @@ export type Database = {
         }[]
       }
       post_guard_bypassed: { Args: never; Returns: boolean }
+      prune_my_notifications: { Args: never; Returns: number }
       recompute_lead_completeness: {
         Args: { p_lead_id: string }
         Returns: undefined
       }
       request_post_changes: {
         Args: { p_body: string; p_post: string }
+        Returns: undefined
+      }
+      save_google_connection: {
+        Args: { p_email: string; p_scopes: string[]; p_token_enc: string }
         Returns: undefined
       }
       social_daily: {
@@ -1754,6 +2178,14 @@ export type Database = {
           title: string
         }[]
       }
+      team_calendar_status: {
+        Args: never
+        Returns: {
+          google_email: string
+          status: Database["public"]["Enums"]["google_connection_status"]
+          user_id: string
+        }[]
+      }
       user_local_date: {
         Args: { p_ts: string; p_user: string }
         Returns: string
@@ -1768,9 +2200,16 @@ export type Database = {
         | "meeting"
         | "proposal"
         | "other"
+      calendar_sync_state:
+        | "off"
+        | "pending"
+        | "synced"
+        | "failed"
+        | "removed_in_google"
       campaign_status: "active" | "paused" | "completed"
       contract_type: "one_time" | "monthly"
       email_status: "unverified" | "valid" | "invalid" | "bounced"
+      google_connection_status: "active" | "needs_reconnect"
       lead_priority: "high" | "medium" | "low"
       lead_status:
         | "new"
@@ -1782,6 +2221,7 @@ export type Database = {
         | "nurture"
         | "not_interested"
         | "bad_fit"
+      meeting_status: "scheduled" | "held" | "no_show" | "cancelled"
       post_comment_kind:
         | "comment"
         | "change_request"
@@ -1971,9 +2411,17 @@ export const Constants = {
         "proposal",
         "other",
       ],
+      calendar_sync_state: [
+        "off",
+        "pending",
+        "synced",
+        "failed",
+        "removed_in_google",
+      ],
       campaign_status: ["active", "paused", "completed"],
       contract_type: ["one_time", "monthly"],
       email_status: ["unverified", "valid", "invalid", "bounced"],
+      google_connection_status: ["active", "needs_reconnect"],
       lead_priority: ["high", "medium", "low"],
       lead_status: [
         "new",
@@ -1986,6 +2434,7 @@ export const Constants = {
         "not_interested",
         "bad_fit",
       ],
+      meeting_status: ["scheduled", "held", "no_show", "cancelled"],
       post_comment_kind: [
         "comment",
         "change_request",

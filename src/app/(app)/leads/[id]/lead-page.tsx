@@ -40,6 +40,8 @@ import { FlagLeadDialog } from "@/components/leads/flag-dialog";
 import { OpportunitySheet } from "@/components/pipeline/opportunity-sheet";
 import { useStageChange } from "@/components/pipeline/stage-change";
 import { DetailField } from "@/components/leads/detail-field";
+import { MeetingsPanel } from "@/components/meetings/meetings-panel";
+import type { CalendarStatus } from "@/components/meetings/meeting-fields";
 import { COMPANY_SIZES, LEAD_STATUSES, LEAD_STATUS_LABELS, PRIORITIES, PRIORITY_LABELS, type LeadPriority, type LeadStatus } from "@/lib/domain";
 import { completenessTone } from "@/lib/completeness";
 import { formatDateTime, timeZoneList } from "@/lib/dates";
@@ -53,8 +55,8 @@ import type { LeadDetail } from "@/server/queries/lead-detail";
 /** A lead page column: scrolls on its own on laptop screens (px/-mx keep focus rings from being clipped). */
 const COLUMN = "flex min-w-0 flex-col gap-6 lg:-mx-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-2 lg:scrollbar-none";
 
-export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValues: LeadFormValues }) {
-  const { lead, contacts, ownerEvents, openFlags, opportunities, activities, stageEvents } = detail;
+export function LeadPage({ detail, formValues, calendar }: { detail: LeadDetail; formValues: LeadFormValues; calendar: CalendarStatus }) {
+  const { lead, contacts, ownerEvents, openFlags, opportunities, activities, stageEvents, meetings } = detail;
   const { lists, openEditLead, openLogActivity, setCurrentLeadId } = useApp();
   const profile = useProfile();
   const isFounder = profile.role === "founder";
@@ -235,6 +237,15 @@ export function LeadPage({ detail, formValues }: { detail: LeadDetail; formValue
 
           <div className={COLUMN}>
             <ContactsPanel leadId={lead.id} contacts={contacts} country={lead.country} />
+
+            <MeetingsPanel
+              leadId={lead.id}
+              companyName={lead.company_name}
+              meetings={meetings}
+              contacts={contacts}
+              openOpportunities={opportunities.filter((o) => !["won", "lost"].includes(o.stage_key))}
+              calendar={calendar}
+            />
 
             <Panel>
               <PanelHeader

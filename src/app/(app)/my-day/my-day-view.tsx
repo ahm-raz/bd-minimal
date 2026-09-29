@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader, Panel, PanelHeader } from "@/components/common/page";
+import { MyDayMeetings } from "@/components/meetings/my-day-meetings";
+import type { CalendarStatus } from "@/components/meetings/meeting-fields";
+import type { UpcomingMeeting } from "@/server/queries/meetings";
 import { PaceBar } from "@/components/common/pace-bar";
 import { DrilldownSheet, type DrillRequest } from "@/components/metrics/drilldown-sheet";
 import { useApp } from "@/components/app/app-provider";
@@ -24,19 +27,27 @@ import { FounderSocialBlocks } from "./social-day";
 import type { PostItem } from "@/server/queries/content";
 
 const BAR_METRICS = ["leads_added", "outreach", "follow_ups"] as const satisfies readonly TargetMetric[];
-const SHORT: Partial<Record<TargetMetric, string>> = { leads_added: "Leads", outreach: "Outreach", follow_ups: "Follow-ups" };
+const SHORT: Partial<Record<TargetMetric, string>> = {
+  leads_added: "Leads",
+  outreach: "Outreach",
+  follow_ups: "Follow-ups",
+};
 
 export function MyDayView({
   data,
   tasks,
   founderName,
   social,
+  meetings,
+  calendar,
 }: {
   data: MyDayData;
   tasks: TaskItem[];
   founderName: string;
   /** Founder only: review queue and today's posts (docs/09 section 4). */
   social?: { review: PostItem[]; todayPosts: PostItem[] } | null;
+  meetings: UpcomingMeeting[];
+  calendar: CalendarStatus;
 }) {
   const { openNewLead } = useApp();
   const profile = useProfile();
@@ -45,7 +56,13 @@ export function MyDayView({
   const [showComing, setShowComing] = useState(false);
 
   const open = (metric: DrillMetric, label: string) =>
-    setDrill({ metric, label: `${label} today`, fromUtc: data.range.fromUtc, toUtc: data.range.toUtc, userId: profile.id });
+    setDrill({
+      metric,
+      label: `${label} today`,
+      fromUtc: data.range.fromUtc,
+      toUtc: data.range.toUtc,
+      userId: profile.id,
+    });
 
   const overdue = data.followUps.filter((f) => f.due < data.today);
   const dueToday = data.followUps.filter((f) => f.due === data.today);
@@ -70,7 +87,12 @@ export function MyDayView({
             const actual = data.counts[m];
             if (weekly === undefined) {
               return (
-                <CountButton key={m} label={METRIC_LABELS[m]} value={actual} onClick={() => open(m, METRIC_LABELS[m])} />
+                <CountButton
+                  key={m}
+                  label={METRIC_LABELS[m]}
+                  value={actual}
+                  onClick={() => open(m, METRIC_LABELS[m])}
+                />
               );
             }
             const daily = dailyTarget(weekly);
@@ -82,7 +104,12 @@ export function MyDayView({
                 className="rounded-md p-1 text-left transition-colors hover:bg-surface-muted"
                 data-testid={`counter-${m}`}
               >
-                <PaceBar label={SHORT[m]} actual={actual} target={daily} pace={now ? dayPaceMarker(daily, profile.timezone, now) : null} />
+                <PaceBar
+                  label={SHORT[m]}
+                  actual={actual}
+                  target={daily}
+                  pace={now ? dayPaceMarker(daily, profile.timezone, now) : null}
+                />
                 <span className="sr-only">Show the list</span>
               </button>
             );
@@ -97,10 +124,17 @@ export function MyDayView({
             inline
           />
           {data.targets.proposals_sent !== undefined && (
-            <CountButton label="Proposals sent" value={data.counts.proposals_sent} onClick={() => open("proposals_sent", "Proposals sent")} inline />
+            <CountButton
+              label="Proposals sent"
+              value={data.counts.proposals_sent}
+              onClick={() => open("proposals_sent", "Proposals sent")}
+              inline
+            />
           )}
         </div>
       </Panel>
+
+      <MyDayMeetings meetings={meetings} calendar={calendar} />
 
       <MyDayTasks today={data.today} tasks={tasks} founderName={founderName} />
 
@@ -117,7 +151,13 @@ export function MyDayView({
           }
         />
         {data.followUps.length === 0 ? (
-          <EmptyState action={<Button variant="secondary" asChild><Link href="/leads">Open leads</Link></Button>}>
+          <EmptyState
+            action={
+              <Button variant="secondary" asChild>
+                <Link href="/leads">Open leads</Link>
+              </Button>
+            }
+          >
             Nothing due today. Open Leads and plan next steps for new leads.
           </EmptyState>
         ) : (
@@ -134,7 +174,10 @@ export function MyDayView({
             onClick={() => setShowComing((v) => !v)}
             className="flex w-full items-center gap-2 px-4 py-3 text-left text-section text-ink hover:bg-surface-muted"
           >
-            <ChevronDown className={cn("size-4 text-ink-muted transition-transform", !showComing && "-rotate-90")} aria-hidden />
+            <ChevronDown
+              className={cn("size-4 text-ink-muted transition-transform", !showComing && "-rotate-90")}
+              aria-hidden
+            />
             Coming up
             <span className="num text-small font-normal text-ink-muted">{data.comingUp.length}</span>
           </button>
@@ -156,15 +199,30 @@ export function MyDayView({
   );
 }
 
-function CountButton({ label, value, onClick, inline }: { label: string; value: number; onClick: () => void; inline?: boolean }) {
+function CountButton({
+  label,
+  value,
+  onClick,
+  inline,
+}: {
+  label: string;
+  value: number;
+  onClick: () => void;
+  inline?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn("rounded-md p-1 text-left transition-colors hover:bg-surface-muted", inline && "inline-flex items-baseline gap-2")}
+      className={cn(
+        "rounded-md p-1 text-left transition-colors hover:bg-surface-muted",
+        inline && "inline-flex items-baseline gap-2",
+      )}
     >
       <span className="text-small text-ink-muted">{label}</span>
-      <span className={cn("num text-ink", inline ? "text-body font-medium" : "block text-section")}>{formatNumber(value)}</span>
+      <span className={cn("num text-ink", inline ? "text-body font-medium" : "block text-section")}>
+        {formatNumber(value)}
+      </span>
       <span className="sr-only">Show the list</span>
     </button>
   );
@@ -188,7 +246,10 @@ function FollowUpRow({ f, today }: { f: FollowUp; today: string }) {
     >
       <span
         aria-hidden
-        className={cn("size-2 shrink-0 rounded-full", state === "overdue" ? "bg-bad" : state === "today" ? "bg-warn" : "bg-line")}
+        className={cn(
+          "size-2 shrink-0 rounded-full",
+          state === "overdue" ? "bg-bad" : state === "today" ? "bg-warn" : "bg-line",
+        )}
       />
       <span className="w-40 min-w-0 truncate font-medium text-ink">{f.contact ?? "No contact"}</span>
       <Link href={`/leads/${f.leadId}`} className="w-52 min-w-0 truncate text-ink hover:underline">
@@ -196,7 +257,10 @@ function FollowUpRow({ f, today }: { f: FollowUp; today: string }) {
       </Link>
       <span className="min-w-0 flex-1 truncate text-ink-muted">{f.nextAction}</span>
       <span
-        className={cn("num w-32 text-right text-small", state === "overdue" ? "text-bad" : state === "today" ? "text-warn" : "text-ink-muted")}
+        className={cn(
+          "w-32 text-right num text-small",
+          state === "overdue" ? "text-bad" : state === "today" ? "text-warn" : "text-ink-muted",
+        )}
       >
         {state === "upcoming" ? dueLabel(f.due, today) : `Due ${lowerRelative(dueLabel(f.due, today))}`}
       </span>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -24,12 +25,14 @@ import { applyFieldErrors } from "@/lib/forms";
 import {
   defaultOutcome,
   makeLogActivitySchema,
+  MEETING_OUTCOME,
   NO_NEXT_ACTION_OUTCOMES,
   outcomesFor,
   type LogActivityData,
   type LogActivityValues,
 } from "@/lib/validation/activity";
 import { getLeadForLog, logActivity, type LeadForLog, type LogActivityResult } from "@/server/actions/activities";
+import { MeetingFields, type MeetingErrors } from "@/components/meetings/meeting-fields";
 import { CreateOpportunityDialog, ProposalMoveDialog } from "./opportunity-prompts";
 
 /** Global Log activity side panel (docs/07 section 6). */
@@ -147,6 +150,16 @@ function LogActivityForm({
       nextAction: "",
       nextActionDue: null,
       noNextStep: false,
+      meeting: {
+        startsAt: "",
+        timezone: lead.lead_timezone ?? profile.timezone,
+        durationMin: 30,
+        location: "",
+        agenda: "",
+        reminders: lead.meetingReminders,
+        addToCalendar: true,
+        inviteContact: false,
+      },
     },
   });
   const { control, register, formState, setValue } = form;
@@ -154,6 +167,10 @@ function LogActivityForm({
   const typeId = useWatch({ control, name: "activityTypeId" });
   const outcomeKey = useWatch({ control, name: "outcomeKey" });
   const noNextStep = useWatch({ control, name: "noNextStep" });
+  const chosenContact = useWatch({ control, name: "contactId" });
+  const booking = outcomeKey === MEETING_OUTCOME;
+  const contactEmail = lead.contacts.find((c) => c.id === chosenContact)?.email ?? null;
+  const contactLabel = lead.contacts.find((c) => c.id === chosenContact)?.name ?? lead.company_name;
   const type = lists.activityTypes.find((t) => t.id === typeId);
   const allowed = outcomesFor(type?.category, lists.outcomes);
   const nextOptional = NO_NEXT_ACTION_OUTCOMES.includes(outcomeKey);
@@ -197,7 +214,7 @@ function LogActivityForm({
               setFormError(res.error);
               return;
             }
-            toast.success("Activity logged");
+            toast.success(res.data.meetingId ? "Meeting booked" : "Activity logged");
             router.refresh();
             onLogged(lead, res.data);
           }),
@@ -284,7 +301,35 @@ function LogActivityForm({
           <Textarea id="log-notes" rows={3} {...register("notes")} />
         </FormField>
 
-        <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4">
+        {booking && (
+          <fieldset className="flex flex-col gap-3 rounded-lg border border-line p-4" data-testid="meeting-section">
+            <legend className="px-1 text-section text-ink">Meeting</legend>
+            <Controller
+              control={control}
+              name="meeting"
+              render={({ field }) => {
+                const e = errors.meeting as Partial<Record<string, { message?: string }>> | undefined;
+                const meetingErrors: MeetingErrors = Object.fromEntries(
+                  Object.entries(e ?? {}).map(([k, v]) => [k, v?.message]),
+                );
+                return (
+                  <MeetingFields
+                    idPrefix="log-meeting"
+                    value={field.value!}
+                    onChange={(patch) => field.onChange({ ...field.value!, ...patch })}
+                    errors={meetingErrors}
+                    viewerTz={profile.timezone}
+                    contactEmail={contactEmail}
+                    calendar={lead.calendar}
+                  />
+                );
+              }}
+            />
+            <p className="text-small text-ink-muted">Next action becomes &ldquo;Meeting with {contactLabel}&rdquo; on the meeting day.</p>
+          </fieldset>
+        )}
+
+        <fieldset className={cn("flex flex-col gap-3 rounded-lg border border-line p-4", booking && "hidden")}>
           <legend className="px-1 text-section text-ink">Next action</legend>
           {lead.next_action && (
             <p className="text-small text-ink-muted">

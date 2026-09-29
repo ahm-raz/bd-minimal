@@ -4,6 +4,8 @@ import { getMyDay } from "@/server/queries/my-day";
 import { getMyDayTasks } from "@/server/queries/tasks";
 import { getLists } from "@/server/queries/lists";
 import { getFounderSocialDay, getSocialDay } from "@/server/queries/content";
+import { getUpcomingMeetings } from "@/server/queries/meetings";
+import { getMyCalendarStatus } from "@/server/queries/calendar";
 import { MyDayView } from "./my-day-view";
 import { SocialDayView } from "./social-day";
 
@@ -20,9 +22,20 @@ export default async function MyDayPage() {
   if (viewer.role === "social") {
     return <SocialDayView data={await getSocialDay(viewer)} tasks={tasks.tasks} founderName={founderName} />;
   }
-  const [data, social] = await Promise.all([
+  const [data, social, meetings, calendar] = await Promise.all([
     getMyDay(viewer),
     viewer.role === "founder" && lists.socialAccounts.length > 0 ? getFounderSocialDay(viewer) : null,
+    getUpcomingMeetings(7),
+    getMyCalendarStatus(),
   ]);
-  return <MyDayView data={data} tasks={tasks.tasks} founderName={founderName} social={social} />;
+  return (
+    <MyDayView
+      data={data}
+      tasks={tasks.tasks}
+      founderName={founderName}
+      social={social}
+      meetings={meetings}
+      calendar={calendar}
+    />
+  );
 }

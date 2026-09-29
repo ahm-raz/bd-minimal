@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireViewer } from "@/server/auth";
 import { getLeadDetail, toLeadFormValues } from "@/server/queries/lead-detail";
+import { getMyCalendarStatus } from "@/server/queries/calendar";
 import { LeadPage } from "./lead-page";
 
 export async function generateMetadata({ params }: PageProps<"/leads/[id]">): Promise<Metadata> {
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: PageProps<"/leads/[id]">): Pr
 export default async function LeadDetailPage({ params }: PageProps<"/leads/[id]">) {
   await requireViewer();
   const { id } = await params;
-  const detail = await getLeadDetail(id);
+  const [detail, calendar] = await Promise.all([getLeadDetail(id), getMyCalendarStatus()]);
   if (!detail) notFound();
-  return <LeadPage detail={detail} formValues={toLeadFormValues(detail.lead, detail.contacts)} />;
+  return <LeadPage detail={detail} formValues={toLeadFormValues(detail.lead, detail.contacts)} calendar={calendar} />;
 }

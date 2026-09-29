@@ -11,6 +11,7 @@ export type LeadDetail = {
   opportunities: Tables<"opportunities">[];
   activities: Tables<"activities">[];
   stageEvents: Tables<"opportunity_stage_events">[];
+  meetings: Tables<"meetings">[];
 };
 
 /** Everything the lead page needs. Returns null when RLS hides the lead (the page 404s). */
@@ -19,11 +20,12 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
   const supabase = await createClient();
   const { data: lead } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
   if (!lead) return null;
-  const [contacts, ownerEvents, flags, opportunities] = await Promise.all([
+  const [contacts, ownerEvents, flags, opportunities, meetings] = await Promise.all([
     supabase.from("contacts").select("*").eq("lead_id", id).order("is_primary", { ascending: false }).order("created_at"),
     supabase.from("lead_owner_events").select("*").eq("lead_id", id).order("changed_at", { ascending: false }),
     supabase.from("tasks").select("id, note, created_at").eq("lead_id", id).eq("kind", "lead_fix").is("completed_at", null),
     supabase.from("opportunities").select("*").eq("lead_id", id).order("created_at", { ascending: false }),
+    supabase.from("meetings").select("*").eq("lead_id", id).order("starts_at", { ascending: false }).limit(100),
   ]);
   const oppIds = (opportunities.data ?? []).map((o) => o.id);
   const [activities, stageEvents] = await Promise.all([
@@ -40,6 +42,7 @@ export async function getLeadDetail(id: string): Promise<LeadDetail | null> {
     opportunities: opportunities.data ?? [],
     activities: activities.data ?? [],
     stageEvents: stageEvents.data ?? [],
+    meetings: meetings.data ?? [],
   };
 }
 

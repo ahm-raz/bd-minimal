@@ -23,7 +23,15 @@ import type { TaskItem } from "@/server/queries/tasks";
 import { MyDayTasks } from "./my-day-tasks";
 
 /** My Day for a social media manager (docs/09 section 4). */
-export function SocialDayView({ data, tasks, founderName }: { data: SocialDay; tasks: TaskItem[]; founderName: string }) {
+export function SocialDayView({
+  data,
+  tasks,
+  founderName,
+}: {
+  data: SocialDay;
+  tasks: TaskItem[];
+  founderName: string;
+}) {
   const { openPostSheet } = useApp();
   const profile = useProfile();
   const now = useNow();
@@ -53,7 +61,7 @@ export function SocialDayView({ data, tasks, founderName }: { data: SocialDay; t
             />
           ) : (
             <p className="text-body text-ink">
-              Posts published <span className="num ml-2 font-medium">{data.postedToday}</span>
+              Posts published <span className="ml-2 num font-medium">{data.postedToday}</span>
             </p>
           )}
         </div>
@@ -62,7 +70,13 @@ export function SocialDayView({ data, tasks, founderName }: { data: SocialDay; t
       <Panel className="mb-6" aria-label="Today's posts">
         <PanelHeader title="Today's posts" meta={<span className="num">{data.todayPosts.length}</span>} />
         {data.todayPosts.length === 0 ? (
-          <EmptyState action={<Button variant="secondary" asChild><Link href="/content">Open Content</Link></Button>}>
+          <EmptyState
+            action={
+              <Button variant="secondary" asChild>
+                <Link href="/content">Open Content</Link>
+              </Button>
+            }
+          >
             Nothing to post today. Get ahead on the next drafts.
           </EmptyState>
         ) : (
@@ -167,7 +181,11 @@ export function FounderSocialBlocks({ review, todayPosts }: { review: PostItem[]
         )}
       </Panel>
       {changing && (
-        <RequestChangesDialog postId={changing} onClose={() => setChanging(null)} onDone={async () => router.refresh()} />
+        <RequestChangesDialog
+          postId={changing}
+          onClose={() => setChanging(null)}
+          onDone={async () => router.refresh()}
+        />
       )}
       <Panel className="mb-6" aria-label="Today's posts">
         <PanelHeader title="Today's posts" meta={<span className="num">{todayPosts.length}</span>} />
