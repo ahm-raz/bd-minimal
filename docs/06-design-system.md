@@ -106,7 +106,7 @@ A Claude-style pairing. Anthropic's own typefaces are licensed, so these are the
   - Nav items: icon + label; active = accent-soft background + accent text.
   - Bottom: user name, role and time zone, with a menu for Profile and Sign out.
 - **Top bar in each page:** page title on the left. Right side: the date-range picker (Performance and Feed) and the primary action button.
-- **Content** max width 1440px, 24px padding (32px on wide screens). Tables are full width.
+- **Content** max width 1440px, 24px padding. Tables are full width.
 - **Founder's department switcher** sits under the app name (docs/07, Navigation).
 - **Spacing** on a 4px scale: 4, 8, 12, 16, 24, 32.
 - **Radius:** 6px small controls, 8px inputs and buttons, 12px panels and dialogs; chips are pills. Tables have no outer radius inside panels. Use the tokens, never `rounded-[…]`.
@@ -152,7 +152,7 @@ A Claude-style pairing. Anthropic's own typefaces are licensed, so these are the
   - G then M / L / P: go to My Day / Leads / Pipeline
   - Esc: close panel
 - **Saving:** optimistic where safe (ticking a task, moving a card). Roll back with an error toast if the server rejects.
-- **Loading:** every route has a `loading.tsx` skeleton shaped like the page; filter changes use the loading bar; buttons show their own spinner. Never full-page spinners after first load.
+- **Loading:** list and board routes have a `loading.tsx` skeleton shaped like the page (not the lead page: streaming would answer 200 before a 404); filter changes use the loading bar; buttons show their own spinner. Never full-page spinners after first load.
 - **Motion:** short, eased out (`--ease-out-soft`), CSS only, and only on arrivals and actions:
   - pages fade up 4px over 180ms (`(app)/template.tsx`)
   - side panels slide fully in over 240ms, out over 180ms; dialogs fade and scale from 97% over 200ms
