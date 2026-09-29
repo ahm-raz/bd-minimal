@@ -18,6 +18,8 @@ export function SelectField({
   invalid,
   disabled,
   className,
+  defaultOpen,
+  onOpenChange,
   "aria-label": ariaLabel,
 }: {
   id?: string;
@@ -29,6 +31,9 @@ export function SelectField({
   invalid?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Open the list straight away (e.g. an in-place editor). */
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   "aria-label"?: string;
 }) {
   return (
@@ -36,6 +41,8 @@ export function SelectField({
       value={value ?? (noneLabel ? NONE : "")}
       onValueChange={(v) => onChange(v === NONE ? null : v)}
       disabled={disabled}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
     >
       <SelectTrigger
         id={id}

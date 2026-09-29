@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -33,8 +33,9 @@ export type DetailFieldProps = {
 );
 
 /**
- * One row of the lead page's Details panel, editable in place: click the value, change it, Enter or Save.
- * The tick saves too; Esc or a click outside leaves it as it was. Lists save as soon as an option is picked.
+ * One row of the lead page's Details panel, editable in place.
+ * - Text: click the value, type, then Enter or ✓. Esc, or moving focus out of the box, cancels.
+ * - Lists: clicking the value opens the list; picking saves, closing it without a pick cancels.
  */
 export function DetailField(props: DetailFieldProps) {
   const { leadId, field, label, value, display, country } = props;
@@ -43,30 +44,16 @@ export function DetailField(props: DetailFieldProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const boxRef = useRef<HTMLDivElement>(null);
-  const isList = props.kind === "select" || props.kind === "combobox";
-
-  // Clicking anywhere outside the editor cancels the edit (a list's own dropdown counts as inside).
-  useEffect(() => {
-    if (!editing) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Element | null;
-      if (!target || boxRef.current?.contains(target)) return;
-      if (target.closest("[data-radix-popper-content-wrapper], [role='listbox'], [role='dialog'] [cmdk-root]")) return;
-      if (!pending) {
-        setEditing(false);
-        setError(null);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [editing, pending]);
+  /** Set when a list option is picked, so the list closing right after doesn't count as a cancel. */
+  const picked = useRef(false);
   const inputId = `detail-${field}`;
-  const empty = display === null || display === undefined || display === "" || (Array.isArray(value) && value.length === 0 && !display);
+  const isList = props.kind === "select" || props.kind === "combobox";
+  const empty = display === null || display === undefined || display === "";
 
   const start = () => {
     setDraft(Array.isArray(value) ? value.join(", ") : value == null ? "" : String(value));
     setError(null);
+    picked.current = false;
     setEditing(true);
   };
   const cancel = () => {
@@ -75,15 +62,24 @@ export function DetailField(props: DetailFieldProps) {
   };
   const save = (next: string) => {
     const raw = props.kind === "tags" ? next.split(",").map((t) => t.trim()).filter(Boolean) : next;
+    // A list has already closed when this runs, so its errors go to a toast and the row closes.
+    const fail = (message: string) => {
+      if (isList) {
+        toast.error(message);
+        cancel();
+      } else {
+        setError(message);
+      }
+    };
     const check = parseLeadField(field, raw, country);
     if (!check.ok) {
-      setError(check.error);
+      fail(check.error);
       return;
     }
     startTransition(async () => {
       const res = await updateLeadField({ leadId, field, value: raw });
       if (!res.ok) {
-        setError(res.fieldErrors?.value ?? res.error);
+        fail(res.fieldErrors?.value ?? res.error);
         return;
       }
       toast.success(`${label} saved`);
@@ -91,13 +87,28 @@ export function DetailField(props: DetailFieldProps) {
       router.refresh();
     });
   };
-  const keys = (e: React.KeyboardEvent) => {
+
+  // Lists: the dropdown is the whole editor.
+  const pick = (v: string | null) => {
+    picked.current = true;
+    setDraft(v ?? "");
+    save(v ?? "");
+  };
+  const onListOpenChange = (open: boolean) => {
+    if (!open && !picked.current) cancel();
+  };
+
+  // Text: leaving the box (focus moves outside it) cancels; the ✓ keeps focus inside, so it doesn't.
+  const onBoxBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (pending || e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    cancel();
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       cancel();
-    }
-    if (e.key === "Enter" && (props.kind !== "textarea" || e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Enter" && (props.kind !== "textarea" || e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       save(draft);
     }
@@ -110,60 +121,47 @@ export function DetailField(props: DetailFieldProps) {
         id={inputId}
         aria-label={label}
         value={draft || null}
-        onChange={(v) => {
-          setDraft(v ?? "");
-          save(v ?? "");
-        }}
+        onChange={pick}
         options={props.options}
         noneLabel={props.noneLabel}
         invalid={!!error}
+        defaultOpen
+        onOpenChange={onListOpenChange}
       />
     );
   } else if (props.kind === "combobox") {
     control = (
       <Combobox
         id={inputId}
+        aria-label={label}
         value={draft || null}
-        onChange={(v) => {
-          setDraft(v ?? "");
-          save(v ?? "");
-        }}
+        onChange={pick}
         options={props.options}
         allowClear={!!props.clearLabel}
         clearLabel={props.clearLabel}
         placeholder={props.clearLabel ?? "Pick one"}
         searchPlaceholder={props.searchPlaceholder}
-        aria-label={label}
-      />
-    );
-  } else if (props.kind === "textarea") {
-    control = (
-      <Textarea
-        id={inputId}
-        aria-label={label}
-        autoFocus
-        rows={3}
-        value={draft}
-        placeholder={props.placeholder}
-        aria-invalid={!!error}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={keys}
+        invalid={!!error}
+        defaultOpen
+        onOpenChange={onListOpenChange}
       />
     );
   } else {
-    control = (
-      <Input
-        id={inputId}
-        aria-label={label}
-        autoFocus
-        value={draft}
-        placeholder={props.placeholder}
-        inputMode={props.kind === "text" ? props.inputMode : undefined}
-        aria-invalid={!!error}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={keys}
-      />
-    );
+    const shared = {
+      id: inputId,
+      "aria-label": label,
+      autoFocus: true,
+      value: draft,
+      placeholder: props.placeholder,
+      "aria-invalid": !!error,
+      onKeyDown,
+    };
+    control =
+      props.kind === "textarea" ? (
+        <Textarea {...shared} rows={3} onChange={(e) => setDraft(e.target.value)} />
+      ) : (
+        <Input {...shared} inputMode={props.kind === "text" ? props.inputMode : undefined} onChange={(e) => setDraft(e.target.value)} />
+      );
   }
 
   return (
@@ -173,11 +171,20 @@ export function DetailField(props: DetailFieldProps) {
       </dt>
       <dd className="min-w-0" data-testid={`detail-${field}`}>
         {editing ? (
-          <div ref={boxRef} className="flex flex-col gap-1.5" onKeyDown={isList ? keys : undefined}>
+          <div className="flex flex-col gap-1.5" onBlur={isList ? undefined : onBoxBlur}>
             <div className="flex items-start gap-1.5">
               <div className="min-w-0 flex-1">{control}</div>
               {!isList && (
-                <Button type="button" size="icon" disabled={pending} onClick={() => save(draft)} aria-label={`Save ${label}`} title="Save">
+                <Button
+                  type="button"
+                  size="icon"
+                  disabled={pending}
+                  aria-label={`Save ${label}`}
+                  title="Save"
+                  // Keep focus in the field so pressing ✓ isn't read as leaving the box.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => save(draft)}
+                >
                   <Check />
                 </Button>
               )}
@@ -195,10 +202,11 @@ export function DetailField(props: DetailFieldProps) {
             aria-label={`Edit ${label}`}
             className="group -mx-1.5 flex w-[calc(100%+0.75rem)] items-start gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-surface-muted"
           >
-            <span className={cn("min-w-0 flex-1 break-words", empty && "text-ink-muted")}>
-              {empty ? "Not set" : display}
-            </span>
-            <Pencil className="mt-0.5 size-3.5 shrink-0 text-ink-faint opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden />
+            <span className={cn("min-w-0 flex-1 break-words", empty && "text-ink-muted")}>{empty ? "Not set" : display}</span>
+            <Pencil
+              className="mt-0.5 size-3.5 shrink-0 text-ink-faint opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+              aria-hidden
+            />
           </button>
         )}
       </dd>

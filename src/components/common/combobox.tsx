@@ -23,6 +23,8 @@ export function Combobox({
   className,
   allowClear,
   clearLabel = "None",
+  defaultOpen = false,
+  onOpenChange,
   "aria-label": ariaLabel,
 }: {
   id?: string;
@@ -37,9 +39,16 @@ export function Combobox({
   className?: string;
   allowClear?: boolean;
   clearLabel?: string;
+  /** Open the list straight away (e.g. an in-place editor). */
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   "aria-label"?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(defaultOpen);
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    onOpenChange?.(next);
+  };
   const selected = options.find((o) => o.value === value);
 
   return (
