@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useRouter } from "@/components/app/nav-progress";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +20,8 @@ import { SelectField } from "@/components/common/select-field";
 import { StatusChip } from "@/components/common/chips";
 import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
-import { ACTIVITY_CATEGORIES, CATEGORY_LABELS, type ActivityCategory } from "@/lib/domain";
+import { CATEGORY_LABELS, type ActivityCategory } from "@/lib/domain";
+import { leadStage, splitTypesByStage } from "@/lib/activity-suggestions";
 import { MAX_BACKDATE_DAYS, toLocalDateTimeInput } from "@/lib/dates";
 import { applyFieldErrors } from "@/lib/forms";
 import {
@@ -109,6 +111,9 @@ function LogActivityLoader({
   return <LogActivityForm lead={lead} contactId={contactId} onClose={onClose} onLogged={onLogged} />;
 }
 
+/** The "More types" row in the Type list: expands or collapses the other types, never becomes the value. */
+const MORE_TYPES = "__more_types__";
+
 function LogActivityForm({
   lead,
   contactId,
@@ -134,7 +139,15 @@ function LogActivityForm({
   const [nowInput] = useState(() => toLocalDateTimeInput(new Date(), profile.timezone));
   const [minInput] = useState(() => toLocalDateTimeInput(new Date(Date.now() - MAX_BACKDATE_DAYS * 86_400_000), profile.timezone));
 
-  const firstType = types[0];
+  // Types that fit where the lead is come first; the rest wait under "More types" (APP-GUIDE §6).
+  const { suggested, more } = useMemo(
+    () => splitTypesByStage(types, leadStage(lead.status, lead.hasUpcomingMeeting)),
+    [types, lead.status, lead.hasUpcomingMeeting],
+  );
+  const [showMore, setShowMore] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const keepTypeOpen = useRef(false);
+  const firstType = suggested[0] ?? types[0];
   const primary = lead.contacts.find((c) => c.is_primary) ?? lead.contacts[0];
   const form = useForm<LogActivityValues, unknown, LogActivityData>({
     resolver: zodResolver(schema),
@@ -175,9 +188,19 @@ function LogActivityForm({
   const allowed = outcomesFor(type?.category, lists.outcomes);
   const nextOptional = NO_NEXT_ACTION_OUTCOMES.includes(outcomeKey);
 
-  const byCategory = ACTIVITY_CATEGORIES.map((c) => ({ c, items: types.filter((t) => t.category === c) })).filter(
-    (g) => g.items.length,
-  );
+  const groupByCategory = (list: typeof types) =>
+    list.reduce<{ c: ActivityCategory; items: typeof types }[]>((acc, t) => {
+      const g = acc.find((x) => x.c === t.category);
+      if (g) g.items.push(t);
+      else acc.push({ c: t.category, items: [t] });
+      return acc;
+    }, []);
+  // A type picked from "More types" joins the suggested ones, so the field keeps its name when the list collapses.
+  const picked = more.find((t) => t.id === typeId);
+  const suggestedGroups = groupByCategory(picked ? [...suggested, picked] : suggested);
+  const moreGroups = groupByCategory(more.filter((t) => t.id !== typeId));
+  const moreCount = more.length - (picked ? 1 : 0);
+  const moreOpen = showMore;
 
   return (
     <FormSheet
@@ -232,8 +255,22 @@ function LogActivityForm({
               name="activityTypeId"
               render={({ field }) => (
                 <Select
+                  open={typeOpen}
+                  onOpenChange={(o) => {
+                    // Choosing "More types" expands the list in place instead of closing it.
+                    if (!o && keepTypeOpen.current) {
+                      keepTypeOpen.current = false;
+                      return;
+                    }
+                    setTypeOpen(o);
+                  }}
                   value={field.value}
                   onValueChange={(v) => {
+                    if (v === MORE_TYPES) {
+                      keepTypeOpen.current = true;
+                      setShowMore((m) => !m);
+                      return;
+                    }
                     field.onChange(v);
                     const t = lists.activityTypes.find((x) => x.id === v);
                     if (t) {
@@ -246,9 +283,9 @@ function LogActivityForm({
                     <SelectValue placeholder="Pick a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {byCategory.map((g) => (
+                    {suggestedGroups.map((g) => (
                       <SelectGroup key={g.c}>
-                        <SelectLabel>{CATEGORY_LABELS[g.c as ActivityCategory]}</SelectLabel>
+                        <SelectLabel>{CATEGORY_LABELS[g.c]}</SelectLabel>
                         {g.items.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.name}
@@ -256,6 +293,30 @@ function LogActivityForm({
                         ))}
                       </SelectGroup>
                     ))}
+                    {moreCount > 0 && (
+                      <SelectItem
+                        value={MORE_TYPES}
+                        className="mt-1 border-t border-line text-ink-muted"
+                        aria-expanded={moreOpen}
+                        data-testid="log-type-more"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {moreOpen ? <ChevronDown className="size-3.5" aria-hidden /> : <ChevronRight className="size-3.5" aria-hidden />}
+                          {moreOpen ? "Fewer types" : `More types (${moreCount})`}
+                        </span>
+                      </SelectItem>
+                    )}
+                    {moreOpen &&
+                      moreGroups.map((g) => (
+                        <SelectGroup key={`more-${g.c}`}>
+                          <SelectLabel>{CATEGORY_LABELS[g.c]}</SelectLabel>
+                          {g.items.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                   </SelectContent>
                 </Select>
               )}
