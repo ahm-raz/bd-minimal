@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { addDays, todayIn } from "../../src/lib/dates";
-import { admin, clientAs, ensureTeam, expect, signIn, test, type Who } from "./helpers";
+import { admin, chooseActivityType, clientAs, ensureTeam, expect, signIn, test, type Who } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -44,8 +44,7 @@ async function status(leadId: string) {
 }
 
 async function chooseType(page: Page, name: string) {
-  await page.getByRole("combobox", { name: "Type", exact: true }).click();
-  await page.getByRole("option", { name, exact: true }).click();
+  await chooseActivityType(page, name);
 }
 async function chooseOutcome(page: Page, name: string) {
   await page.getByRole("combobox", { name: "Outcome", exact: true }).click();

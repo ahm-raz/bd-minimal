@@ -37,6 +37,8 @@ export type LeadForLog = {
   lead_timezone: string | null;
   contacts: { id: string; name: string; is_primary: boolean; email: string | null }[];
   openOpportunities: { id: string; title: string; stage_key: string }[];
+  /** A scheduled meeting still ahead: the Type list then suggests meeting steps first (APP-GUIDE §6). */
+  hasUpcomingMeeting: boolean;
   /** The viewer's default meeting reminders (Profile). */
   meetingReminders: number[];
   /** The viewer's Google Calendar: null when the feature is off. */
@@ -56,7 +58,7 @@ export async function getLeadForLog(leadId: string): Promise<ActionResult<LeadFo
     .maybeSingle();
   if (!lead) return fail("That lead wasn't found.");
   const viewer = await getViewer();
-  const [{ data: me }, { data: conn }] = await Promise.all([
+  const [{ data: me }, { data: conn }, { count: upcoming }] = await Promise.all([
     supabase
       .from("profiles")
       .select("meeting_reminders")
@@ -65,6 +67,12 @@ export async function getLeadForLog(leadId: string): Promise<ActionResult<LeadFo
     googleCalendarEnabled()
       ? supabase.from("google_connections").select("status, auto_add").maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("meetings")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead.id)
+      .eq("status", "scheduled")
+      .gt("starts_at", new Date().toISOString()),
   ]);
   const contacts = [...lead.contacts]
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.created_at.localeCompare(b.created_at))
@@ -80,6 +88,7 @@ export async function getLeadForLog(leadId: string): Promise<ActionResult<LeadFo
     openOpportunities: lead.opportunities
       .filter((o) => (OPEN_STAGE_KEYS as string[]).includes(o.stage_key))
       .map((o) => ({ id: o.id, title: o.title, stage_key: o.stage_key })),
+    hasUpcomingMeeting: (upcoming ?? 0) > 0,
     meetingReminders: me?.meeting_reminders ?? [30, 10],
     calendar: !googleCalendarEnabled()
       ? null

@@ -1,6 +1,6 @@
 # Client Acquisition OS: the complete app guide
 
-**Last updated:** 2026-10-01 (M19: separate platform owner). Keep this line current; see CLAUDE.md rule 12.
+**Last updated:** 2026-10-01 (Log activity: suggested types first, the rest under More types). Keep this line current; see CLAUDE.md rule 12.
 
 This one file replaces every earlier doc: `docs/01`–`docs/11`, `DEPLOY.md`, `PROGRESS.md`, `SAAS-PLAN.md`, `UI-WALKTHROUGH.md`, `bd-flow.md`, `lead-timeline-flow.md`, `README.md`'s guide text and `prompt.md`. Their full text lives in the sections below, grouped by topic. Section 16 maps every old heading to its new place.
 
@@ -1995,6 +1995,36 @@ stateDiagram-v2
   no_show --> scheduled: undo
 ```
 
+### Suggested activity types (Log activity → Type)
+
+The Type list shows first the types that fit where the lead is. Every other active type stays available under a collapsible **More types (N)** row at the bottom of the list. **Nothing is disabled or refused**: any type can still be logged, and the database doesn't check this.
+
+- **Stage** = the lead's status, except that a lead with an upcoming scheduled meeting counts as **Meeting booked**. Customer, Lost, Not interested and Bad fit are never overridden.
+- **Order:** suggested types are grouped by category, in the order below. The default type is the first suggested one.
+- **More types:** choosing it expands or collapses the list in place; it never becomes the value. A type picked from More joins the suggested part, so the field keeps its name when the list collapses.
+- **Code:** `src/lib/activity-suggestions.ts` (`leadStage`, `SUGGESTED_CATEGORIES`, `splitTypesByStage`, unit-tested in `tests/unit/activity-suggestions.test.ts`). `getLeadForLog` returns `hasUpcomingMeeting`.
+
+| Stage | Suggested categories (shown first, in this order) | Under More types |
+|---|---|---|
+| New | outreach, call, other | follow-up, inbound reply, meeting, proposal |
+| Contacted | follow-up, outreach, inbound reply, call, other | meeting, proposal |
+| Replied | follow-up, inbound reply, call, meeting, proposal, other | outreach |
+| Meeting booked (upcoming meeting) | meeting, call, follow-up, inbound reply, other | outreach, proposal |
+| Qualified | proposal, follow-up, call, meeting, inbound reply, other | outreach |
+| Nurture | follow-up, inbound reply, call, other | outreach, meeting, proposal |
+| Customer, Lost, Not interested, Bad fit | follow-up, call, inbound reply, other | outreach, meeting, proposal |
+
+```mermaid
+flowchart TD
+  O[Open Log activity] --> S{Lead stage}
+  S -->|status, or Meeting booked<br/>when a meeting is ahead| G[Suggested types first]
+  G --> M[More types row]
+  M -->|choose it| X[Expand or collapse<br/>the other types]
+  G -->|pick| V[Type set]
+  X -->|pick| V
+  V --> OC[Outcome list follows the type's category]
+```
+
 ### Client Acquisition OS: what's built and how to walk through it (from `docs/UI-WALKTHROUGH.md`)
 
 #### 5. Things the app does by itself (worth noticing)
@@ -3047,7 +3077,7 @@ Timeline                                   │ Jenna Ruiz  Office manager
 #### 6. Log activity (side panel)
 
 Fields and defaults per docs/04, section 3:
-- Type (grouped by category)
+- Type (grouped by category; suggested types for the lead's stage first, the rest under **More types**, see "Suggested activity types" in section 6)
 - Outcome (filtered)
 - Contact
 - When

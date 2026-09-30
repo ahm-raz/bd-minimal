@@ -137,6 +137,17 @@ export async function signIn(page: Page, who: Member | { email: string; password
   await page.waitForURL(/\/my-day/);
 }
 
+/**
+ * Log activity → Type. Types that don't fit the lead's stage sit under "More types" (APP-GUIDE §6);
+ * open it when the wanted type isn't in the suggested list.
+ */
+export async function chooseActivityType(page: Page, name: string) {
+  await page.getByRole("combobox", { name: "Type", exact: true }).click();
+  const option = page.getByRole("option", { name, exact: true });
+  if (!(await option.isVisible())) await page.getByTestId("log-type-more").click();
+  await option.click();
+}
+
 export async function signOut(page: Page) {
   await page.context().clearCookies();
 }
