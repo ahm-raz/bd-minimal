@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { addDays, isoWeekday, todayIn } from "../../src/lib/dates";
-import { PASSWORD, admin, clientAs, ensureTeam, ensureUser, expect, signIn, test, type Member } from "./helpers";
+import { PASSWORD, admin, clientAs, ensureTeam, ensureUser, expect, signIn, teamOfficeId, test, type Member } from "./helpers";
 
 /** Social media module (docs/09 section 7): the five end-to-end flows. */
 test.describe.configure({ mode: "serial" });
@@ -16,7 +16,7 @@ test.beforeAll(async () => {
   ids = { ...team, hina };
   const { data, error } = await admin()
     .from("social_accounts")
-    .insert({ name: `E2E LinkedIn page ${RUN}`, platform: "linkedin_page", audience_timezone: NY })
+    .insert({ office_id: await teamOfficeId(), name: `E2E LinkedIn page ${RUN}`, platform: "linkedin_page", audience_timezone: NY })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
@@ -83,7 +83,7 @@ test("the founder adds an SMM with a password; the SMM lands on My Day and is bl
 
   // Their navigation, and the sales and admin pages they can't open
   const nav = smm.getByRole("navigation", { name: "Main" });
-  await expect(nav.getByRole("link")).toHaveText([/My Day/, /Content/, /Tasks/, /Performance/]);
+  await expect(nav.getByRole("link")).toHaveText([/My Day/, /Content/, /Tasks/, /Notifications/, /Performance/]);
   await smm.goto("/leads");
   await expect(smm).toHaveURL(/\/my-day/);
   await expect(smm.getByText("That page isn't part of your role.")).toBeVisible();
