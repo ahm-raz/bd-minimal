@@ -10,6 +10,7 @@ import { FormField } from "@/components/common/form-field";
 import { forgotPasswordSchema, loginSchema, type LoginInput } from "@/lib/validation/auth";
 import { requestPasswordReset, signIn } from "@/server/actions/auth";
 import { applyFieldErrors } from "@/lib/forms";
+import { safeNextPath } from "@/lib/safe-path";
 
 export function LoginForm({ next, initialError }: { next: string; initialError: string | null }) {
   const [mode, setMode] = useState<"signin" | "forgot" | "sent">("signin");
@@ -99,8 +100,11 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
             if (!res.fieldErrors) setFormError(res.error);
             return;
           }
-          router.replace(next);
-          router.refresh();
+          // Inside the transition, so the button keeps spinning until My Day has rendered.
+          startTransition(() => {
+            router.replace(safeNextPath(next));
+            router.refresh();
+          });
         }),
       )}
     >

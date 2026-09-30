@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
 import { Building2, Columns3, FileText, Lightbulb, ListChecks, Megaphone, Plus, Search, User } from "lucide-react";
 import {
   Command,

@@ -1,8 +1,8 @@
 "use client";
 
 import { RelativeTime } from "@/components/common/relative-time";
+import { useRouter } from "@/components/app/nav-progress";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MoreHorizontal, Plus } from "lucide-react";

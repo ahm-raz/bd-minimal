@@ -20,7 +20,7 @@ import { DrilldownSheet, type DrillRequest } from "@/components/metrics/drilldow
 import { PerformanceTabs } from "./performance-tabs";
 import { useApp } from "@/components/app/app-provider";
 import { useProfile } from "@/components/app/profile-provider";
-import { RANGE_PRESET_LABELS, eachDay, isWeekend, todayIn, weekdayShort, type RangePreset } from "@/lib/dates";
+import { RANGE_PRESET_LABELS, diffDays, eachDay, isWeekend, localDateOf, todayIn, weekdayShort, type RangePreset } from "@/lib/dates";
 import { METRIC_LABELS, type TargetMetric } from "@/lib/domain";
 import type { DrillMetric } from "@/lib/drill";
 import { formatMoney, formatNumber, formatRatio, firstName, possessive } from "@/lib/format";
@@ -681,7 +681,7 @@ function PipelineHealth({ data }: { data: PerformanceData }) {
                   </Link>
                   <StageChip stage={s.stage} label={lists.stages.find((x) => x.key === s.stage)?.label ?? s.stage} />
                   <span className="num w-12 text-right text-small text-warn">
-                    {Math.max(0, Math.round((Date.parse(today) - Date.parse(s.since.slice(0, 10))) / 86_400_000))}d
+                    {Math.max(0, diffDays(localDateOf(s.since, timezone), today))}d
                   </span>
                   <span className="w-24 truncate text-small text-ink-muted">{name(s.ownerId)}</span>
                 </li>

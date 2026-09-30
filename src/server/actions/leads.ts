@@ -95,23 +95,18 @@ export async function updateLead(input: LeadFormValues): Promise<ActionResult<{ 
   if (error) return fail(dbErrorMessage(error, "The lead wasn't saved. Try again."));
   if (!updated.length) return fail("That lead wasn't found.");
 
-  const { data: existing } = await supabase.from("contacts").select("id").eq("lead_id", id);
-  const keep = new Set(contacts.filter((c) => c.id).map((c) => c.id!));
-  const remove = (existing ?? []).filter((c) => !keep.has(c.id)).map((c) => c.id);
-
-  // One primary at a time (unique index): clear first, then write.
-  await supabase.from("contacts").update({ is_primary: false }).eq("lead_id", id).eq("is_primary", true);
-  if (remove.length) {
-    const { error: dErr } = await supabase.from("contacts").delete().in("id", remove);
-    if (dErr) return fail(dbErrorMessage(dErr, "A removed contact couldn't be deleted. Try again."));
-  }
-  const ordered = [...contacts].sort((a, b) => Number(a.is_primary) - Number(b.is_primary));
-  for (const c of ordered) {
-    const row = contactRow(c, id);
-    const res = c.id
-      ? await supabase.from("contacts").update(row).eq("id", c.id).eq("lead_id", id)
-      : await supabase.from("contacts").insert(row);
-    if (res.error) return fail(dbErrorMessage(res.error, "A contact wasn't saved. Try again."));
+  // Add, change and remove contacts in one transaction: all of them are saved, or none.
+  const { error: cErr } = await supabase.rpc("sync_lead_contacts", {
+    p_lead_id: id,
+    p_contacts: contacts.map((c) => {
+      const { lead_id: _lead, ...row } = contactRow(c, id);
+      void _lead;
+      return { ...row, id: c.id ?? null };
+    }),
+  });
+  if (cErr) {
+    revalidateLead(id);
+    return fail(dbErrorMessage(cErr, "The lead was saved, but its contacts weren't. Try again."));
   }
   revalidateLead(id);
   return ok({ id });

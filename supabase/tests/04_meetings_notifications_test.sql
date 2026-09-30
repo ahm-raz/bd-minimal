@@ -82,7 +82,7 @@ select 'TOKEN_SHOULD_FAIL';
 select refresh_token_enc from google_connections;
 select 'MY_TOKEN', refresh_token_enc from my_google_token();
 select 'PENDING_AFTER_CONNECT', gcal_state from meetings;
-update meetings set gcal_event_id = 'evt1', gcal_state = 'synced';
+select 'GCAL_SET', set_meeting_gcal(id, sync_version, '{"gcal_event_id":"evt1","gcal_state":"synced"}') from meetings;
 select 'TEAM_STATUS_BD', count(*) from team_calendar_status();
 select as_user('00000000-0000-0000-0000-00000000000b');
 select 'SARA_TOKEN', count(*) from my_google_token();

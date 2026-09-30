@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "@/components/app/nav-progress";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Download, FileUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

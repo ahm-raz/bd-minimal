@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
 import { ChevronsUpDown, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,8 @@ export function FounderTasks({
   const pathname = usePathname();
   const params = useSearchParams();
   const [sheet, setSheet] = useState<TaskSheetState | null>(openNew ? { mode: "new" } : null);
-  const [, startTransition] = useTransition();
+  const [stopPending, startTransition] = useTransition();
+  const [stoppingId, setStoppingId] = useState<string | null>(null);
 
   // T while already on this page
   useEffect(() => {
@@ -245,8 +247,11 @@ export function FounderTasks({
                           <Button
                             variant="ghost"
                             size="sm"
+                            pending={stopPending && stoppingId === t.id}
+                            pendingText="Stopping…"
                             onClick={() =>
                               startTransition(async () => {
+                                setStoppingId(t.id);
                                 const res = await stopTemplate({ id: t.id });
                                 if (!res.ok) toast.error(res.error);
                                 else {

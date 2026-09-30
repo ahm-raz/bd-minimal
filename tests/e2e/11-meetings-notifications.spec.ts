@@ -153,7 +153,7 @@ test("a reassigned lead reaches the new owner live; opening it marks it read", a
 
   await bell.click();
   await page.getByRole("tab", { name: /What happened/ }).click();
-  const item = page.getByTestId("happened-list").getByRole("link", { name: /reassigned lead Live Bell Dental/ });
+  const item = page.getByTestId("happened-list").getByRole("link", { name: /gave you Live Bell Dental/ });
   await expect(item).toBeVisible();
   await item.click();
   await expect(page).toHaveURL(new RegExp(`/leads/${leadId}`));

@@ -51,7 +51,17 @@ export function defaultPrefs(): NotificationPref[] {
 // ---------- What's upcoming ----------------------------------------------
 
 export type UpcomingKind =
-  "meeting" | "follow_up" | "task" | "deal_close" | "deal_stuck" | "post" | "draft" | "changes" | "review";
+  | "meeting"
+  | "follow_up"
+  | "task"
+  | "deal_close"
+  | "deal_stuck"
+  | "post"
+  | "draft"
+  | "changes"
+  | "review"
+  /** Founder: a member with overdue tasks; `date` is their oldest overdue due date. */
+  | "team_overdue";
 
 export type UpcomingItem = {
   key: string;

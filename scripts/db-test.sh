@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SQL tests against the LOCAL Supabase stack.
-# db reset -> 02_smoke_test.sql -> check; db reset -> 03 -> check; db reset -> 04 -> check; db reset.
+# db reset -> 02_smoke_test.sql -> check; db reset -> 03 -> check; db reset -> 04 -> check; ... 06 -> check; db reset.
 # Never runs 00_supabase_stub.sql (that file is for plain Postgres only).
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -169,7 +169,8 @@ expect "MEETING_OWNER|t|t"
 expect "CLEANUP|t|evt1"
 expect "REASSIGN_TO|Ahmed,Sara"
 expect "SARA_MUTED_TASKS|0"
-expect "TITLE_REASSIGN|Zain reassigned lead Smile Dental"
+expect "GCAL_SET|t"
+expect "TITLE_REASSIGN|Zain gave you Smile Dental"
 expect "HINA_KINDS|post_assigned,post_comment"
 expect "HINA_LINK|/content?post=60000000-0000-0000-0000-000000000001"
 expect "PRUNE|0"
@@ -212,6 +213,49 @@ if [ "$IMPORT_ERRORS" -ne 10 ]; then
   FAILED=1
 fi
 
+# ---------- 06: hardening (migration 20261001000000_hardening.sql) ----------
+echo "Resetting local database for the hardening test..."
+reset_db
+OUT=$(run_psql < supabase/tests/06_hardening_test.sql 2>&1)
+echo "$OUT"
+
+expect "FAILED|failed|t|1"
+expect "CANCELLED|cancelled|t"
+expect "LEAD_COMP|40"
+expect "ACT|t"
+expect "ACT_EDIT|edited|bounced|outreach"
+expect "ACT_TYPE_FOUNDER|call"
+expect "SMM_TASK|1"
+expect "BOOK|t"
+expect "INSERT_GCAL|t|off|0|1"
+expect "RESET|off"
+expect "OWNER_SET|t"
+expect "STALE_SET|f"
+expect "SYNCED|evt1|synced|t"
+expect "FOUNDER_SET|f"
+expect "STILL|evt1"
+expect "DEACT_READS|0|0|0"
+expect "DEACT_MARK|0"
+expect "DEACT_DELETE|0"
+expect "SARA_NOTIFS_KEPT|1"
+expect "SARA_ROWS_KEPT|1|1"
+expect "FOUNDER_BOOK|t"
+expect "FOUNDER_KINDS|meeting_booked"
+expect "AHMED_BOOKED|0"
+expect "HINA_COMMENTS|1"
+expect "REASSIGN_TITLES|Zain gave Smile Dental to Sara | Zain gave you Smile Dental"
+expect "CONTACTS|Sarah:false,Tom:true"
+expect "CONTACTS_AFTER_FAIL|2"
+expect "PIPE_ALL|2|6000.00"
+expect "PIPE_DENTAL|1|1000.00"
+expect "PIPE_LAW_ME|1"
+
+HARDENING_ERRORS=$(grep -c '^ERROR:' <<<"$OUT")
+if [ "$HARDENING_ERRORS" -ne 27 ]; then
+  echo "Expected 27 ERROR lines in the hardening test (SHOULD_FAIL checks), got $HARDENING_ERRORS"
+  FAILED=1
+fi
+
 echo "Resetting local database..."
 reset_db
 
@@ -219,4 +263,4 @@ if [ "$FAILED" -ne 0 ]; then
   echo "db:test FAILED"
   exit 1
 fi
-echo "db:test passed: all checks present, 11 + 18 + 8 + 10 expected errors."
+echo "db:test passed: all checks present, 11 + 18 + 8 + 10 + 27 expected errors."

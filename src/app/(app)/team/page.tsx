@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { CLOSED_LEAD_STATUSES } from "@/lib/domain";
 import { requireFounder, requireViewer } from "@/server/auth";
 import { emailInvitesEnabled } from "@/server/email";
 import { googleCalendarEnabled } from "@/server/google/config";
+import { getMemberLastSignIns } from "@/server/actions/team";
 import { getLists } from "@/server/queries/lists";
 import { getDepartment } from "@/server/department";
 import { inDepartment } from "@/lib/department";
@@ -21,9 +21,9 @@ export default async function TeamPage() {
   const [lists, department] = await Promise.all([getLists(), getDepartment(viewer)]);
 
   // Invited = the auth user has never signed in (docs/03, Invite a BD, step 6).
-  // Reading sign-in status needs the Auth admin API; the caller is a verified founder.
-  const { data: authUsers } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
-  const lastSignIn = new Map((authUsers?.users ?? []).map((u) => [u.id, u.last_sign_in_at ?? null]));
+  // Read through a founder-checked server action (the only place the admin client is used).
+  const signIns = await getMemberLastSignIns();
+  const lastSignIn = new Map(Object.entries(signIns.ok ? signIns.data : {}));
 
   // Google Calendar status per member (no tokens), docs/10 section 4.
   const calendarOn = googleCalendarEnabled();

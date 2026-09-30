@@ -22,7 +22,7 @@ export function MyDayTasks({ today, tasks, founderName }: { today: string; tasks
     <Panel className="mb-6" aria-label="Tasks">
       <PanelHeader title={title} meta={<span className="num">{overdue.length + open.length} open</span>} />
       {tasks.length === 0 ? (
-        <EmptyState>No tasks from the founder today.</EmptyState>
+        <EmptyState>{role === "founder" ? "No tasks for you today." : "No tasks from the founder today."}</EmptyState>
       ) : (
         <>
           <TaskRows tasks={[...overdue, ...open]} today={today} />

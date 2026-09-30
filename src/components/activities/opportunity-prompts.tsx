@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { useRouter } from "@/components/app/nav-progress";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +17,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/common/form-field";
+import { applyFieldErrors } from "@/lib/forms";
+import { createOpportunitySchema, type CreateOpportunityValues } from "@/lib/validation/opportunity";
 import { createOpportunity, moveOpportunityStage } from "@/server/actions/opportunities";
 
 /** "Create an opportunity for Bright Smile Dental?" after logging Meeting booked (docs/04 section 3). */
@@ -29,11 +34,12 @@ export function CreateOpportunityDialog({
   title?: string;
 }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [value, setValue] = useState("");
-  const [close, setClose] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, startTransition] = useTransition();
+  const form = useForm<CreateOpportunityValues, unknown, z.output<typeof createOpportunitySchema>>({
+    resolver: zodResolver(createOpportunitySchema),
+    defaultValues: { leadId, title: "", estimatedValue: "", expectedCloseDate: "" },
+  });
+  const errors = form.formState.errors;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -45,29 +51,29 @@ export function CreateOpportunityDialog({
         <form
           noValidate
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={form.handleSubmit(() =>
             startTransition(async () => {
-              const res = await createOpportunity({ leadId, title, estimatedValue: value, expectedCloseDate: close || null });
+              const v = form.getValues();
+              const res = await createOpportunity({ ...v, expectedCloseDate: v.expectedCloseDate || null });
               if (!res.ok) {
-                setErrors(res.fieldErrors ?? { title: res.error });
+                applyFieldErrors(form.setError, res.fieldErrors ?? { title: res.error });
                 return;
               }
               toast.success("Opportunity created");
               onClose();
               router.refresh();
-            });
-          }}
+            }),
+          )}
         >
-          <FormField label="Title" htmlFor="opp-title" required error={errors.title} helper="What we'd sell them.">
-            <Input id="opp-title" autoFocus value={title} placeholder="AI patient intake setup" onChange={(e) => setTitle(e.target.value)} aria-invalid={!!errors.title} />
+          <FormField label="Title" htmlFor="opp-title" required error={errors.title?.message} helper="What we'd sell them.">
+            <Input id="opp-title" autoFocus placeholder="AI patient intake setup" aria-invalid={!!errors.title} {...form.register("title")} />
           </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Estimated value" htmlFor="opp-value" required error={errors.estimatedValue}>
-              <Input id="opp-value" inputMode="decimal" placeholder="3500" className="num" value={value} onChange={(e) => setValue(e.target.value)} aria-invalid={!!errors.estimatedValue} />
+            <FormField label="Estimated value" htmlFor="opp-value" required error={errors.estimatedValue?.message}>
+              <Input id="opp-value" inputMode="decimal" placeholder="3500" className="num" aria-invalid={!!errors.estimatedValue} {...form.register("estimatedValue")} />
             </FormField>
-            <FormField label="Expected close" htmlFor="opp-close" error={errors.expectedCloseDate}>
-              <Input id="opp-close" type="date" value={close} onChange={(e) => setClose(e.target.value)} />
+            <FormField label="Expected close" htmlFor="opp-close" error={errors.expectedCloseDate?.message}>
+              <Input id="opp-close" type="date" aria-invalid={!!errors.expectedCloseDate} {...form.register("expectedCloseDate")} />
             </FormField>
           </div>
           <DialogFooter>

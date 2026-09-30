@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
 import { toast } from "sonner";
 import { pathInDepartment, showsSales } from "@/lib/department";
 import { useApp } from "./app-provider";

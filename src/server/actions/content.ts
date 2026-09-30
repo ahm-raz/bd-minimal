@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { localDateTimeToUtc, shiftLocalDays } from "@/lib/dates";
 import {
@@ -164,23 +165,27 @@ const MOVES = {
   cancel: { to: "cancelled", error: "The post wasn't cancelled. Try again." },
 } as const;
 export type PostMove = keyof typeof MOVES;
+const moveSchema = postIdSchema.extend({
+  move: z.enum(Object.keys(MOVES) as [PostMove, ...PostMove[]]),
+});
 
 /** Start drafting, Submit for review, Approve, Cancel post. The database checks the move. */
 export async function movePost(input: { id: string; move: PostMove }): Promise<ActionResult> {
-  const parsed = parseInput(postIdSchema, { id: input.id });
-  if (!parsed.ok || !(input.move in MOVES)) return fail(NOT_FOUND);
-  const move = MOVES[input.move];
+  const parsed = parseInput(moveSchema, input);
+  if (!parsed.ok) return fail(NOT_FOUND);
+  const move = MOVES[parsed.data.move];
   const viewer = await requireViewer();
   const supabase = await createClient();
   const { data, error } = await supabase.from("posts").update({ status: move.to }).eq("id", parsed.data.id).select("id");
   if (error) return fail(dbErrorMessage(error, move.error));
   if (!data.length) return fail(NOT_FOUND);
-  if (input.move === "approve") {
-    await supabase
+  done();
+  if (parsed.data.move === "approve") {
+    const { error: noteError } = await supabase
       .from("post_comments")
       .insert({ post_id: parsed.data.id, author_id: viewer.id, kind: "approval", body: "Approved." });
+    if (noteError) return fail("The post was approved, but the approval note wasn't added to its comments.");
   }
-  done();
   return ok();
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { ListSkeleton } from "@/components/common/page-skeleton";
+import { useRouter } from "@/components/app/nav-progress";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink, Plus, Trash2 } from "lucide-react";

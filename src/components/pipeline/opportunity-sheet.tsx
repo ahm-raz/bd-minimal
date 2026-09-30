@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,8 @@ import { useProfile } from "@/components/app/profile-provider";
 import { CONTRACT_TYPE_LABELS } from "@/lib/domain";
 import { formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/format";
+import { applyFieldErrors } from "@/lib/forms";
+import { editOpportunitySchema, type EditOpportunityValues } from "@/lib/validation/opportunity";
 import { getOpportunityDetail, updateOpportunity, type OpportunityDetail } from "@/server/actions/opportunities";
 import { useStageChange } from "./stage-change";
 
@@ -67,19 +72,21 @@ function OpportunityForm({ detail, onClose, onChanged }: { detail: OpportunityDe
   const { timezone } = useProfile();
   const router = useRouter();
   const stageChange = useStageChange();
-  const [title, setTitle] = useState(detail.title);
-  const [value, setValue] = useState(String(detail.estimatedValue));
-  const [close, setClose] = useState(detail.expectedCloseDate ?? "");
-  const [notes, setNotes] = useState(detail.notes ?? "");
-  const [ended, setEnded] = useState(detail.contractEndedAt ?? "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const dirty =
-    title !== detail.title ||
-    value !== String(detail.estimatedValue) ||
-    close !== (detail.expectedCloseDate ?? "") ||
-    notes !== (detail.notes ?? "") ||
-    ended !== (detail.contractEndedAt ?? "");
+  const form = useForm<EditOpportunityValues, unknown, z.output<typeof editOpportunitySchema>>({
+    resolver: zodResolver(editOpportunitySchema),
+    defaultValues: {
+      id: detail.id,
+      title: detail.title,
+      estimatedValue: String(detail.estimatedValue),
+      expectedCloseDate: detail.expectedCloseDate ?? "",
+      notes: detail.notes ?? "",
+      contractEndedAt: detail.contractEndedAt ?? "",
+    },
+  });
+  const errors = form.formState.errors;
+  const dirty = form.formState.isDirty;
   const stageLabel = (k: string | null) => lists.stages.find((s) => s.key === k)?.label ?? k ?? "";
   const member = (id: string | null) => lists.members.find((m) => m.id === id)?.full_name || "Someone";
 
@@ -140,44 +147,43 @@ function OpportunityForm({ detail, onClose, onChanged }: { detail: OpportunityDe
           id="opp-form"
           noValidate
           className="grid gap-4 sm:grid-cols-2"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={form.handleSubmit(() =>
             startTransition(async () => {
+              setFormError(null);
+              const v = form.getValues();
               const res = await updateOpportunity({
-                id: detail.id,
-                title,
-                estimatedValue: value,
-                expectedCloseDate: close || null,
-                notes,
-                contractEndedAt: ended || null,
+                ...v,
+                expectedCloseDate: v.expectedCloseDate || null,
+                contractEndedAt: v.contractEndedAt || null,
               });
               if (!res.ok) {
-                setErrors(res.fieldErrors ?? { _form: res.error });
+                applyFieldErrors(form.setError, res.fieldErrors);
+                if (!res.fieldErrors) setFormError(res.error);
                 return;
               }
               toast.success("Opportunity saved");
               router.refresh();
               onChanged();
-            });
-          }}
+            }),
+          )}
         >
-          {errors._form && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad sm:col-span-2">{errors._form}</p>}
-          <FormField label="Title" htmlFor="opp-edit-title" required error={errors.title} className="sm:col-span-2">
-            <Input id="opp-edit-title" value={title} onChange={(e) => setTitle(e.target.value)} aria-invalid={!!errors.title} />
+          {formError && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad sm:col-span-2">{formError}</p>}
+          <FormField label="Title" htmlFor="opp-edit-title" required error={errors.title?.message} className="sm:col-span-2">
+            <Input id="opp-edit-title" aria-invalid={!!errors.title} {...form.register("title")} />
           </FormField>
-          <FormField label="Estimated value" htmlFor="opp-edit-value" required error={errors.estimatedValue}>
-            <Input id="opp-edit-value" inputMode="decimal" className="num" value={value} onChange={(e) => setValue(e.target.value)} aria-invalid={!!errors.estimatedValue} />
+          <FormField label="Estimated value" htmlFor="opp-edit-value" required error={errors.estimatedValue?.message}>
+            <Input id="opp-edit-value" inputMode="decimal" className="num" aria-invalid={!!errors.estimatedValue} {...form.register("estimatedValue")} />
           </FormField>
-          <FormField label="Expected close" htmlFor="opp-edit-close" error={errors.expectedCloseDate}>
-            <Input id="opp-edit-close" type="date" value={close} onChange={(e) => setClose(e.target.value)} />
+          <FormField label="Expected close" htmlFor="opp-edit-close" error={errors.expectedCloseDate?.message}>
+            <Input id="opp-edit-close" type="date" aria-invalid={!!errors.expectedCloseDate} {...form.register("expectedCloseDate")} />
           </FormField>
           {detail.stage === "won" && detail.contractType === "monthly" && (
-            <FormField label="Contract ended" htmlFor="opp-edit-ended" helper="Set when the monthly contract stops. It then leaves active MRR." error={errors.contractEndedAt}>
-              <Input id="opp-edit-ended" type="date" value={ended} onChange={(e) => setEnded(e.target.value)} />
+            <FormField label="Contract ended" htmlFor="opp-edit-ended" helper="Set when the monthly contract stops. It then leaves active MRR." error={errors.contractEndedAt?.message}>
+              <Input id="opp-edit-ended" type="date" aria-invalid={!!errors.contractEndedAt} {...form.register("contractEndedAt")} />
             </FormField>
           )}
-          <FormField label="Notes" htmlFor="opp-edit-notes" className="sm:col-span-2">
-            <Textarea id="opp-edit-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <FormField label="Notes" htmlFor="opp-edit-notes" error={errors.notes?.message} className="sm:col-span-2">
+            <Textarea id="opp-edit-notes" rows={3} aria-invalid={!!errors.notes} {...form.register("notes")} />
           </FormField>
         </form>
 

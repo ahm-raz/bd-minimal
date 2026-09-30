@@ -18,6 +18,8 @@ export type TaskItem = {
   leadName: string | null;
   opportunityId: string | null;
   opportunityTitle: string | null;
+  /** Where the task's link goes: its lead, or the linked opportunity's lead. Null when neither can be seen. */
+  linkLeadId: string | null;
   note: string | null;
   completedAt: string | null;
   status: "open" | "done" | "overdue";
@@ -39,10 +41,10 @@ async function withProgress(supabase: Supabase, from: string, to: string, assign
   const oppIds = [...new Set(rows.flatMap((t) => (t.opportunity_id ? [t.opportunity_id] : [])))];
   const [leads, opps] = await Promise.all([
     leadIds.length ? supabase.from("leads").select("id, company_name").in("id", leadIds) : Promise.resolve({ data: [] }),
-    oppIds.length ? supabase.from("opportunities").select("id, title").in("id", oppIds) : Promise.resolve({ data: [] }),
+    oppIds.length ? supabase.from("opportunities").select("id, title, lead_id").in("id", oppIds) : Promise.resolve({ data: [] }),
   ]);
   const leadName = new Map((leads.data ?? []).map((l: { id: string; company_name: string }) => [l.id, l.company_name]));
-  const oppTitle = new Map((opps.data ?? []).map((o: { id: string; title: string }) => [o.id, o.title]));
+  const oppById = new Map((opps.data ?? []).map((o: { id: string; title: string; lead_id: string }) => [o.id, o]));
   return rows.map((t) => ({
     id: t.id,
     assigneeId: t.assignee_id,
@@ -56,7 +58,8 @@ async function withProgress(supabase: Supabase, from: string, to: string, assign
     leadId: t.lead_id,
     leadName: t.lead_id ? (leadName.get(t.lead_id) ?? null) : null,
     opportunityId: t.opportunity_id,
-    opportunityTitle: t.opportunity_id ? (oppTitle.get(t.opportunity_id) ?? null) : null,
+    opportunityTitle: t.opportunity_id ? (oppById.get(t.opportunity_id)?.title ?? null) : null,
+    linkLeadId: t.lead_id ?? (t.opportunity_id ? (oppById.get(t.opportunity_id)?.lead_id ?? null) : null),
     note: t.note,
     completedAt: t.completed_at,
     status: t.status as TaskItem["status"],

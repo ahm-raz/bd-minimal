@@ -14,7 +14,7 @@ import { PostSheet } from "@/components/content/post-sheet";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { unreadNotificationCount } from "@/server/queries/notifications";
 import { after } from "next/server";
-import { syncMyPending } from "@/server/google/sync";
+import { syncContextFor, syncMyPending } from "@/server/google/sync";
 import { getDepartment } from "@/server/department";
 import { NavProgressProvider } from "@/components/app/nav-progress";
 import { showsSocial } from "@/lib/department";
@@ -28,10 +28,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     viewer.role === "founder" && showsSocial(department) ? needsReviewCount() : 0,
     unreadNotificationCount(groupsFor(viewer.role, department)),
   ]);
-  // Housekeeping after the response: due Google Calendar retries and old notifications (docs/10).
-  after(async () => {
-    await syncMyPending();
-  });
+  // Housekeeping after the response: due Google Calendar retries and old events (docs/10).
+  // The Supabase client reads cookies now: Next forbids cookies() inside after() during a render.
+  const syncContext = await syncContextFor(viewer.id);
+  if (syncContext) {
+    after(async () => {
+      await syncMyPending(syncContext);
+    });
+  }
 
   return (
     <ProfileProvider value={viewer}>

@@ -12,6 +12,11 @@ export async function GET() {
   }
   const viewer = await getViewer();
   if (!viewer) return NextResponse.redirect(new URL("/login", google.siteUrl()));
+  // An SMM has no calendar (docs/03); save_google_connection() refuses them too.
+  if (viewer.role !== "founder" && viewer.role !== "bd") {
+    profile.searchParams.set("google", "off");
+    return NextResponse.redirect(profile);
+  }
   const { state, verifier, challenge } = newPkce();
   const res = NextResponse.redirect(authUrl({ state, challenge }));
   res.cookies.set(OAUTH_COOKIE, JSON.stringify({ state, verifier, user: viewer.id }), {

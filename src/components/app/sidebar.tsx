@@ -1,10 +1,11 @@
 "use client";
 
 import { NotificationBell } from "@/components/notifications/bell";
+import { useRouter } from "@/components/app/nav-progress";
 import { useNotifications } from "@/components/notifications/notifications-provider";
 import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,

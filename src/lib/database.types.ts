@@ -2190,7 +2190,7 @@ export type Database = {
       }
       notification_group: { Args: { p_kind: string }; Returns: string }
       pipeline_summary: {
-        Args: { p_stuck_days?: number; p_user?: string }
+        Args: { p_niche?: string; p_stuck_days?: number; p_user?: string }
         Returns: {
           opp_count: number
           sort_order: number
@@ -2214,6 +2214,10 @@ export type Database = {
       save_google_connection: {
         Args: { p_email: string; p_scopes: string[]; p_token_enc: string }
         Returns: undefined
+      }
+      set_meeting_gcal: {
+        Args: { p_fields: Json; p_meeting: string; p_sync_version: number }
+        Returns: boolean
       }
       social_daily: {
         Args: { p_from: string; p_to: string; p_tz: string; p_user?: string }
@@ -2262,6 +2266,10 @@ export type Database = {
           posted: number
           reactions: number
         }[]
+      }
+      sync_lead_contacts: {
+        Args: { p_contacts: Json; p_lead_id: string }
+        Returns: undefined
       }
       tasks_with_progress: {
         Args: { p_assignee?: string; p_from: string; p_to: string }

@@ -9,6 +9,7 @@ import {
   type CancelMeetingValues,
   type EditMeetingValues,
 } from "@/lib/validation/meeting";
+import { firstName } from "@/lib/format";
 import { getViewer } from "@/server/auth";
 import { syncMeeting } from "@/server/google/sync";
 import { dbErrorMessage, fail, ok, parseInput, type ActionResult } from "@/server/result";
@@ -92,16 +93,27 @@ export async function setMeetingStatus(input: z.input<typeof statusSchema>): Pro
 
 /** Retry now, or add it again after it was removed in Google. */
 export async function retryMeetingSync(input: { id: string }): Promise<ActionResult> {
-  if (!(await getViewer())) return fail(SESSION_ENDED);
+  const viewer = await getViewer();
+  if (!viewer) return fail(SESSION_ENDED);
   const parsed = parseInput(z.object({ id: z.uuid() }), input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();
   const { data: m } = await supabase
     .from("meetings")
-    .select("lead_id, gcal_state")
+    .select("lead_id, owner_id, gcal_state")
     .eq("id", parsed.data.id)
     .maybeSingle();
   if (!m) return fail("That meeting wasn't found.");
+  // Sync runs with the owner's own Google token (docs/10 section 2), so only the owner can retry.
+  if (m.owner_id !== viewer.id) {
+    const { data: owner } = await supabase.from("profiles").select("full_name").eq("id", m.owner_id).maybeSingle();
+    const name = firstName(owner?.full_name) || "The owner";
+    return fail(
+      m.gcal_state === "pending"
+        ? `This syncs when ${name} next opens the app.`
+        : `Only ${name} can retry this. It uses their own Google Calendar.`,
+    );
+  }
   const { error } = await supabase
     .from("meetings")
     .update({

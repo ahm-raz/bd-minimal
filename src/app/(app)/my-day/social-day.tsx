@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "@/components/app/nav-progress";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

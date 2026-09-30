@@ -182,7 +182,7 @@ export async function updateActivity(input: EditActivityValues): Promise<ActionR
   const supabase = await createClient();
   const { data: act } = await supabase
     .from("activities")
-    .select("id, lead_id, user_id, created_at, category")
+    .select("id, lead_id, user_id, created_at, category, occurred_at")
     .eq("id", parsed.data.id)
     .maybeSingle();
   if (!act) return fail("That activity wasn't found.");
@@ -206,14 +206,21 @@ export async function updateActivity(input: EditActivityValues): Promise<ActionR
   if (!at) return fail("Pick a date and time.", { occurredAt: "Pick a date and time." });
   if (at.getTime() > Date.now() + 5 * 60_000)
     return fail("It can't be in the future.", { occurredAt: "It can't be in the future." });
-  if (Date.now() - at.getTime() > MAX_BACKDATE_DAYS * 86_400_000) {
+  // The form edits to the minute, so an untouched time comes back as the same minute.
+  const timeUnchanged = Math.floor(at.getTime() / 60_000) === Math.floor(new Date(act.occurred_at).getTime() / 60_000);
+  // The founder can edit any activity any time (docs/04 section 3); BDs can only backdate up to 7 days.
+  if (viewer.role !== "founder" && !timeUnchanged && Date.now() - at.getTime() > MAX_BACKDATE_DAYS * 86_400_000) {
     return fail(`You can backdate up to ${MAX_BACKDATE_DAYS} days.`, {
       occurredAt: `You can backdate up to ${MAX_BACKDATE_DAYS} days.`,
     });
   }
   const { data, error } = await supabase
     .from("activities")
-    .update({ outcome_key: parsed.data.outcomeKey, occurred_at: at.toISOString(), notes: parsed.data.notes || null })
+    .update({
+      outcome_key: parsed.data.outcomeKey,
+      occurred_at: timeUnchanged ? act.occurred_at : at.toISOString(),
+      notes: parsed.data.notes || null,
+    })
     .eq("id", act.id)
     .select("id");
   if (error) return fail(dbErrorMessage(error, "The activity wasn't saved. Try again."));

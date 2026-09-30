@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "@/components/app/nav-progress";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, ExternalLink, Flag, MapPin, MoreHorizontal, Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { useRouter } from "@/components/app/nav-progress";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/common/form-field";
+import { flagLeadSchema, type FlagLeadValues } from "@/lib/validation/task";
 import { flagLead } from "@/server/actions/tasks";
 
 /** Flag lead (founder): note required; creates a lead-fix task for the owner due today (docs/04 section 7). */
@@ -29,9 +32,9 @@ export function FlagLeadDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const form = useForm<FlagLeadValues>({ resolver: zodResolver(flagLeadSchema), defaultValues: { leadId, note: "" } });
+  const error = form.formState.errors.note?.message;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
@@ -43,30 +46,28 @@ export function FlagLeadDialog({
         </DialogHeader>
         <form
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (note.trim().length < 3) return setError("Say what needs fixing.");
+          noValidate
+          onSubmit={form.handleSubmit(() =>
             startTransition(async () => {
-              const res = await flagLead({ leadId, note });
+              const res = await flagLead(form.getValues());
               if (!res.ok) {
-                setError(res.fieldErrors?.note ?? res.error);
+                form.setError("note", { type: "server", message: res.fieldErrors?.note ?? res.error }, { shouldFocus: true });
                 return;
               }
               toast.success(`Lead flagged. ${ownerName} has a fix task for today.`);
               onClose();
               router.refresh();
-            });
-          }}
+            }),
+          )}
         >
           <FormField label="What needs fixing" htmlFor="flag-note" required error={error}>
             <Textarea
               id="flag-note"
               rows={3}
               autoFocus
-              value={note}
               placeholder="Need the owner's name and direct email."
-              onChange={(e) => setNote(e.target.value)}
               aria-invalid={!!error}
+              {...form.register("note")}
             />
           </FormField>
           <DialogFooter>

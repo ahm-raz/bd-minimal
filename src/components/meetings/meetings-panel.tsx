@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
 import { CalendarCheck, CalendarX, MoreHorizontal, RefreshCw, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,10 @@ export function MeetingStatusChip({ status }: { status: Meeting["status"] }) {
   return <Chip tone={STATUS[status].tone}>{STATUS[status].label}</Chip>;
 }
 
-/** Calendar sync chip (docs/10 section 2). Nothing when the meeting was never meant for Google. */
+/**
+ * Calendar sync chip (docs/10 section 2). Nothing when the meeting was never meant for Google.
+ * Retry / Add again only with `onRetry`: sync runs with the owner's own Google token, so only the owner can retry.
+ */
 export function CalendarChip({
   meeting,
   onRetry,
@@ -66,6 +69,12 @@ export function CalendarChip({
     case "pending":
       return <Chip tone="neutral">Syncing…</Chip>;
     case "failed":
+      if (!onRetry)
+        return (
+          <span title={meeting.gcal_error ?? undefined} className="inline-flex">
+            <Chip tone="bad">Calendar failed</Chip>
+          </span>
+        );
       return (
         <button type="button" onClick={onRetry} title={meeting.gcal_error ?? undefined} className="inline-flex">
           <Chip tone="bad">
@@ -74,6 +83,12 @@ export function CalendarChip({
         </button>
       );
     case "removed_in_google":
+      if (!onRetry)
+        return (
+          <Chip tone="warn">
+            <CalendarX className="size-3" aria-hidden /> Removed from the calendar
+          </Chip>
+        );
       return (
         <button type="button" onClick={onRetry} className="inline-flex">
           <Chip tone="warn">
@@ -103,6 +118,7 @@ export function MeetingsPanel({
   calendar: CalendarStatus;
 }) {
   const now = useNow();
+  const profile = useProfile();
   const [editing, setEditing] = useState<Meeting | null>(null);
   const [cancelling, setCancelling] = useState<Meeting | null>(null);
   const [moveOffer, setMoveOffer] = useState<{ opp: { id: string; title: string }; meeting: Meeting } | null>(null);
@@ -213,7 +229,11 @@ export function MeetingsPanel({
                   <MeetingStatusChip status={m.status} />
                   <CalendarChip
                     meeting={m}
-                    onRetry={() => run(() => retryMeetingSync({ id: m.id }), "Added to your calendar")}
+                    onRetry={
+                      m.owner_id === profile.id
+                        ? () => run(() => retryMeetingSync({ id: m.id }), "Added to your calendar")
+                        : undefined
+                    }
                   />
                   {m.status_note && <span className="truncate text-small text-ink-muted">{m.status_note}</span>}
                 </div>

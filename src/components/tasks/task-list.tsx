@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
 import { ChevronDown, Flag, MoreHorizontal, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -151,8 +151,8 @@ function TaskRow({
             </span>
           </div>
         )}
-        {(t.leadId || t.opportunityId) && (
-          <Link href={`/leads/${t.leadId ?? ""}`} className="max-w-48 truncate text-small text-accent-strong hover:underline">
+        {t.linkLeadId && (
+          <Link href={`/leads/${t.linkLeadId}`} className="max-w-48 truncate text-small text-accent-strong hover:underline">
             {t.leadName ?? t.opportunityTitle}
           </Link>
         )}

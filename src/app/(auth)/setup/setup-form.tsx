@@ -35,8 +35,10 @@ export function SetupForm() {
             setFormError(res.error);
             return;
           }
-          router.replace("/my-day");
-          router.refresh();
+          startTransition(() => {
+            router.replace("/my-day");
+            router.refresh();
+          });
         }),
       )}
     >

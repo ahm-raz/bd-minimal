@@ -1,9 +1,9 @@
 "use client";
 
-import { useFilterNav } from "@/components/app/nav-progress";
+import { useFilterNav, useRouter } from "@/components/app/nav-progress";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   columnVisibilityFeature,
   createColumnHelper,

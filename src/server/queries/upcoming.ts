@@ -1,15 +1,16 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { CLOSED_LEAD_STATUSES, OPEN_STAGE_KEYS } from "@/lib/domain";
-import { addDays, formatDualZone, localDateOf, todayIn } from "@/lib/dates";
-import { contactName } from "@/lib/format";
+import { addDays, formatDualZone, formatLocalDate, localDateOf, todayIn } from "@/lib/dates";
+import { contactName, firstName, pluralize } from "@/lib/format";
 import { meetingLink } from "@/lib/validation/meeting";
 import type { UpcomingItem } from "@/lib/notifications";
 import type { Viewer } from "@/server/auth";
-import { showsSales, showsSocial, type Department } from "@/lib/department";
+import { inDepartment, showsSales, showsSocial, type Department } from "@/lib/department";
+import { getLists } from "./lists";
 import { getUpcomingMeetings } from "./meetings";
 import { getMyTasks } from "./tasks";
-import { getNeedsReview, getSocialDay, refreshPosts } from "./content";
+import { getFounderSocialDay, getSocialDay } from "./content";
 
 const STUCK_DAYS = 14;
 
@@ -160,9 +161,12 @@ export async function loadUpcoming(viewer: Viewer, department: Department = "all
     }
   }
 
-  if (viewer.role === "founder" && showsSocial(department)) {
-    await refreshPosts(viewer);
-    for (const p of await getNeedsReview()) {
+  if (viewer.role === "founder") {
+    const [social, overdue] = await Promise.all([
+      showsSocial(department) ? getFounderSocialDay(viewer) : null,
+      membersWithOverdueTasks(viewer, department, today),
+    ]);
+    for (const p of social?.review ?? []) {
       items.push({
         key: `review:${p.id}`,
         kind: "review",
@@ -173,6 +177,57 @@ export async function loadUpcoming(viewer: Viewer, department: Department = "all
         date: today,
       });
     }
+    // Today's posts across every account; one waiting for review is already listed above.
+    const inReview = new Set((social?.review ?? []).map((p) => p.id));
+    for (const p of social?.todayPosts ?? []) {
+      if (!p.scheduledAt || inReview.has(p.id) || ["posted", "cancelled"].includes(p.status)) continue;
+      items.push({
+        key: `post:${p.id}`,
+        kind: "post",
+        title: p.title,
+        detail: "Scheduled post",
+        link: `/content?post=${p.id}`,
+        at: p.scheduledAt,
+        date: null,
+      });
+    }
+    items.push(...overdue);
   }
   return items;
+}
+
+/**
+ * Founder: one item per member (in the department view) with overdue tasks. Overdue comes from
+ * `tasks_with_progress`, in each assignee's own time zone. The founder's own tasks are listed above.
+ */
+async function membersWithOverdueTasks(viewer: Viewer, department: Department, today: string): Promise<UpcomingItem[]> {
+  const supabase = await createClient();
+  const [{ data, error }, lists] = await Promise.all([
+    // Same window as the founder's Tasks page ("Still overdue"); today is included for zones ahead of the founder's.
+    supabase.rpc("tasks_with_progress", { p_from: addDays(today, -60), p_to: today }),
+    getLists(),
+  ]);
+  if (error) return [];
+  const members = new Map(
+    lists.members.filter((m) => m.is_active && m.id !== viewer.id && inDepartment(m.role, department)).map((m) => [m.id, m]),
+  );
+  const byMember = new Map<string, { count: number; oldest: string }>();
+  for (const t of data ?? []) {
+    if (t.status !== "overdue" || !members.has(t.assignee_id)) continue;
+    const cur = byMember.get(t.assignee_id);
+    if (!cur) byMember.set(t.assignee_id, { count: 1, oldest: t.due_date });
+    else {
+      cur.count += 1;
+      if (t.due_date < cur.oldest) cur.oldest = t.due_date;
+    }
+  }
+  return [...byMember].map(([id, { count, oldest }]) => ({
+    key: `team-overdue:${id}`,
+    kind: "team_overdue" as const,
+    title: `${firstName(members.get(id)!.full_name)} has ${pluralize(count, "overdue task")}`,
+    detail: `Oldest due ${formatLocalDate(oldest, today)}`,
+    link: "/tasks",
+    at: null,
+    date: oldest,
+  }));
 }

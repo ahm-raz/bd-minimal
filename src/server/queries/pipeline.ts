@@ -78,10 +78,13 @@ export async function fetchPipeline(f: PipelineFilters): Promise<PipelineCard[]>
 
 export type PipelineTotals = { openValue: number; weightedValue: number; stuck: number };
 
-/** Top bar totals from pipeline_summary (docs/05 section 4), for the selected owner. */
-export async function fetchPipelineTotals(owner: string | null): Promise<PipelineTotals> {
+/** Top bar totals from pipeline_summary (docs/05 section 4), for the selected owner and niche, like the board. */
+export async function fetchPipelineTotals(owner: string | null, niche: string | null = null): Promise<PipelineTotals> {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("pipeline_summary", owner ? { p_user: owner } : {});
+  const { data } = await supabase.rpc("pipeline_summary", {
+    ...(owner ? { p_user: owner } : {}),
+    ...(niche ? { p_niche: niche } : {}),
+  });
   const open = (data ?? []).filter((r) => !["won", "lost"].includes(r.stage_key));
   return {
     openValue: open.reduce((s, r) => s + Number(r.total_value), 0),

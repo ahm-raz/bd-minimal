@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,8 @@ import { FormField } from "@/components/common/form-field";
 import { SelectField } from "@/components/common/select-field";
 import { useApp } from "@/components/app/app-provider";
 import { OPEN_STAGE_KEYS } from "@/lib/domain";
+import { applyFieldErrors } from "@/lib/forms";
+import { lostSchema, wonSchema, type LostValues, type WonValues } from "@/lib/validation/opportunity";
 import { markLost, markWon, moveOpportunityStage } from "@/server/actions/opportunities";
 
 export type StageTarget = { id: string; title: string; company: string; stage: string; estimatedValue: number };
@@ -74,11 +79,14 @@ export function useStageChange() {
 }
 
 function WonDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) => void }) {
-  const [value, setValue] = useState(String(opp.estimatedValue));
-  const [contract, setContract] = useState<"one_time" | "monthly" | null>(null);
-  const [monthly, setMonthly] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [busy, start] = useTransition();
+  const form = useForm<WonValues, unknown, z.output<typeof wonSchema>>({
+    resolver: zodResolver(wonSchema),
+    defaultValues: { id: opp.id, wonValue: String(opp.estimatedValue), monthlyAmount: "" },
+  });
+  const errors = form.formState.errors;
+  const contract = useWatch({ control: form.control, name: "contractType" });
   return (
     <Dialog open onOpenChange={(o) => !o && onDone(false)}>
       <DialogContent>
@@ -89,39 +97,46 @@ function WonDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) =>
         <form
           noValidate
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={form.handleSubmit(() =>
             start(async () => {
-              const res = await markWon({ id: opp.id, wonValue: value, contractType: contract ?? ("" as "one_time"), monthlyAmount: monthly });
+              setFormError(null);
+              const res = await markWon(form.getValues());
               if (!res.ok) {
-                setErrors(res.fieldErrors ?? { _form: res.error });
+                applyFieldErrors(form.setError, res.fieldErrors);
+                if (!res.fieldErrors) setFormError(res.error);
                 return;
               }
               toast.success(`${opp.company} marked as won`);
               onDone(true);
-            });
-          }}
+            }),
+          )}
         >
-          {errors._form && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">{errors._form}</p>}
-          <FormField label="Final value" htmlFor="won-value" required error={errors.wonValue}>
-            <Input id="won-value" inputMode="decimal" className="num" value={value} onChange={(e) => setValue(e.target.value)} aria-invalid={!!errors.wonValue} />
+          {formError && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">{formError}</p>}
+          <FormField label="Final value" htmlFor="won-value" required error={errors.wonValue?.message}>
+            <Input id="won-value" inputMode="decimal" className="num" aria-invalid={!!errors.wonValue} {...form.register("wonValue")} />
           </FormField>
-          <FormField label="Contract type" htmlFor="won-contract" required error={errors.contractType}>
-            <SelectField
-              id="won-contract"
-              value={contract}
-              onChange={(v) => setContract(v as "one_time" | "monthly" | null)}
-              placeholder="Pick a contract type"
-              options={[
-                { value: "one_time", label: "One-time" },
-                { value: "monthly", label: "Monthly" },
-              ]}
-              invalid={!!errors.contractType}
+          <FormField label="Contract type" htmlFor="won-contract" required error={errors.contractType?.message}>
+            <Controller
+              control={form.control}
+              name="contractType"
+              render={({ field }) => (
+                <SelectField
+                  id="won-contract"
+                  value={field.value ?? null}
+                  onChange={(v) => field.onChange(v ?? undefined)}
+                  placeholder="Pick a contract type"
+                  options={[
+                    { value: "one_time", label: "One-time" },
+                    { value: "monthly", label: "Monthly" },
+                  ]}
+                  invalid={!!errors.contractType}
+                />
+              )}
             />
           </FormField>
           {contract === "monthly" && (
-            <FormField label="Monthly amount" htmlFor="won-monthly" required error={errors.monthlyAmount}>
-              <Input id="won-monthly" inputMode="decimal" className="num" value={monthly} onChange={(e) => setMonthly(e.target.value)} aria-invalid={!!errors.monthlyAmount} />
+            <FormField label="Monthly amount" htmlFor="won-monthly" required error={errors.monthlyAmount?.message}>
+              <Input id="won-monthly" inputMode="decimal" className="num" aria-invalid={!!errors.monthlyAmount} {...form.register("monthlyAmount")} />
             </FormField>
           )}
           <DialogFooter>
@@ -140,10 +155,13 @@ function WonDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) =>
 
 function LostDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) => void }) {
   const { lists } = useApp();
-  const [reason, setReason] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [busy, start] = useTransition();
+  const form = useForm<LostValues, unknown, z.output<typeof lostSchema>>({
+    resolver: zodResolver(lostSchema),
+    defaultValues: { id: opp.id, lostReasonId: "", lostNote: "" },
+  });
+  const errors = form.formState.errors;
   return (
     <Dialog open onOpenChange={(o) => !o && onDone(false)}>
       <DialogContent>
@@ -154,32 +172,39 @@ function LostDialog({ opp, onDone }: { opp: StageTarget; onDone: (ok: boolean) =
         <form
           noValidate
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={form.handleSubmit(() =>
             start(async () => {
-              const res = await markLost({ id: opp.id, lostReasonId: reason ?? "", lostNote: note });
+              setFormError(null);
+              const res = await markLost(form.getValues());
               if (!res.ok) {
-                setErrors(res.fieldErrors ?? { _form: res.error });
+                applyFieldErrors(form.setError, res.fieldErrors);
+                if (!res.fieldErrors) setFormError(res.error);
                 return;
               }
               toast.success(`${opp.company} marked as lost`);
               onDone(true);
-            });
-          }}
+            }),
+          )}
         >
-          {errors._form && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">{errors._form}</p>}
-          <FormField label="Reason" htmlFor="lost-reason" required error={errors.lostReasonId}>
-            <SelectField
-              id="lost-reason"
-              value={reason}
-              onChange={setReason}
-              placeholder="Pick a reason"
-              options={lists.lostReasons.filter((r) => r.is_active).map((r) => ({ value: r.id, label: r.name }))}
-              invalid={!!errors.lostReasonId}
+          {formError && <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">{formError}</p>}
+          <FormField label="Reason" htmlFor="lost-reason" required error={errors.lostReasonId?.message}>
+            <Controller
+              control={form.control}
+              name="lostReasonId"
+              render={({ field }) => (
+                <SelectField
+                  id="lost-reason"
+                  value={field.value || null}
+                  onChange={(v) => field.onChange(v ?? "")}
+                  placeholder="Pick a reason"
+                  options={lists.lostReasons.filter((r) => r.is_active).map((r) => ({ value: r.id, label: r.name }))}
+                  invalid={!!errors.lostReasonId}
+                />
+              )}
             />
           </FormField>
-          <FormField label="Note" htmlFor="lost-note" error={errors.lostNote}>
-            <Textarea id="lost-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          <FormField label="Note" htmlFor="lost-note" error={errors.lostNote?.message}>
+            <Textarea id="lost-note" rows={3} aria-invalid={!!errors.lostNote} {...form.register("lostNote")} />
           </FormField>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={() => onDone(false)}>

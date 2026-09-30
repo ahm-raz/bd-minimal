@@ -43,8 +43,12 @@ export async function requestPasswordReset(input: { email: string }): Promise<Ac
   const parsed = parseInput(forgotPasswordSchema, input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();
-  // The result is the same whether or not the address exists, so nothing is revealed.
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${siteUrl()}/reset-password` });
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo: `${siteUrl()}/reset-password` });
+  // Too many requests is about the sender, not the address, so it's safe to say.
+  if (error && (error.status === 429 || error.code === "over_email_send_rate_limit")) {
+    return fail("Too many reset emails were sent. Wait a few minutes, then try again.");
+  }
+  // Otherwise the result is the same whether or not the address exists, so nothing is revealed.
   return ok();
 }
 

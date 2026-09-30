@@ -37,8 +37,10 @@ export function NewPasswordForm({ submitLabel, passwordLabel, toastText }: { sub
             return;
           }
           toast.success(toastText);
-          router.replace("/my-day");
-          router.refresh();
+          startTransition(() => {
+            router.replace("/my-day");
+            router.refresh();
+          });
         }),
       )}
     >

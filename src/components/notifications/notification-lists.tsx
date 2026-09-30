@@ -19,6 +19,7 @@ const KIND_LABEL: Record<UpcomingItem["kind"], string> = {
   draft: "Draft",
   changes: "Changes requested",
   review: "Review",
+  team_overdue: "Team",
 };
 
 /** "What's upcoming", grouped Overdue · Within the hour · Today · Next 7 days (docs/10 section 3). */
@@ -61,6 +62,7 @@ export function UpcomingList({
                       i.date &&
                       i.kind !== "changes" &&
                       i.kind !== "review" &&
+                      i.kind !== "team_overdue" &&
                       ` · ${i.date === today ? "today" : formatLocalDate(i.date)}`}
                   </p>
                 </Link>

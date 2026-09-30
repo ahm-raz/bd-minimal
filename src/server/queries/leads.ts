@@ -116,7 +116,10 @@ export async function fetchLeads(f: LeadFilters, viewer: Viewer): Promise<{ rows
   if (f.comp === "50to79") query = query.gte("completeness", 50).lt("completeness", 80);
   if (f.comp === "80plus") query = query.gte("completeness", 80);
   if (f.from || f.to) {
-    const r = localRange(f.from ?? f.to!, f.to ?? f.from!, viewer.timezone);
+    const a = f.from ?? f.to!;
+    const b = f.to ?? f.from!;
+    // A reversed range (to before from) means the same days, like rangeFor("custom").
+    const r = a <= b ? localRange(a, b, viewer.timezone) : localRange(b, a, viewer.timezone);
     query = query.gte("created_at", r.fromUtc).lt("created_at", r.toUtc);
   }
   if (f.flagged) query = query.in("id", [...flagged].length ? [...flagged] : ["00000000-0000-0000-0000-000000000000"]);

@@ -41,10 +41,10 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
       ? await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } })
       : await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: `${siteUrl()}/accept-invite` });
   if (error || !data.user) {
-    if (error?.code === "email_exists" || error?.status === 422) {
+    if (error?.code === "weak_password") return fail("Pick a stronger password.", { password: "Pick a stronger password." });
+    if (error?.code === "email_exists" || error?.code === "user_already_exists") {
       return fail("Someone with this email is already on the team.", { email: "This email is already on the team." });
     }
-    if (error?.code === "weak_password") return fail("Pick a stronger password.", { password: "Pick a stronger password." });
     return fail(method === "password" ? "The member wasn't added. Check the details and try again." : "The invite wasn't sent. Check the email address and try again.");
   }
 
@@ -57,6 +57,17 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
 
   revalidatePath("/team");
   return ok({ id: data.user.id, email, method });
+}
+
+/**
+ * When each member last signed in, for the Team page's Invited / Active status (docs/03, Invite a BD, step 6).
+ * Reading sign-in times needs the Auth admin API, so the caller must be the founder.
+ */
+export async function getMemberLastSignIns(): Promise<ActionResult<Record<string, string | null>>> {
+  if (!(await requireFounder())) return fail(FOUNDER_ONLY);
+  const { data, error } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
+  if (error) return fail("Sign-in status couldn't be loaded.");
+  return ok(Object.fromEntries(data.users.map((u) => [u.id, u.last_sign_in_at ?? null])));
 }
 
 /** Team → Set password: for a member who forgot theirs. Never the founder's own (they use Profile). */

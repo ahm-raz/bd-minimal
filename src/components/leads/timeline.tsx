@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/components/app/nav-progress";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -26,7 +29,8 @@ import { useNow } from "@/lib/use-now";
 import type { Tables } from "@/lib/domain";
 import { MAX_BACKDATE_DAYS, toLocalDateTimeInput } from "@/lib/dates";
 import { contactName, initials } from "@/lib/format";
-import { BD_EDIT_WINDOW_MS, outcomesFor } from "@/lib/validation/activity";
+import { applyFieldErrors } from "@/lib/forms";
+import { BD_EDIT_WINDOW_MS, editActivityFields, outcomesFor, type EditActivityValues } from "@/lib/validation/activity";
 import { deleteActivity, updateActivity } from "@/server/actions/activities";
 
 type Item =
@@ -219,15 +223,23 @@ export function Timeline({
 
 function EditActivityDialog({ activity, onClose }: { activity: Tables<"activities">; onClose: () => void }) {
   const { lists } = useApp();
-  const { timezone } = useProfile();
+  const { timezone, role } = useProfile();
   const router = useRouter();
-  const [outcomeKey, setOutcomeKey] = useState(activity.outcome_key);
-  const [occurredAt, setOccurredAt] = useState(toLocalDateTimeInput(activity.occurred_at, timezone));
-  const [notes, setNotes] = useState(activity.notes ?? "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const form = useForm<EditActivityValues, unknown, z.output<typeof editActivityFields>>({
+    resolver: zodResolver(editActivityFields),
+    defaultValues: {
+      id: activity.id,
+      outcomeKey: activity.outcome_key,
+      occurredAt: toLocalDateTimeInput(activity.occurred_at, timezone),
+      notes: activity.notes ?? "",
+    },
+  });
+  const errors = form.formState.errors;
+  // BDs can backdate up to 7 days; the founder can edit any activity any time (docs/04 section 3).
   const [bounds] = useState(() => ({
-    min: toLocalDateTimeInput(new Date(Date.now() - MAX_BACKDATE_DAYS * 86_400_000), timezone),
+    min: role === "founder" ? undefined : toLocalDateTimeInput(new Date(Date.now() - MAX_BACKDATE_DAYS * 86_400_000), timezone),
     max: toLocalDateTimeInput(new Date(), timezone),
   }));
   const allowed = outcomesFor(activity.category, lists.outcomes);
@@ -239,46 +251,55 @@ function EditActivityDialog({ activity, onClose }: { activity: Tables<"activitie
           <DialogTitle>Edit activity</DialogTitle>
         </DialogHeader>
         <form
+          noValidate
           className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={form.handleSubmit(() =>
             startTransition(async () => {
-              const res = await updateActivity({ id: activity.id, outcomeKey, occurredAt, notes });
+              setFormError(null);
+              const res = await updateActivity(form.getValues());
               if (!res.ok) {
-                setErrors(res.fieldErrors ?? { _form: res.error });
+                applyFieldErrors(form.setError, res.fieldErrors);
+                if (!res.fieldErrors) setFormError(res.error);
                 return;
               }
               toast.success("Activity saved");
               onClose();
               router.refresh();
-            });
-          }}
+            }),
+          )}
         >
-          {errors._form && (
+          {formError && (
             <p role="alert" className="rounded-md bg-bad-soft px-3 py-2 text-small text-bad">
-              {errors._form}
+              {formError}
             </p>
           )}
-          <FormField label="Outcome" htmlFor="edit-outcome" error={errors.outcomeKey}>
-            <SelectField
-              id="edit-outcome"
-              value={outcomeKey}
-              onChange={(v) => v && setOutcomeKey(v)}
-              options={allowed.map((o) => ({ value: o.key, label: lists.outcomes.find((x) => x.key === o.key)?.label ?? o.key }))}
+          <FormField label="Outcome" htmlFor="edit-outcome" error={errors.outcomeKey?.message}>
+            <Controller
+              control={form.control}
+              name="outcomeKey"
+              render={({ field }) => (
+                <SelectField
+                  id="edit-outcome"
+                  value={field.value}
+                  onChange={(v) => v && field.onChange(v)}
+                  options={allowed.map((o) => ({ value: o.key, label: lists.outcomes.find((x) => x.key === o.key)?.label ?? o.key }))}
+                  invalid={!!errors.outcomeKey}
+                />
+              )}
             />
           </FormField>
-          <FormField label="When" htmlFor="edit-when" error={errors.occurredAt}>
+          <FormField label="When" htmlFor="edit-when" error={errors.occurredAt?.message}>
             <Input
               id="edit-when"
               type="datetime-local"
               min={bounds.min}
               max={bounds.max}
-              value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)}
+              aria-invalid={!!errors.occurredAt}
+              {...form.register("occurredAt")}
             />
           </FormField>
-          <FormField label="Notes" htmlFor="edit-notes">
-            <Textarea id="edit-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <FormField label="Notes" htmlFor="edit-notes" error={errors.notes?.message}>
+            <Textarea id="edit-notes" rows={3} aria-invalid={!!errors.notes} {...form.register("notes")} />
           </FormField>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose}>
