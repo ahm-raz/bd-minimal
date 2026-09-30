@@ -38,7 +38,11 @@ export const newPasswordSchema = z
   .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The passwords don't match." });
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;
 
+/** Office name (docs/11 section 3): 1 to 80 characters. */
+export const officeNameField = z.string().trim().min(1, "Enter the office name.").max(80, "Use up to 80 characters.");
+
 export const setupSchema = z.object({
+  officeName: officeNameField,
   fullName: fullNameField,
   email: emailField,
   password: z.string().min(10, "Use at least 10 characters."),

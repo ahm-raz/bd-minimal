@@ -325,12 +325,13 @@ function InviteSheet({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
+  const { officeTimezone } = useProfile();
   const empty: InviteInput = {
     fullName: "",
     email: "",
     role: "bd",
     primaryNicheId: null,
-    timezone: "Asia/Karachi",
+    timezone: officeTimezone,
     method: "password",
     password: "",
     confirm: "",

@@ -11,6 +11,10 @@ export type ProfileContextValue = {
   timezone: string;
   primaryNicheId: string | null;
   canImportLeads: boolean;
+  officeId: string;
+  officeName: string;
+  officeTimezone: string;
+  isPlatformAdmin: boolean;
 };
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);

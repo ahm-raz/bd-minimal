@@ -14,6 +14,7 @@ const TABS = [
   { href: "/settings/targets", label: "Targets" },
   { href: "/settings/social-accounts", label: "Social accounts" },
   { href: "/settings/pillars", label: "Content pillars" },
+  { href: "/settings/office", label: "Office" },
 ];
 
 export function SettingsTabs() {

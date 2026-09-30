@@ -10,6 +10,7 @@ import {
   Activity,
   BarChart3,
   Bell,
+  Building,
   Building2,
   ChevronsUpDown,
   Columns3,
@@ -43,7 +44,7 @@ import { useApp } from "./app-provider";
 import { DepartmentSwitcher } from "./department-switcher";
 import { pathInDepartment, type Department } from "@/lib/department";
 
-type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[]; shortcut?: string };
+type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[]; shortcut?: string; platformAdmin?: true };
 
 const ALL: Role[] = ["founder", "bd", "social"];
 
@@ -59,21 +60,25 @@ const NAV: NavItem[] = [
   { href: "/performance", label: "Performance", icon: BarChart3, roles: ALL },
   { href: "/team", label: "Team", icon: Users, roles: ["founder"] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ["founder"] },
+  // The app owner's office list (docs/11 section 6), whatever their role in their own office.
+  { href: "/admin", label: "Offices", icon: Building, roles: ALL, platformAdmin: true },
 ];
 
 /** The role's pages, minus the other department's when the founder views one department. */
-export function navFor(role: Role, department: Department = "all") {
-  return NAV.filter((n) => n.roles.includes(role) && pathInDepartment(n.href, department));
+export function navFor(role: Role, department: Department = "all", isPlatformAdmin = false) {
+  return NAV.filter(
+    (n) => n.roles.includes(role) && pathInDepartment(n.href, department) && (!n.platformAdmin || isPlatformAdmin),
+  );
 }
 
 function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; reviewCount: number }) {
   const pathname = usePathname();
-  const { role } = useProfile();
+  const { role, isPlatformAdmin } = useProfile();
   const { department } = useApp();
   const { unread } = useNotifications();
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5 px-3">
-      {navFor(role, department).map((item) => {
+      {navFor(role, department, isPlatformAdmin).map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
         return (
@@ -205,12 +210,16 @@ function UserMenu() {
 /** 232px sidebar (docs/06 section 4). Below 1024px it becomes a top bar with a menu button. */
 export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
   const [open, setOpen] = useState(false);
+  // The office name heads the navigation (docs/11 section 6).
+  const { officeName } = useProfile();
   return (
     <>
       <div className="hidden w-[232px] shrink-0 border-r border-line bg-surface lg:block">
         <aside className="sticky top-0 flex h-screen flex-col">
           <div className="flex items-center justify-between gap-2 pt-4 pr-3 pb-3 pl-5">
-            <span className="truncate text-section text-ink">Client Acquisition OS</span>
+            <span className="truncate text-section text-ink" data-testid="office-name" title={officeName}>
+              {officeName}
+            </span>
             <NotificationBell />
           </div>
           <DepartmentSwitcher className="mx-3 mb-3 w-auto" />
@@ -229,13 +238,13 @@ export function Sidebar({ reviewCount = 0 }: { reviewCount?: number }) {
         </Button>
         <span className="flex flex-1 items-center gap-2 text-section text-ink">
           <BrandMark />
-          <span className="truncate">Client Acquisition OS</span>
+          <span className="truncate">{officeName}</span>
         </span>
         <NotificationBell />
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[272px] gap-0 p-0 sm:max-w-[272px]">
-          <SheetTitle className="px-5 pt-5 pb-4">Client Acquisition OS</SheetTitle>
+          <SheetTitle className="truncate px-5 pt-5 pb-4">{officeName}</SheetTitle>
           <DepartmentSwitcher className="mx-3 mb-3 w-auto" />
           <div className="flex-1 overflow-y-auto">
             <NavLinks onNavigate={() => setOpen(false)} reviewCount={reviewCount} />

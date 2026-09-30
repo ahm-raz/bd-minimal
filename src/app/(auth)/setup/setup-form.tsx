@@ -18,7 +18,7 @@ export function SetupForm() {
   const router = useRouter();
   const form = useForm<SetupInput>({
     resolver: zodResolver(setupSchema),
-    defaultValues: { fullName: "", email: "", password: "", timezone: "Asia/Karachi" },
+    defaultValues: { officeName: "", fullName: "", email: "", password: "", timezone: "Asia/Karachi" },
   });
   const errors = form.formState.errors;
 
@@ -47,7 +47,10 @@ export function SetupForm() {
           {formError}
         </p>
       )}
-      <FormField label="Name" htmlFor="fullName" error={errors.fullName?.message}>
+      <FormField label="Office name" htmlFor="officeName" error={errors.officeName?.message} helper="Your agency or company.">
+        <Input id="officeName" autoComplete="organization" aria-invalid={!!errors.officeName} {...form.register("officeName")} />
+      </FormField>
+      <FormField label="Your name" htmlFor="fullName" error={errors.fullName?.message}>
         <Input id="fullName" autoComplete="name" aria-invalid={!!errors.fullName} {...form.register("fullName")} />
       </FormField>
       <FormField label="Email" htmlFor="email" error={errors.email?.message}>
@@ -72,7 +75,7 @@ export function SetupForm() {
         />
       </FormField>
       <Button type="submit" size="form" pending={pending}>
-        Create founder account
+        Create office
       </Button>
     </form>
   );

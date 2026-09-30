@@ -14,7 +14,7 @@ import {
 import { fail, ok, parseInput, type ActionResult } from "@/server/result";
 import { needsSetup } from "@/server/setup";
 
-const DEACTIVATED = "Your access has been turned off. Contact the founder.";
+import { DEACTIVATED_MESSAGE as DEACTIVATED, SUSPENDED_MESSAGE } from "@/lib/messages";
 
 function siteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -24,17 +24,17 @@ export async function signIn(input: LoginInput): Promise<ActionResult> {
   const parsed = parseInput(loginSchema, input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     if (error.code === "user_banned") return fail(DEACTIVATED);
     if (error.code === "invalid_credentials" || error.status === 400) return fail("Email or password is incorrect.");
     return fail("Sign-in isn't available right now. Try again in a minute.");
   }
-  // A session for a deactivated profile reads nothing; don't let it in.
-  const { data: profile } = await supabase.from("profiles").select("is_active").eq("id", data.user.id).maybeSingle();
-  if (!profile?.is_active) {
+  // A session for a deactivated member or a suspended office reads nothing; don't let it in (docs/11 section 5).
+  const { data: state } = await supabase.rpc("my_account_state");
+  if (state !== "active") {
     await supabase.auth.signOut();
-    return fail(DEACTIVATED);
+    return fail(state === "suspended" ? SUSPENDED_MESSAGE : DEACTIVATED);
   }
   return ok();
 }
@@ -68,8 +68,9 @@ export async function setNewPassword(input: NewPasswordInput): Promise<ActionRes
 }
 
 /**
- * First-run only: create the founder. Refuses once any profile exists (docs/03, First setup).
- * The admin client is allowed here because no founder exists to check against yet.
+ * First-run only: create the first office and its founder, who also becomes the platform admin.
+ * Refuses once any office exists (docs/11 section 6). The admin client is allowed here because no founder
+ * exists to check against yet.
  */
 export async function setupFounder(input: SetupInput): Promise<ActionResult> {
   const parsed = parseInput(setupSchema, input);
@@ -77,15 +78,26 @@ export async function setupFounder(input: SetupInput): Promise<ActionResult> {
   if (!(await needsSetup())) return fail("Setup is already done. Sign in instead.");
 
   const admin = createAdminClient();
+  // The office, its default settings and the founder's reservation; the sign-up trigger then makes the profile.
+  const { data: officeId, error: officeError } = await admin.rpc("setup_first_office", {
+    p_name: parsed.data.officeName,
+    p_timezone: parsed.data.timezone,
+    p_founder_email: parsed.data.email,
+  });
+  if (officeError || !officeId) return fail("Setup is already done. Sign in instead.");
   const { data, error } = await admin.auth.admin.createUser({
     email: parsed.data.email,
     password: parsed.data.password,
     email_confirm: true,
     user_metadata: { full_name: parsed.data.fullName },
   });
-  if (error || !data.user) return fail("The founder account wasn't created. Check the details and try again.");
+  if (error || !data.user) {
+    // Undo the empty office so setup can run again.
+    await admin.rpc("discard_empty_office", { p_office: officeId });
+    return fail("The founder account wasn't created. Check the details and try again.");
+  }
 
-  // The trigger has created the profile as founder; set the time zone.
+  // The trigger has created the profile as founder in the new office; set the time zone.
   await admin.from("profiles").update({ timezone: parsed.data.timezone }).eq("id", data.user.id);
 
   const supabase = await createClient();

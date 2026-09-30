@@ -25,7 +25,7 @@ const EMPTY: SearchResults = { leads: [], contacts: [], opportunities: [] };
 export function CommandMenu() {
   const router = useRouter();
   const { openNewLead, openLogActivity, department } = useApp();
-  const { role } = useProfile();
+  const { role, isPlatformAdmin } = useProfile();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
@@ -98,7 +98,7 @@ export function CommandMenu() {
       ? [{ label: "Suggest an idea", icon: Lightbulb, shortcut: undefined, run: () => go("/content?idea=1") }]
       : []),
   ].filter((a) => match(a.label));
-  const pages = [...navFor(role, department), { href: "/profile", label: "Profile" }].filter((p) =>
+  const pages = [...navFor(role, department, isPlatformAdmin), { href: "/profile", label: "Profile" }].filter((p) =>
     match(`Go to ${p.label}`),
   );
 

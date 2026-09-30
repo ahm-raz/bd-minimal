@@ -23,6 +23,37 @@ function siteUrl() {
 
 const idSchema = z.uuid();
 const EMAIL_OFF = "Invite emails are off until an email domain is set up. Set a password instead.";
+const EMAIL_TAKEN = "This email already has an account. Use a different email.";
+const NOT_FOUND = "That member wasn't found.";
+
+/**
+ * Is this member in the founder's own office? Read with the founder's session, so RLS decides: a member of
+ * another office is simply not found. Every use of the admin client on a member checks this first (docs/11 section 7).
+ */
+async function memberOfMyOffice(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, role").eq("id", id).maybeSingle();
+  return data;
+}
+
+/**
+ * Reserve a place in the founder's office for a new member (docs/11 section 5). The office comes from the
+ * founder's session (the column default), never from the form. The database checks seats and taken emails.
+ */
+async function reserveMember(email: string, role: "bd" | "social"): Promise<ActionResult> {
+  const supabase = await createClient();
+  const address = email.trim().toLowerCase();
+  await supabase.from("pending_members").delete().eq("email", address);
+  const { error } = await supabase.from("pending_members").insert({ email: address, role });
+  if (!error) return ok();
+  if (error.code === "23505") return fail(EMAIL_TAKEN, { email: EMAIL_TAKEN });
+  return fail(dbErrorMessage(error, "The member wasn't added. Try again."));
+}
+
+async function releaseReservation(email: string) {
+  const supabase = await createClient();
+  await supabase.from("pending_members").delete().eq("email", email.trim().toLowerCase());
+}
 
 /**
  * Add member. "password": the founder sets the password now and the account can sign in at once (no email).
@@ -35,20 +66,23 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
 
   const { fullName, email, role, primaryNicheId, timezone, method, password } = parsed.data;
   if (method === "email" && !emailInvitesEnabled()) return fail(EMAIL_OFF);
+  const reserved = await reserveMember(email, role);
+  if (!reserved.ok) return reserved;
   const admin = createAdminClient();
   const { data, error } =
     method === "password"
       ? await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } })
       : await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: `${siteUrl()}/accept-invite` });
   if (error || !data.user) {
+    await releaseReservation(email);
     if (error?.code === "weak_password") return fail("Pick a stronger password.", { password: "Pick a stronger password." });
     if (error?.code === "email_exists" || error?.code === "user_already_exists") {
-      return fail("Someone with this email is already on the team.", { email: "This email is already on the team." });
+      return fail(EMAIL_TAKEN, { email: EMAIL_TAKEN });
     }
     return fail(method === "password" ? "The member wasn't added. Check the details and try again." : "The invite wasn't sent. Check the email address and try again.");
   }
 
-  // The trigger created the profile as a BD; now set role, niche and time zone.
+  // The trigger created the profile in the founder's office with the reserved role; now set name, niche and time zone.
   const { error: upErr } = await admin
     .from("profiles")
     .update({ full_name: fullName, role, primary_niche_id: primaryNicheId, timezone })
@@ -65,9 +99,13 @@ export async function inviteMember(input: InviteInput): Promise<ActionResult<{ i
  */
 export async function getMemberLastSignIns(): Promise<ActionResult<Record<string, string | null>>> {
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
+  // Only this office's members (RLS), so nothing about other offices leaves the server.
+  const supabase = await createClient();
+  const { data: members } = await supabase.from("profiles").select("id");
+  const mine = new Set((members ?? []).map((m) => m.id));
   const { data, error } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
   if (error) return fail("Sign-in status couldn't be loaded.");
-  return ok(Object.fromEntries(data.users.map((u) => [u.id, u.last_sign_in_at ?? null])));
+  return ok(Object.fromEntries(data.users.filter((u) => mine.has(u.id)).map((u) => [u.id, u.last_sign_in_at ?? null])));
 }
 
 /** Team → Set password: for a member who forgot theirs. Never the founder's own (they use Profile). */
@@ -77,9 +115,8 @@ export async function setMemberPassword(input: SetMemberPasswordInput): Promise<
   const founder = await requireFounder();
   if (!founder) return fail(FOUNDER_ONLY);
   if (founder.id === parsed.data.id) return fail("Change your own password from Profile.");
-  const supabase = await createClient();
-  const { data: member } = await supabase.from("profiles").select("role").eq("id", parsed.data.id).maybeSingle();
-  if (!member) return fail("That member wasn't found.");
+  const member = await memberOfMyOffice(parsed.data.id);
+  if (!member) return fail(NOT_FOUND);
   if (member.role === "founder") return fail("The founder's password can't be set here.");
   const { error } = await createAdminClient().auth.admin.updateUserById(parsed.data.id, { password: parsed.data.password });
   if (error) {
@@ -93,6 +130,7 @@ export async function resendInvite(id: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return fail("That member wasn't found.");
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
   if (!emailInvitesEnabled()) return fail(EMAIL_OFF);
+  if (!(await memberOfMyOffice(id))) return fail(NOT_FOUND);
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.getUserById(id);
   if (error || !data.user?.email) return fail("That member wasn't found.");
@@ -173,8 +211,10 @@ export async function deactivateMember(id: string): Promise<ActionResult> {
   if (founder.id === id) return fail("The founder can't be deactivated.");
 
   const supabase = await createClient();
-  const { error } = await supabase.from("profiles").update({ is_active: false }).eq("id", id);
+  const { data: changed, error } = await supabase.from("profiles").update({ is_active: false }).eq("id", id).select("id");
   if (error) return fail(dbErrorMessage(error, "They weren't deactivated. Try again."));
+  // No row: not a member of this office. Never ban anyone outside it.
+  if (!changed?.length) return fail(NOT_FOUND);
 
   const { error: banErr } = await createAdminClient().auth.admin.updateUserById(id, { ban_duration: "876000h" });
   if (banErr) return fail("Their data access is off, but blocking sign-in failed. Try Deactivate again.");
@@ -186,8 +226,9 @@ export async function reactivateMember(id: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return fail("That member wasn't found.");
   if (!(await requireFounder())) return fail(FOUNDER_ONLY);
   const supabase = await createClient();
-  const { error } = await supabase.from("profiles").update({ is_active: true }).eq("id", id);
+  const { data: changed, error } = await supabase.from("profiles").update({ is_active: true }).eq("id", id).select("id");
   if (error) return fail(dbErrorMessage(error, "They weren't reactivated. Try again."));
+  if (!changed?.length) return fail(NOT_FOUND);
   const { error: banErr } = await createAdminClient().auth.admin.updateUserById(id, { ban_duration: "none" });
   if (banErr) return fail("Their data access is back, but unblocking sign-in failed. Try Reactivate again.");
   revalidatePath("/team");
