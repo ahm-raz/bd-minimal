@@ -1,10 +1,10 @@
 # Client Acquisition OS — v1
 
-A small internal CRM for one founder and a team of business developers (BDs).
+A small CRM for offices and agencies. Each office has one founder and a team of business developers (BDs).
 BDs add detailed leads every day, log their outreach, and move deals through a pipeline.
 The founder watches the work live, assigns daily tasks, and reviews performance.
 
-Single team, single company. No multi-tenancy. Laptop-first web app. USD only.
+Many independent offices in one app (M13–M18, `docs/11-offices.md`): each office's staff and data are private to that office, enforced by the database. Laptop-first web app. USD only.
 
 ## Read before writing code
 
@@ -20,6 +20,7 @@ Single team, single company. No multi-tenancy. Laptop-first web app. USD only.
 | `docs/08-build-plan.md` | Milestones in order, with a checklist for each |
 | `docs/09-social-media.md` | M10: Social media manager role and content scheduling |
 | `docs/10-meetings-notifications.md` | M11: Meetings, Google Calendar sync and notifications |
+| `docs/11-offices.md` | M13–M18: many offices in one app, the office boundary, platform admin |
 | `supabase/migrations/20260924000000_init.sql` | The database. Tables, triggers, RLS, metric functions. Already tested. |
 
 The docs are the spec. If code and docs disagree, the docs win. If the docs are unclear or contradict each other, stop and ask. Don't guess.
@@ -69,6 +70,7 @@ src/
     (app)/team                # founder only
     (app)/settings/...        # founder only
     (app)/profile
+    (app)/admin               # platform admins only: offices (docs/11)
   components/ui/              # shadcn components (generated)
   components/<feature>/       # feature components
   lib/supabase/{browser,server,admin}.ts
@@ -87,11 +89,12 @@ docs/
 
 1. **Build in milestone order** from `docs/08-build-plan.md`. Finish a milestone's checklist before starting the next. After each one, update `docs/PROGRESS.md` (create it) with what's done and anything skipped.
 2. **Security lives in the database.** RLS decides what each user can see. App code never filters by owner "for safety" instead of RLS. It may filter for UX, e.g. the founder's "BD" dropdown.
-3. **The service-role key is used only in `src/lib/supabase/admin.ts`,** and only from server actions that first check the caller is the founder. It is used for inviting, deactivating (ban) and reactivating users. Nothing else.
+3. **The service-role key is used only in `src/lib/supabase/admin.ts`,** and only from server actions that first check the caller: a founder (for members of their own office: adding, inviting, deactivating (ban) and reactivating) or a platform admin (creating a new office's founder). Nothing else. See `docs/11-offices.md` section 7.
 4. **Business rules already exist in SQL triggers.** Automatic lead status, stage history, count-task completion, the activity feed and completeness are done by the database. Don't re-implement them in TypeScript. Call `log_activity()` to log activities.
 5. **Numbers come from the metric functions** in the migration (`metrics_scoreboard`, `metrics_by_dimension`, `metrics_daily`, `pipeline_summary`, `active_mrr`, `tasks_with_progress`). Don't compute KPIs in the browser from raw rows.
 6. **Schema changes go in a new migration file.** Regenerate types after every change.
-7. **No scope creep.** Anything in "Out of scope" in `docs/01-product-spec.md` stays out, even if it seems small.
-8. **UI copy** follows `docs/06-design-system.md`: sentence case, plain verbs, buttons say what they do.
-9. **Dates:** store timestamps in UTC; turn them into "today" or "this week" using the viewer's profile time zone (`docs/04-business-rules.md`, section 8).
-10. **Every form** validates with Zod on the client and again in the server action. Show field errors inline, not only in a toast.
+7. **Office boundary.** Every row belongs to one office. Every policy and every `security definer` function filters by `current_office_id()`; nothing ever reads or counts across offices (`docs/11-offices.md`).
+8. **No scope creep.** Anything in "Out of scope" in `docs/01-product-spec.md` stays out, even if it seems small.
+9. **UI copy** follows `docs/06-design-system.md`: sentence case, plain verbs, buttons say what they do.
+10. **Dates:** store timestamps in UTC; turn them into "today" or "this week" using the viewer's profile time zone (`docs/04-business-rules.md`, section 8).
+11. **Every form** validates with Zod on the client and again in the server action. Show field errors inline, not only in a toast.

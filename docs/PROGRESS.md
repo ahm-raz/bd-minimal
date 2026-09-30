@@ -237,3 +237,8 @@ pnpm dev             # http://localhost:3000
 - App: http://localhost:3000
 - Supabase Studio: http://127.0.0.1:55423
 - Email inbox (Mailpit): http://127.0.0.1:55424
+
+### M13: Spec update (many offices)
+- [x] docs/11-offices.md: office boundary, data model, security, sign-up via pending_members, seats, suspend, /admin, service-role use, migration of existing data, out of scope
+- [x] Office notes in docs 01, 02, 03, 07, 08 and CLAUDE.md (rule 3 service-role use, new rule 7 office boundary)
+- [ ] Owner sign-off on docs/11 (M14 doesn't start until then)

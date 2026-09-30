@@ -51,9 +51,15 @@ Anyone can open these without signing in. They exist so Google can verify the OA
   - Deactivated user: "Your access has been turned off. Contact the founder."
 - **Accept invite:** shows "Welcome, Ahmed. Set a password to start." Password (min 10 chars) + confirm → **Set password** → `/my-day`.
 - **Reset password:** new password + confirm → **Update password**.
-- **Setup `/setup`** (only when no profile exists): name, email, password, time zone → creates the founder.
+- **Setup `/setup`** (only when no profile exists): name, email, password, time zone → creates the founder. From M16: only when no office exists; also asks for the office name, and makes that person a platform admin (docs/11 section 6).
 
 **Acceptance:** an invited BD can set a password and reach My Day; a deactivated BD can't sign in; `/setup` returns 404 once any profile exists.
+
+---
+
+## 1a. Offices (M16–M17)
+
+Sidebar office name, Settings → Office, the platform admin's `/admin` page and the suspended-office page are specified in `docs/11-offices.md` section 6.
 
 ---
 

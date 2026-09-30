@@ -2,6 +2,8 @@
 
 The migration `supabase/migrations/20260924000000_init.sql` is the source of truth. This page explains it.
 
+From M14 every table below also has `office_id`, and every rule applies within one office. Offices, platform admins, pending members and the office boundary are in `docs/11-offices.md` section 3.
+
 ## 1. Map
 
 ```
@@ -34,7 +36,8 @@ One row per team member, created automatically when an auth user is created.
 |---|---|
 | id | = auth user id |
 | email, full_name | |
-| role | `founder` or `bd`. The first user ever created becomes founder; there can only be one. |
+| office_id | (M14) the member's office; one office per person |
+| role | `founder`, `bd` or `social`. One founder per office, created with the office (docs/11). |
 | primary_niche_id | Pre-fills the niche on new leads |
 | timezone | IANA name, e.g. `Asia/Karachi`. Drives "today" for this user. |
 | is_active, deactivated_at | Deactivated users can't read anything (RLS) and are banned in Auth |
@@ -169,7 +172,7 @@ All of these respect RLS. A BD calling them gets only their own numbers.
 
 ## 5. Things handled automatically by triggers
 
-- A profile is created on sign-up. The first user becomes founder.
+- A profile is created on sign-up, in the office and role reserved in `pending_members` (docs/11 section 5). No reservation, no account.
 - `domain` is derived from `website`.
 - `completeness` is recalculated when lead or contact fields change.
 - Lead status changes after each activity and opportunity change.
@@ -242,3 +245,7 @@ Null for leads added by hand. Imported leads also get the source **CSV import** 
 ### Functions
 - `import_conflicts(batch)`: rows that match an existing lead of the same owner (docs/04 section 10).
 - `import_lead_batch(batch)`: the import. One transaction; returns the number of leads.
+
+## 9. Offices (M13–M18)
+
+`offices`, `platform_admins`, `pending_members`, `office_id` on every table, per-office uniqueness, default settings per office and the new functions (`current_office_id`, `create_office`, `admin_office_summary`) are specified in `docs/11-offices.md` section 3.

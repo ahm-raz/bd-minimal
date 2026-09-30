@@ -2,7 +2,7 @@
 
 ## 1. Principle
 
-Row Level Security (RLS) in Postgres is the only security boundary. The UI hides things a user can't do, but hiding is for comfort, not safety. The founder's department view (docs/07, Navigation) is the same kind of hiding: a UX filter over what RLS already allows. Every rule below is already enforced by the migration and checked by `supabase/tests/02_smoke_test.sql`.
+Row Level Security (RLS) in Postgres is the only security boundary. From M14 the first boundary is the **office**: every rule below applies only inside the caller's own office, and nothing is readable, writable or counted across offices (`docs/11-offices.md` section 4). The UI hides things a user can't do, but hiding is for comfort, not safety. The founder's department view (docs/07, Navigation) is the same kind of hiding: a UX filter over what RLS already allows. Every rule below is already enforced by the migration and checked by `supabase/tests/02_smoke_test.sql`.
 
 ## 2. Matrix
 
@@ -29,6 +29,7 @@ Row Level Security (RLS) in Postgres is the only security boundary. The UI hides
 | Meetings (M11) | on own leads: book, read, reschedule, mark held / no-show, cancel, undo | none | all; delete |
 | Import leads from CSV (M12) | only if the founder turned it on; the leads are the BD's own | none | yes; can give rows to any BD (Owner email column) and turn the permission on or off per BD |
 | Notifications (M11) | own only: read, mark read, delete; mute groups | same as BD | same (own only) |
+| Offices (M16) | none | none | own office: rename, default time zone; seat limit read-only. Platform admins: create, edit, suspend, reactivate any office; list only (docs/11 section 6), never its data |
 | Google Calendar connection (M11) | own only: connect, disconnect, auto-add; the stored token is never readable | none | own; sees every member's connection status (not the token) |
 
 Notes:
@@ -44,6 +45,9 @@ Notes:
 ## 3. Auth flows
 
 ### First setup (founder)
+
+From M16: `/setup` creates the first **office**, its founder and makes that person a platform admin; later offices are created on `/admin` (`docs/11-offices.md` sections 5–6). Every new member needs a `pending_members` reservation in their office before the auth user is created. The steps below describe the single-office setup they replace.
+
 1. Create the Supabase project. In **Auth → Providers → Email**, disable "Allow new users to sign up" after step 3.
 2. Run migrations.
 3. The founder signs up once (a dev-only `/setup` page, or the Supabase dashboard "Add user"). The trigger makes the first user the founder.
@@ -93,6 +97,8 @@ The founder cannot be deactivated or demoted; the database rejects it.
 `/login` has "Forgot password?", which calls `resetPasswordForEmail` and sends the user to `/reset-password`.
 
 ## 4. Where the service-role key may be used
+
+From M16 also: a platform admin creating a new office's founder user. Every founder action checks the target member is in the founder's own office (`docs/11-offices.md` section 7).
 
 Only in `src/lib/supabase/admin.ts`, imported only by server actions that first confirm the caller is an active founder:
 

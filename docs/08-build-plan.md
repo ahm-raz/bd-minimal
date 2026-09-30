@@ -160,6 +160,63 @@ In Supabase Auth settings:
 - ☐ imported leads don't change Leads added
 - ☐ Notifications is in the sidebar for every role
 
+## M13–M18: Many offices in one app
+
+Spec: `docs/11-offices.md`. Business plan: `docs/SAAS-PLAN.md`. Every existing test must keep passing after each milestone, with one office.
+
+### M13: Spec update
+- `docs/11-offices.md`; office notes in docs 01, 02, 03, 07, 08 and CLAUDE.md
+
+**Done when:**
+- ☐ the owner has signed off docs/11
+
+### M14: Offices in the database
+- Migration: `offices`, `platform_admins`, `pending_members`; `office_id` on every table with the backfill to office #1 ("My office"); per-office uniqueness (one founder per office, list names, stage and outcome keys); same-office references; `office_id` indexes; default settings moved into one function
+- Regenerate types; the app compiles and behaves exactly as before
+
+**Done when:**
+- ☐ the migration applies on a fresh database and on a copy of production
+- ☐ every row has an office; a row pointing at another office's row is refused
+- ☐ every existing test still passes
+
+### M15: The office boundary (RLS and functions)
+- `current_office_id()`; `is_active_user()` requires an active office; every policy adds the office check
+- Every `security definer` function and trigger filters by office; "the founder" means the office's founder
+- SQL test: two offices, every table and function; plus the list of reviewed `security definer` functions
+
+**Done when:**
+- ☐ a member of office A reads, writes and counts nothing of office B, table by table and function by function
+- ☐ a new unreviewed `security definer` function fails the SQL test
+- ☐ every existing test still passes
+
+### M16: Creating offices and members
+- `pending_members` flow in `handle_new_user`; Team add, invite, set password, deactivate and reactivate limited to the founder's own office
+- `create_office`, `/admin` list and Create office panel, `/setup` creates the first office and platform admin
+- Sidebar office name; Settings → Office
+
+**Done when:**
+- ☐ a platform admin creates two offices, each with its own founder, who each add their own BDs
+- ☐ a sign-up without a reservation creates no profile
+- ☐ an email already used anywhere is refused without naming the office
+- ☐ a founder can't act on a member of another office, even by calling the server action directly
+
+### M17: Seats and suspend
+- Seat limit trigger and inline error; `admin_office_summary()`; Edit, Suspend, Reactivate on `/admin`; the suspended-office page
+
+**Done when:**
+- ☐ adding or reactivating past the seat limit is refused with the inline message
+- ☐ a suspended office's members see the paused page and read nothing; reactivating restores everything
+- ☐ `/admin` is 404 for everyone who isn't a platform admin, and the platform admin can't open another office's lead
+
+### M18: Two-office tests, seed scripts, go live
+- E2E with two seeded offices on every screen: My Day, Leads, lead page, Pipeline, Tasks, Feed (live), Performance, Content, Notifications (live), search, CSV import
+- `seed:demo`, `seed:more` and `test-users` take an office; `seed:demo` creates two offices
+- Deploy runbook in `docs/DEPLOY.md`: backup, migrate a copy, migrate production
+
+**Done when:**
+- ☐ the full E2E suite passes with two offices
+- ☐ production is migrated and the existing team works as before
+
 ## Demo data (`pnpm seed:demo`, local only)
 
 Refuse to run unless `NEXT_PUBLIC_SUPABASE_URL` points at localhost. Using the admin client, create:

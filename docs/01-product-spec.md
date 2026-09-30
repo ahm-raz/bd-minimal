@@ -11,13 +11,16 @@ Replace the "Client Acquisition OS" spreadsheet with a web app that:
 
 ## 2. Users
 
+The app serves many independent **offices** (agencies or companies). Everything below describes one office; offices never see each other's staff or data. See `docs/11-offices.md`.
+
+
 | Role | Count | What they do |
 |---|---|---|
-| Founder | exactly 1 | Everything a BD does (own leads, Upwork, pipeline). Also manages the team, targets, settings and tasks, and sees all data. |
+| Founder | exactly 1 per office | Everything a BD does (own leads, Upwork, pipeline). Also manages the team, targets, settings and tasks, and sees all data. |
 | BD | 1 to about 10 | Adds leads, logs activities, works their pipeline, completes tasks. Sees only their own work. |
 | Social media manager (SMM) | 0 to a few | Writes and publishes the posts the founder schedules on the brand's social accounts, marks them as posted, and records results. Sees only their own posts and social numbers; no sales data. See `docs/09-social-media.md`. |
 
-The SMM role was added in M10 (`docs/09-social-media.md`). There are no other roles.
+The SMM role was added in M10 (`docs/09-social-media.md`). There are no other roles inside an office. Separately, a **platform admin** (the app's owner) creates and suspends offices but can't see their data (`docs/11-offices.md`).
 
 Example team used across these docs:
 
@@ -67,10 +70,11 @@ Example team used across these docs:
 10. Global search (Ctrl/Cmd + K)
 
 11. (M10) Social media manager role and content scheduling: social accounts, content pillars, posting schedules, posts with a review flow, social metrics (`docs/09-social-media.md`)
+12. (M13–M18) Many independent offices in one app: private data per office, platform admin office list, seat limits, suspend (`docs/11-offices.md`)
 
 ### Out of scope for v1
 
-Job Platform; importing anything other than leads from CSV (M12 adds a lead import, see docs/04 section 10), including Excel files directly (save as CSV first); sending email or LinkedIn messages from the app (M11 allows only Google Calendar invites the BD ticks); email, SMS or closed-app push reminders (M11 adds in-app and browser alerts while the app is open, see docs/10); payment-by-payment tracking and invoices; currencies other than USD; extra roles beyond the SMM added in M10; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), push/email notifications, multi-step or client approvals, AI caption generation.
+Job Platform; importing anything other than leads from CSV (M12 adds a lead import, see docs/04 section 10), including Excel files directly (save as CSV first); sending email or LinkedIn messages from the app (M11 allows only Google Calendar invites the BD ticks); email, SMS or closed-app push reminders (M11 adds in-app and browser alerts while the app is open, see docs/10); payment-by-payment tracking and invoices; for offices: billing, trials, self-serve sign-up, deleting an office, data export, office logos and custom domains, one person in several offices, platform admins viewing office data (`docs/11-offices.md` section 9); currencies other than USD; extra roles beyond the SMM added in M10; mobile-optimised layouts (screens must still work on a phone, just not polished); file attachments; AI features; public API; audit log beyond the history tables; for the social module: auto-publishing through platform APIs, connecting social accounts or OAuth, pulling analytics from platforms, file uploads (links only), push/email notifications, multi-step or client approvals, AI caption generation.
 
 ## 5. User stories and acceptance criteria
 
