@@ -1,4 +1,4 @@
-import { admin, clientAs, ensureTeam, ensureUser, expect, signIn, test, type Who } from "./helpers";
+import { admin, chooseActivityType, clientAs, ensureTeam, ensureUser, expect, signIn, teamOfficeId, test, type Who } from "./helpers";
 
 /** M11 (docs/10 section 5): meetings, the bell and live notifications. Google itself is covered by unit tests. */
 test.describe.configure({ mode: "serial" });
@@ -53,8 +53,7 @@ test("book, reschedule, cancel and undo a meeting; My Day and the bell show it",
 
   await page.getByRole("button", { name: /^Log activity/ }).click();
   const sheet = page.getByRole("dialog", { name: "Log activity" });
-  await page.getByRole("combobox", { name: "Type", exact: true }).click();
-  await page.getByRole("option", { name: "Reply received", exact: true }).click();
+  await chooseActivityType(page, "Reply received");
   await page.getByRole("combobox", { name: "Outcome", exact: true }).click();
   await page.getByRole("option", { name: "Meeting booked", exact: true }).click();
   // The lead's own zone is the default, with the viewer's time next to it.
@@ -174,7 +173,7 @@ test("muting a group stops new items; the SMM hears about comments on their post
   const zain = await clientAs("zain");
   const { data: account } = await admin()
     .from("social_accounts")
-    .insert({ name: `Bell page ${Date.now()}`, platform: "linkedin_page", audience_timezone: "America/New_York" })
+    .insert({ office_id: await teamOfficeId(), name: `Bell page ${Date.now()}`, platform: "linkedin_page", audience_timezone: "America/New_York" })
     .select("id")
     .single();
   const { data: post } = await zain
