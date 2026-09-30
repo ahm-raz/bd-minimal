@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/database.types";
 import { ANON_KEY, SUPABASE_URL } from "./env";
-import { PASSWORD, admin, clientAs, ensureTeam, expect, signIn, test, type Who } from "./helpers";
+import { PASSWORD, admin, clientAs, ensureTeam, expect, reserveMember, signIn, test, type Who } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -19,6 +19,7 @@ async function refId(table: "niches" | "channels" | "activity_types" | "lost_rea
 test.beforeAll(async () => {
   ids = await ensureTeam();
   // A fresh BD so every number is known exactly.
+  await reserveMember(EMAIL);
   const { data, error } = await admin().auth.admin.createUser({ email: EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: NAME } });
   if (error) throw new Error(error.message);
   nadiaId = data.user!.id;

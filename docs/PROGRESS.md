@@ -241,4 +241,31 @@ pnpm dev             # http://localhost:3000
 ### M13: Spec update (many offices)
 - [x] docs/11-offices.md: office boundary, data model, security, sign-up via pending_members, seats, suspend, /admin, service-role use, migration of existing data, out of scope
 - [x] Office notes in docs 01, 02, 03, 07, 08 and CLAUDE.md (rule 3 service-role use, new rule 7 office boundary)
-- [ ] Owner sign-off on docs/11 (M14 doesn't start until then)
+- [x] Owner sign-off on docs/11
+
+### M14: Offices in the database
+- [x] Migration `20261002000000_offices.sql`: offices, platform_admins, pending_members; office_id on all 31 business tables with backfill to "My office"; one founder per office; list names unique per office; stages and outcomes keyed per office with composite references; `office_refs` trigger on every table (fills the office, refuses cross-office references, refuses moving a row); `seed_office_defaults`; `handle_new_user` from reservations
+- [x] Applies on a fresh database and on existing data (seed:demo on the old schema, then migrate: 186 leads kept, one office, founder is platform admin)
+
+### M15: The office boundary
+- [x] Migration `20261002000100_office_boundary.sql`: `current_office_id()` needs an active member of an active office; restrictive `office_boundary` policy on every business table; security definer functions re-owned by `office_definer` (NOLOGIN, no BYPASSRLS) so they run inside the wall; "the founder" lookups and stage/outcome joins match the office
+- [x] `supabase/tests/07_offices_test.sql`: two offices, zero foreign rows in all four directions over every table; cross-office writes, references, reassigns and moves refused; metrics per office; reviewed list of postgres-owned security definer functions
+- [x] All earlier SQL suites pass unchanged apart from reserving their users (`pnpm db:test`: 11 + 18 + 8 + 10 + 27 + 17 expected errors)
+
+### M16: Creating offices and members
+- [x] Team actions reserve the member in the founder's office; deactivate, reactivate, resend and set password only for the founder's own members; sign-in times only for the office
+- [x] `/setup` creates the first office (name field) and its founder, who becomes platform admin
+- [x] `/admin` (platform admins; 404 for everyone else): office list with search, Create office panel, Edit, Suspend, Reactivate
+- [x] Office name in the sidebar; Settings → Office (name, default time zone, seats read-only)
+
+### M17: Seats and suspend
+- [x] Migration `20261002000200_office_admin.sql`: seat limit on reservations and on add/reactivate; stale reservations cleared after 10 minutes; `admin_office_summary()` (counts only); `discard_empty_office`
+- [x] Suspended office: `my_account_state()`; sign-in refused and open sessions signed out with "Your office's access is paused. Contact us to turn it back on."
+
+### M18: Two-office tests, seed scripts, go live
+- [x] `seed:demo` creates BlueBugs Agency plus Northwind Legal; `seed:more` and `test-users` work on the first office; scripts reserve members first (`scripts/target.ts`)
+- [x] E2E `15-offices.spec.ts` (create office, isolation on leads/lead page/team/performance/feed, /admin 404, email taken, seats inline, rename, suspend and reactivate): 6/6 pass
+- [x] Changed specs pass on their own: 01-auth-team 8/8, 08-performance 3/3, 09-polish 3/3
+- [x] Unit tests 255 (new `offices-schema.test.ts`), lint (0 errors), typecheck, build
+- [ ] Full E2E suite not run in this pass (run only with the owner's go-ahead)
+- [x] Deploy runbook: docs/DEPLOY.md section 10

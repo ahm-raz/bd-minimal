@@ -15,7 +15,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TZDate } from "@date-fns/tz";
 import type { Database } from "../src/lib/database.types";
-import { CLOUD, CORE_EMAILS, PASSWORD, adminClient, appUrl, resetDatabase } from "./target";
+import { CLOUD, CORE_EMAILS, PASSWORD, adminClient, appUrl, createFirstOffice, reserveMember, resetDatabase } from "./target";
+import { seedSecondOffice } from "./second-office";
 
 const RESET_FIRST = CLOUD || process.argv.includes("--reset");
 const emailOf = (m: { key: string; email: string }) =>
@@ -49,6 +50,9 @@ function workTime(daysAgo: number, tz: string): Date {
   d.setUTCMinutes(d.getUTCMinutes() + Math.floor(rand() * 8 * 60));
   return d > new Date() ? new Date(Date.now() - Math.floor(rand() * 3600_000)) : d;
 }
+
+/** The demo office, set when main() creates it. */
+let OFFICE_ID = "";
 
 const TEAM = [
   { key: "zain", name: "Zain Malik", email: "zain@example.com", tz: "Asia/Karachi", niche: null as string | null },
@@ -232,8 +236,15 @@ async function main() {
   }
   console.log("Seeding demo data…");
 
+  // The demo office (docs/11): its default settings, then a reserved place for each member.
+  const founder = TEAM.find((m) => m.key === "zain")!;
+  OFFICE_ID = await createFirstOffice(db, "BlueBugs Agency", "Asia/Karachi", emailOf(founder));
+  for (const m of TEAM) {
+    if (m.key !== "zain") await reserveMember(db, emailOf(m), OFFICE_ID, m.key === "hina" ? "social" : "bd");
+  }
+
   const listIds = async (table: "niches" | "channels" | "lead_sources" | "lost_reasons" | "activity_types") => {
-    const rows = must(await db.from(table).select("id, name"), table);
+    const rows = must(await db.from(table).select("id, name").eq("office_id", OFFICE_ID), table);
     return Object.fromEntries(rows.map((r) => [r.name, r.id])) as Record<string, string>;
   };
   const niches = await listIds("niches");
@@ -242,7 +253,7 @@ async function main() {
   const lostReasons = await listIds("lost_reasons");
   const types = await listIds("activity_types");
 
-  // Users: the first created becomes the founder (trigger).
+  // Users: each joins the demo office with the role reserved above.
   const ids: Record<string, string> = {};
   for (const m of TEAM) {
     const created = await db.auth.admin.createUser({
@@ -260,7 +271,6 @@ async function main() {
         .update({
           timezone: m.tz,
           primary_niche_id: m.niche ? niches[m.niche] : null,
-          ...(m.key === "hina" ? { role: "social" as const } : {}),
         })
         .eq("id", user.id)
         .select("id"),
@@ -753,9 +763,14 @@ async function main() {
     await q;
   }
 
+  // A second, independent office: it never sees BlueBugs' data and BlueBugs never sees its (docs/11).
+  const second = await seedSecondOffice(db);
+
   console.log(`Done: ${seeded.length} leads, ${plan.length} opportunities, ${meetingRows.length} meetings.`);
-  console.log(`Sign in at ${appUrl}/login with any of:`);
+  console.log(`Sign in at ${appUrl}/login with any of (BlueBugs Agency; Zain is also the platform admin):`);
   for (const m of TEAM) console.log(`  ${emailOf(m)} / ${PASSWORD}  (${ROLE_OF[m.key] ?? "BD"})`);
+  console.log(`Second office, ${second.name}:`);
+  for (const m of second.members) console.log(`  ${m.email} / ${PASSWORD}  (${m.role})`);
 }
 
 // ---------- Social media module ------------------------------------------------------------
@@ -810,13 +825,14 @@ async function seedSocial(ids: Record<string, string>) {
   const zain = ids.zain!;
   const hina = ids.hina!;
   const pillars = Object.fromEntries(
-    must(await db.from("content_pillars").select("id, name"), "pillars").map((p) => [p.name, p.id]),
+    must(await db.from("content_pillars").select("id, name").eq("office_id", OFFICE_ID), "pillars").map((p) => [p.name, p.id]),
   ) as Record<string, string>;
   const accounts = must(
     await db
       .from("social_accounts")
       .insert([
         {
+          office_id: OFFICE_ID,
           name: "BlueBugs LinkedIn page",
           platform: "linkedin_page",
           profile_url: "https://www.linkedin.com/company/bluebugs",
@@ -824,6 +840,7 @@ async function seedSocial(ids: Record<string, string>) {
           sort_order: 1,
         },
         {
+          office_id: OFFICE_ID,
           name: "Zain personal LinkedIn",
           platform: "linkedin_profile",
           profile_url: "https://www.linkedin.com/in/zain-malik",

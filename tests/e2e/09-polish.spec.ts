@@ -1,4 +1,4 @@
-import { PASSWORD, admin, clearInbox, clientAs, ensureTeam, expect, latestEmailLink, signIn, test, type Who } from "./helpers";
+import { PASSWORD, admin, clearInbox, clientAs, ensureTeam, expect, latestEmailLink, reserveMember, signIn, test, type Who } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -70,6 +70,7 @@ test("unknown pages show the 404 page", async ({ page }) => {
 test("a new BD goes from invite email to a first logged activity, keyboard only", async ({ browser, baseURL }) => {
   const email = `newbd${RUN}@example.com`;
   await clearInbox();
+  await reserveMember(email);
   // Invite emails are off in the Team UI until a sending domain exists; the link flow itself stays supported.
   const { data: invited, error } = await admin().auth.admin.inviteUserByEmail(email, {
     data: { full_name: "Omar Farooq" },

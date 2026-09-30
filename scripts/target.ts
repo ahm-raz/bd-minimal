@@ -92,3 +92,28 @@ async function waitForServices() {
   }
   throw new Error(`${where} didn't come back after the reset.`);
 }
+
+type Admin = ReturnType<typeof adminClient>;
+
+/**
+ * Offices (docs/11 section 5): an account can only be created for an email that has a place reserved in an
+ * office. Scripts reserve it first, with the service-role key.
+ */
+export async function reserveMember(db: Admin, email: string, officeId: string, role: "founder" | "bd" | "social") {
+  const { error } = await db.from("pending_members").upsert({ email: email.toLowerCase(), office_id: officeId, role });
+  if (error) throw new Error(`Reserving ${email} failed: ${error.message}`);
+}
+
+/** The first office on an empty database, like /setup: its default settings and the founder's reservation. */
+export async function createFirstOffice(db: Admin, name: string, timezone: string, founderEmail: string): Promise<string> {
+  const { data, error } = await db.rpc("setup_first_office", { p_name: name, p_timezone: timezone, p_founder_email: founderEmail });
+  if (error || !data) throw new Error(`Creating ${name} failed: ${error?.message}`);
+  return data;
+}
+
+/** The office an existing account belongs to. */
+export async function officeOf(db: Admin, userId: string): Promise<string> {
+  const { data, error } = await db.from("profiles").select("office_id").eq("id", userId).single();
+  if (error || !data) throw new Error(`No office for ${userId}: ${error?.message}`);
+  return data.office_id;
+}

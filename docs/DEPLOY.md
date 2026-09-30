@@ -202,6 +202,26 @@ Notifications need nothing extra: they use Supabase Realtime, which is already o
 
 ---
 
+## 10. Many offices (M14–M18, docs/11)
+
+Three migrations: `20261002000000_offices.sql`, `20261002000100_office_boundary.sql` and `20261002000200_office_admin.sql`. They move all existing data into office #1, **"My office"**, and make its founder the **platform admin**.
+
+1. **Back up first.** Save both files outside the repo:
+   ```powershell
+   pnpm supabase db dump --linked -f ..d-backupsefore-offices-schema.sql
+   pnpm supabase db dump --linked --data-only -f ..d-backupsefore-offices-data.sql
+   ```
+2. **Apply the migrations before pushing the code:** run `pnpm supabase db push` and check the list shows the three files.
+3. **Push the code:** `git push`. Vercel redeploys `main`.
+4. **Check it worked.** Sign in as the founder, then check:
+   - The sidebar shows **My office**. Rename it in Settings → **Office**.
+   - **Offices** appears in the sidebar and lists one office.
+5. **Create a customer's office:** open **Offices**, click **Create office**, and enter the name, time zone, seats, and the founder's name, email and password. Send the founder the link and password yourself. Their data is private to their office. You see only counts on the Offices page.
+
+**Scripts:** `pnpm seed:demo` creates two offices, **BlueBugs Agency** and **Northwind Legal**. `seed:more` and `test-users` work on the first office.
+
+**Accounts:** every new account needs a reserved place in an office (`pending_members`), which the Team and Offices screens make. An account created by hand in the Supabase dashboard is refused, with the message "No office is waiting for …".
+
 ## Troubleshooting
 
 | Symptom | Fix |

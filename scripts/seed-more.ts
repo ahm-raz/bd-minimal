@@ -13,7 +13,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TZDate } from "@date-fns/tz";
 import type { Database } from "../src/lib/database.types";
-import { CLOUD, CORE_EMAILS, PASSWORD, adminClient, appUrl, where } from "./target";
+import { CLOUD, CORE_EMAILS, PASSWORD, adminClient, appUrl, reserveMember, where } from "./target";
 
 type Tables = Database["public"]["Tables"];
 const db: SupabaseClient<Database> = adminClient();
@@ -130,14 +130,18 @@ const LAST = ["Lopez", "Patel", "Nguyen", "Smith", "Garcia", "Johnson", "Kim", "
   "Mitchell", "Reed", "Foster", "Ward", "Bennett", "Carter", "Hughes", "Price", "Coleman", "Ortiz", "Sanders", "Murphy",
   "Rivera", "Brooks", "Hayes", "Fisher", "Hamilton", "Graham", "Wallace", "Ramirez", "Shah"];
 
+/** The office this script adds to: the first one (created by /setup or seed:demo), docs/11. */
+let OFFICE_ID = "";
+
 async function listIds(table: "niches" | "channels" | "lead_sources" | "lost_reasons" | "activity_types") {
-  const rows = must(await db.from(table).select("id, name"), table);
+  const rows = must(await db.from(table).select("id, name").eq("office_id", OFFICE_ID), table);
   return Object.fromEntries(rows.map((r) => [r.name, r.id])) as Record<string, string>;
 }
 
 async function ensureMember(m: Member, nicheId: string | null, existing: Map<string, string>): Promise<string> {
   const found = existing.get(m.email.toLowerCase());
   if (found) return found;
+  await reserveMember(db, m.email, OFFICE_ID, m.role);
   const created = await db.auth.admin.createUser({
     email: m.email,
     password: PASSWORD,
@@ -149,7 +153,7 @@ async function ensureMember(m: Member, nicheId: string | null, existing: Map<str
   must(
     await db
       .from("profiles")
-      .update({ timezone: m.tz, role: m.role, primary_niche_id: nicheId })
+      .update({ timezone: m.tz, primary_niche_id: nicheId })
       .eq("id", id)
       .select("id"),
     `profile ${m.email}`,
@@ -160,17 +164,27 @@ async function ensureMember(m: Member, nicheId: string | null, existing: Map<str
 
 async function main() {
   console.log(`Adding sample data to ${where}. Nothing is deleted.`);
-  const founder = must(await db.from("profiles").select("id, full_name").eq("role", "founder").maybeSingle(), "founder");
+  const office = must(await db.from("offices").select("id, name").order("created_at").limit(1).maybeSingle(), "office");
+  OFFICE_ID = office.id;
+  console.log(`  office: ${office.name}`);
+  const founder = must(
+    await db.from("profiles").select("id, full_name").eq("role", "founder").eq("office_id", OFFICE_ID).maybeSingle(),
+    "founder",
+  );
   const niches = await listIds("niches");
   const channels = await listIds("channels");
   const sources = await listIds("lead_sources");
   const lostReasons = await listIds("lost_reasons");
   const types = await listIds("activity_types");
 
-  const profiles = must(await db.from("profiles").select("id, email, primary_niche_id"), "profiles");
+  // Every account (emails are unique app-wide), so a member of another office is never created twice.
+  const profiles = must(await db.from("profiles").select("id, email, primary_niche_id, office_id"), "profiles");
   const byEmail = new Map(profiles.map((p) => [p.email.toLowerCase(), p.id]));
   // Each BD's niche, from the niches that exist here (lists differ between databases).
-  const activeNiches = must(await db.from("niches").select("id, name").eq("is_active", true), "active niches");
+  const activeNiches = must(
+    await db.from("niches").select("id, name").eq("is_active", true).eq("office_id", OFFICE_ID),
+    "active niches",
+  );
   const nicheName = new Map(activeNiches.map((n) => [n.id, n.name]));
   const resolved: Record<string, string> = {};
   for (const m of BDS) {
@@ -189,7 +203,7 @@ async function main() {
   }
 
   // Targets for members without any (never overwrite the founder's settings).
-  const { data: haveTargets } = await db.from("targets").select("user_id");
+  const { data: haveTargets } = await db.from("targets").select("user_id").eq("office_id", OFFICE_ID);
   const withTargets = new Set((haveTargets ?? []).map((t) => t.user_id));
   const targets: Tables["targets"]["Insert"][] = [];
   for (const m of BDS) {
@@ -212,11 +226,18 @@ async function main() {
       { name: n + ": Email sequence", niche_id: niches[n]!, channel_id: channels.Email ?? null, owner_id: owner },
     ];
   });
-  await db.from("campaigns").upsert(wanted, { onConflict: "name", ignoreDuplicates: true });
-  const campaigns = must(await db.from("campaigns").select("id, name, niche_id"), "campaigns");
+  await db
+    .from("campaigns")
+    .upsert(
+      wanted.map((c) => ({ ...c, office_id: OFFICE_ID })),
+      { onConflict: "office_id,name", ignoreDuplicates: true },
+    );
+  const campaigns = must(await db.from("campaigns").select("id, name, niche_id").eq("office_id", OFFICE_ID), "campaigns");
 
   const existingNames = new Set(
-    must(await db.from("leads").select("company_name").limit(20000), "names").map((l) => l.company_name.toLowerCase()),
+    must(await db.from("leads").select("company_name").eq("office_id", OFFICE_ID).limit(20000), "names").map((l) =>
+      l.company_name.toLowerCase(),
+    ),
   );
 
   type Planned = {
@@ -575,7 +596,10 @@ const addDays = (date: string, n: number) => {
 
 /** Posts from 45 to 15 days ago on the existing accounts (posted with results, a few missed). */
 async function seedOlderPosts(founderId: string, hina: string): Promise<number> {
-  const accounts = must(await db.from("social_accounts").select("id, name").eq("is_active", true).order("sort_order"), "accounts");
+  const accounts = must(
+    await db.from("social_accounts").select("id, name").eq("is_active", true).eq("office_id", OFFICE_ID).order("sort_order"),
+    "accounts",
+  );
   if (accounts.length === 0) {
     console.log("  No social accounts: skipped posts.");
     return 0;

@@ -58,8 +58,12 @@ Rows written by triggers copy `office_id` from the row that caused them. They ne
 
 ### Rows stay inside their office
 The database refuses any row that points at a row in another office. For example, a lead in office A can't use a niche, campaign or owner from office B, and an activity can't point at a lead from another office.
-- Use composite foreign keys `(office_id, x_id) → (office_id, id)` where practical, and a trigger check elsewhere.
 - Row Level Security (RLS) doesn't protect this on its own: foreign-key checks skip RLS.
+- Every business table has one trigger, `zz_office_refs` (function `office_refs()`), built from its single-column foreign keys. It:
+  - fills `office_id` from the first parent row when it's empty (rows written without a signed-in user)
+  - refuses a row whose parents are in another office: "Rows must stay inside one office"
+  - refuses changing a row's office
+- Stage and outcome references are composite foreign keys, `(office_id, stage_key)` and `(office_id, outcome_key)`, so they can only use the same office's rows.
 
 ### Uniqueness becomes per office
 | Was | Becomes |
@@ -84,18 +88,26 @@ Large tables (leads, contacts, activities, opportunities, feed_events, notificat
 
 ## 4. Security
 
-RLS is still the only security boundary (docs/03). What changes:
+RLS is still the only security boundary (docs/03). Migration `20261002000100_office_boundary.sql` builds the wall like this:
 
-- **`current_office_id()`**: `stable security definer`, returns the caller's `profiles.office_id`.
-- **`is_active_user()`**: also requires the caller's office to be `active`. A suspended office's members can read nothing, just like a deactivated user. `is_founder()` and `current_user_role()` build on it.
-- **Every policy** adds `office_id = current_office_id()`, next to the role and ownership checks it already has.
-- **Every `security definer` function filters by office itself, because it skips RLS.** This covers:
+- **`current_office_id()`** returns the caller's office, but only while they're an active member of an active office. Otherwise it returns null, so a deactivated user or a suspended office reads nothing. `is_active_user()`, `is_founder()`, `current_user_role()` and `can_import_leads()` build on it.
+- **One restrictive policy per business table**, `office_boundary`: `office_id = current_office_id()`. Restrictive policies are ANDed with the existing ones, so every rule in docs/03 now also stops at the office wall.
+- **Trusted contexts see every office, as before:** migrations, the SQL editor, the service-role key, and the triggers they fire. `is_trusted_context()` means no signed-in user and not the `anon` role.
+- **`security definer` functions run inside the wall.** The `postgres` role bypasses RLS, so these functions are owned by `office_definer` instead: a NOLOGIN role without BYPASSRLS. Inside them, only the office wall applies, through one permissive `office_definer_all` policy per table. They still do their own role checks, as before.
+- **A short, reviewed list of functions stays owned by `postgres`.** These read only the caller's own profile, are the platform admin's, or are sign-up and setup:
+  - `current_office_id`, `is_active_user`, `is_founder`, `current_user_role`, `can_import_leads`, `my_account_state`
+  - `is_platform_admin`, `admin_office_summary`, `create_office`, `discard_empty_office`, `setup_first_office`, `seed_office_defaults`
+  - `handle_new_user`, `office_refs`, `office_seat_error`, `trg_first_founder_is_admin`, `trg_pending_member_insert`, `trg_profile_seats`
+
+  `supabase/tests/07_offices_test.sql` fails if this list changes. A new function added without review is caught.
+- **Joins inside functions** also match on office (stage and outcome lookups), because trusted contexts see every office.
+
+The functions this covers (they now run inside the wall):
   - `log_activity`, `book_meeting`, `ensure_recurring_tasks`, `tasks_with_progress`, `count_task_progress`
   - `metrics_scoreboard`, `metrics_by_dimension`, `metrics_daily`, `pipeline_summary`, `active_mrr`, `social_metrics`
   - `ensure_post_slots`, `mark_missed_posts`, `request_post_changes`, `team_calendar_status`, `prune_my_notifications`
   - `import_conflicts`, `import_lead_batch`, and every trigger function
 
-  A SQL test lists every `security definer` function in the database and fails if one isn't in the reviewed list. A new function can't slip in unreviewed.
 - **Triggers that look for "the founder"** now look for the founder **of the row's office**. Today they take any founder in the database: notification routing, lead import and the hardening migration.
 - **Realtime** subscriptions (feed, notifications) already pass through RLS. The two-office tests prove that no event crosses offices.
 - **The platform admin's office list** comes from `admin_office_summary()`. It is `security definer`, checks `is_platform_admin()`, and returns only the columns in section 6. It returns no names of leads, contacts or deals.
@@ -111,7 +123,9 @@ RLS is still the only security boundary (docs/03). What changes:
    - "The first user becomes founder" is gone. A founder is created only through `create_office` or `/setup`.
 5. The action sets niche and time zone as today.
 
-The office's time zone is the default when the form leaves the time zone empty.
+The new profile starts with the office's time zone. The Add member form starts with it too, and the founder can change it.
+
+A reservation left behind by a failed add is cleared after 10 minutes.
 
 ### An email already has an account
 Emails are unique across the whole app, because Supabase Auth allows one account per email. Adding an email that already has an account, in any office, fails with **"This email already has an account. Use a different email."** The message never says which office has it.
@@ -122,11 +136,11 @@ A trigger on `profiles` refuses to add or reactivate an active member when the o
 > "Your office is using all {n} seats. Deactivate someone or contact us for more seats."
 
 ### Suspended office
-Every member's data access stops (section 4). They can still sign in, but the app shows:
+Every member's data access stops (section 4). Signing in is refused, and an open session is signed out on its next page load. `/login` then shows:
 
 > "Your office's access is paused. Contact us to turn it back on."
 
-This is a full page instead of the app, with a **Sign out** button. `/login` shows the same sentence after a successful sign-in, then signs the person out. Reactivating restores everything; nothing is deleted.
+`my_account_state()` tells the app why a signed-in user can't read anything: `deactivated` or `suspended`. Reactivating restores everything; nothing is deleted. A platform admin can't suspend their own office.
 
 ## 6. Screens
 
@@ -151,7 +165,7 @@ Nav item **Offices**, visible only to platform admins. Everyone else gets 404.
 - founder name, founder email, password and confirm (minimum 10 characters), as in Team → Add member
 - When `EMAIL_INVITES=on`: a "Send an invite email instead" option
 
-The **Create office** button calls `create_office(name, timezone, seat_limit, founder_email)`. That function checks `is_platform_admin()`, inserts the office and its default settings, and inserts the founder's `pending_members` row. The action then creates the auth user with the admin client.
+The **Create office** button calls `create_office(name, timezone, seat_limit, founder_email)`. That function checks `is_platform_admin()`, inserts the office and its default settings, and inserts the founder's `pending_members` row. The action then creates the auth user with the admin client. If that fails, `discard_empty_office` removes the empty office so the form can be sent again.
 
 **Row actions:**
 - **Edit**: name and seat limit.

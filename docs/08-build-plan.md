@@ -168,7 +168,7 @@ Spec: `docs/11-offices.md`. Business plan: `docs/SAAS-PLAN.md`. Every existing t
 - `docs/11-offices.md`; office notes in docs 01, 02, 03, 07, 08 and CLAUDE.md
 
 **Done when:**
-- ☐ the owner has signed off docs/11
+- ☑ the owner has signed off docs/11
 
 ### M14: Offices in the database
 - Migration: `offices`, `platform_admins`, `pending_members`; `office_id` on every table with the backfill to office #1 ("My office"); per-office uniqueness (one founder per office, list names, stage and outcome keys); same-office references; `office_id` indexes; default settings moved into one function

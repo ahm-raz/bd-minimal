@@ -12,12 +12,12 @@
  *   social media manager Hina Raza    local hina@example.com   cloud ahmraz125@gmail.com
  * The default settings lists from the migrations (niches, channels, sources, stages, pillars…) stay.
  */
-import { CORE_EMAILS, PASSWORD, adminClient, appUrl, resetDatabase, where } from "./target";
+import { CORE_EMAILS, PASSWORD, adminClient, appUrl, createFirstOffice, reserveMember, resetDatabase, where } from "./target";
 
 const ENSURE_ONLY = process.argv.includes("--ensure");
 
 const USERS = [
-  // The first account created becomes the founder (database trigger); keep Zain first.
+  // Zain is the founder of the first office (and its platform admin); keep Zain first.
   { key: "zain", name: "Zain Malik", niche: null, role: "founder", label: "founder" },
   { key: "ahmed", name: "Ahmed Khan", niche: "Dental", role: "bd", label: "BD" },
   { key: "hina", name: "Hina Raza", niche: null, role: "social", label: "social media manager" },
@@ -27,7 +27,10 @@ const TZ = "Asia/Karachi";
 async function main() {
   if (!ENSURE_ONLY) await resetDatabase();
   const db = adminClient();
-  const { data: niches } = await db.from("niches").select("id, name");
+  // The first office (docs/11): created here after a reset, otherwise the existing one.
+  const { data: firstOffice } = await db.from("offices").select("id").order("created_at").limit(1).maybeSingle();
+  const officeId = firstOffice?.id ?? (await createFirstOffice(db, "BlueBugs Agency", TZ, CORE_EMAILS.zain));
+  const { data: niches } = await db.from("niches").select("id, name").eq("office_id", officeId);
   const nicheId = (name: string | null) => (name ? ((niches ?? []).find((n) => n.name === name)?.id ?? null) : null);
 
   const { data: list, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -52,6 +55,7 @@ async function main() {
       if (error) throw new Error(`Restoring ${email} failed: ${error.message}`);
       id = existing.id;
     } else {
+      if (u.role !== "founder" || firstOffice) await reserveMember(db, email, officeId, u.role);
       const { data, error } = await db.auth.admin.createUser({
         email,
         password: PASSWORD,

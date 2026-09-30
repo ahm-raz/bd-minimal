@@ -43,16 +43,41 @@ export async function profileId(who: Member): Promise<string | null> {
   return data?.id ?? null;
 }
 
+/**
+ * The team's office (docs/11): the first one, made by /setup in 01-auth-team, or here like /setup when a
+ * spec runs on its own. Its founder's place is reserved by setup_first_office.
+ */
+export async function teamOfficeId(): Promise<string> {
+  const { data } = await admin().from("offices").select("id").order("created_at").limit(1).maybeSingle();
+  if (data) return data.id;
+  const { data: id, error } = await admin().rpc("setup_first_office", {
+    p_name: "Test Agency",
+    p_timezone: "Asia/Karachi",
+    p_founder_email: TEAM.zain.email,
+  });
+  if (error || !id) throw new Error(`setup_first_office: ${error?.message}`);
+  return id;
+}
+
+/** Reserve a place in an office before creating an account for this email (docs/11 section 5). */
+export async function reserveMember(email: string, role: "bd" | "social" | "founder" = "bd", officeId?: string) {
+  const office = officeId ?? (await teamOfficeId());
+  const { error } = await admin().from("pending_members").upsert({ email: email.toLowerCase(), office_id: office, role });
+  if (error) throw new Error(`reserve ${email}: ${error.message}`);
+}
+
 async function nicheId(name: string): Promise<string | null> {
-  const { data } = await admin().from("niches").select("id").eq("name", name).maybeSingle();
+  const { data } = await admin().from("niches").select("id").eq("name", name).eq("office_id", await teamOfficeId()).maybeSingle();
   return data?.id ?? null;
 }
 
-/** Create one member through the admin API (first ever user becomes founder by trigger). */
+/** Create one member through the admin API, in the team's office with the right role. */
 export async function ensureUser(who: Member): Promise<string> {
   const existing = await profileId(who);
   if (existing) return existing;
   const t = TEAM[who];
+  const office = await teamOfficeId();
+  if (who !== "zain") await reserveMember(t.email, who === "hina" ? "social" : "bd", office);
   const { data, error } = await admin().auth.admin.createUser({
     email: t.email,
     password: PASSWORD,
@@ -66,7 +91,6 @@ export async function ensureUser(who: Member): Promise<string> {
     .update({
       timezone: t.timezone,
       primary_niche_id: t.niche ? await nicheId(t.niche) : null,
-      ...(who === "hina" ? { role: "social" as const } : {}),
     })
     .eq("id", id);
   if (upErr) throw new Error(upErr.message);

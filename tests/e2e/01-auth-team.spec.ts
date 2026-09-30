@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { formatLocalDate, todayIn } from "../../src/lib/dates";
-import { PASSWORD, TEAM, admin, clearInbox, expect, latestEmailLink, signIn, test } from "./helpers";
+import { PASSWORD, TEAM, admin, clearInbox, expect, latestEmailLink, reserveMember, signIn, test } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -10,15 +10,19 @@ async function pickTimezone(page: Page, label: string, tz: string) {
   await page.getByRole("option", { name: tz.replace(/_/g, " ") }).first().click();
 }
 
-test("the founder is created via /setup, and /setup then returns 404", async ({ page }) => {
+test("the first office and its founder are created via /setup, and /setup then returns 404", async ({ page }) => {
   await page.goto("/setup");
-  await expect(page.getByRole("heading", { name: "Create the founder account" })).toBeVisible();
-  await page.getByLabel("Name").fill(TEAM.zain.name);
+  await expect(page.getByRole("heading", { name: "Create your office" })).toBeVisible();
+  await page.getByLabel("Office name").fill("Test Agency");
+  await page.getByLabel("Your name").fill(TEAM.zain.name);
   await page.getByLabel("Email").fill(TEAM.zain.email);
   await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create founder account" }).click();
+  await page.getByRole("button", { name: "Create office" }).click();
   await page.waitForURL(/\/my-day/);
   await expect(page.getByRole("heading", { name: "My Day" })).toBeVisible();
+  // The office name heads the sidebar; the first founder is the platform admin (docs/11 section 6).
+  await expect(page.getByTestId("office-name")).toHaveText("Test Agency");
+  await expect(page.getByRole("link", { name: /Offices/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Team/ })).toBeVisible();
 
   const res = await page.goto("/setup");
@@ -80,6 +84,7 @@ test("an invite link (sent while email is on) still lets the person set a passwo
   // Invite emails are off in the UI, so start one through the Auth admin API; the link and page stay supported.
   const email = `invitee${Date.now()}@example.com`;
   await clearInbox();
+  await reserveMember(email);
   const { error } = await admin().auth.admin.inviteUserByEmail(email, {
     data: { full_name: "Nadia Invitee" },
     redirectTo: `${baseURL}/accept-invite`,
