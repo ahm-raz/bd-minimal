@@ -258,9 +258,54 @@ fi
 
 echo "Resetting local database..."
 reset_db
+OUT=$(run_psql < supabase/tests/07_offices_test.sql 2>&1)
+echo "$OUT"
+
+expect "SETUP|t"
+expect "A_ROLES|Ahmed:bd, Zain:founder"
+expect "A_ADMIN|1"
+expect "CREATE_B|t"
+expect "B_FOUNDER|founder|Europe/Berlin|t"
+expect "B_DEFAULTS|6|7|4"
+expect "B_ROLES|Bilal:bd, Omar:founder"
+expect "A_ACT|t"
+expect "B_ACT|t"
+expect "B_STAGES|6"
+expect "B_FOUNDER_FOREIGN|0"
+expect "B_FOUNDER_SEES|1|2|t|1"
+expect "B_SCORE|2"
+expect "B_PIPE|0"
+expect "B_UPDATE_A|0"
+expect "B_DELETE_A|0"
+expect "B_RENAME_A|0"
+expect "B_RENAMED|Beta Group Ltd"
+expect "B_BD_FOREIGN|0"
+expect "A_FOUNDER_FOREIGN|0"
+expect "A_FOUNDER_SEES|1|2|2"
+expect "A_SCORE|2"
+expect "A_NOTIFS_FROM_B|0"
+expect "SUMMARY|Alpha Agency:active:2:1:-, Beta Group Ltd:active:2:1:3"
+expect "A_BD_FOREIGN|0"
+expect "B_ACTIVE|3"
+expect "SUSPENDED|suspended|0|0|0"
+expect "REACTIVATED|active|1"
+# The reviewed list: security definer functions owned by postgres skip the office wall (docs/11 section 4).
+# Adding one here needs a review of why it must see across offices.
+expect "DEFINER_OWNERS|admin_office_summary,can_import_leads,create_office,current_office_id,current_user_role,discard_empty_office,handle_new_user,is_active_user,is_founder,is_platform_admin,my_account_state,office_refs,office_seat_error,seed_office_defaults,setup_first_office,trg_first_founder_is_admin,trg_pending_member_insert,trg_profile_seats"
+expect "UNWALLED|0"
+expect "ALL_LEADS|2|2"
+
+OFFICE_ERRORS=$(grep -c '^ERROR:' <<<"$OUT")
+if [ "$OFFICE_ERRORS" -ne 17 ]; then
+  echo "Expected 17 ERROR lines in the offices test (SHOULD_FAIL checks), got $OFFICE_ERRORS"
+  FAILED=1
+fi
+
+echo "Resetting local database..."
+reset_db
 
 if [ "$FAILED" -ne 0 ]; then
   echo "db:test FAILED"
   exit 1
 fi
-echo "db:test passed: all checks present, 11 + 18 + 8 + 10 + 27 expected errors."
+echo "db:test passed: all checks present, 11 + 18 + 8 + 10 + 27 + 17 expected errors."

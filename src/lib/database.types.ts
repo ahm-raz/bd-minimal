@@ -46,6 +46,7 @@ export type Database = {
           lead_id: string
           notes: string | null
           occurred_at: string
+          office_id: string
           opportunity_id: string | null
           outcome_key: string
           user_id: string
@@ -61,6 +62,7 @@ export type Database = {
           lead_id: string
           notes?: string | null
           occurred_at?: string
+          office_id?: string
           opportunity_id?: string | null
           outcome_key?: string
           user_id?: string
@@ -76,6 +78,7 @@ export type Database = {
           lead_id?: string
           notes?: string | null
           occurred_at?: string
+          office_id?: string
           opportunity_id?: string | null
           outcome_key?: string
           user_id?: string
@@ -117,6 +120,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "activities_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "activities_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -125,10 +135,10 @@ export type Database = {
           },
           {
             foreignKeyName: "activities_outcome_key_fkey"
-            columns: ["outcome_key"]
+            columns: ["office_id", "outcome_key"]
             isOneToOne: false
             referencedRelation: "outcomes"
-            referencedColumns: ["key"]
+            referencedColumns: ["office_id", "key"]
           },
           {
             foreignKeyName: "activities_user_id_fkey"
@@ -147,6 +157,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -156,6 +167,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -165,6 +177,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
         Relationships: [
@@ -175,6 +188,13 @@ export type Database = {
             referencedRelation: "channels"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activity_types_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
         ]
       }
       calendar_cleanup: {
@@ -183,6 +203,7 @@ export type Database = {
           created_at: string
           gcal_event_id: string
           id: number
+          office_id: string
           user_id: string
         }
         Insert: {
@@ -190,6 +211,7 @@ export type Database = {
           created_at?: string
           gcal_event_id: string
           id?: never
+          office_id?: string
           user_id: string
         }
         Update: {
@@ -197,9 +219,17 @@ export type Database = {
           created_at?: string
           gcal_event_id?: string
           id?: never
+          office_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "calendar_cleanup_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calendar_cleanup_user_id_fkey"
             columns: ["user_id"]
@@ -217,6 +247,7 @@ export type Database = {
           name: string
           niche_id: string | null
           notes: string | null
+          office_id: string
           owner_id: string | null
           status: Database["public"]["Enums"]["campaign_status"]
           updated_at: string
@@ -228,6 +259,7 @@ export type Database = {
           name: string
           niche_id?: string | null
           notes?: string | null
+          office_id?: string
           owner_id?: string | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
@@ -239,6 +271,7 @@ export type Database = {
           name?: string
           niche_id?: string | null
           notes?: string | null
+          office_id?: string
           owner_id?: string | null
           status?: Database["public"]["Enums"]["campaign_status"]
           updated_at?: string
@@ -259,6 +292,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "campaigns_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "campaigns_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -273,6 +313,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -280,6 +321,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -287,9 +329,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "channels_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
@@ -306,6 +357,7 @@ export type Database = {
           linkedin_url: string | null
           mobile_phone: string | null
           notes: string | null
+          office_id: string
           other_social_url: string | null
           phone: string | null
           preferred_channel_id: string | null
@@ -326,6 +378,7 @@ export type Database = {
           linkedin_url?: string | null
           mobile_phone?: string | null
           notes?: string | null
+          office_id?: string
           other_social_url?: string | null
           phone?: string | null
           preferred_channel_id?: string | null
@@ -346,6 +399,7 @@ export type Database = {
           linkedin_url?: string | null
           mobile_phone?: string | null
           notes?: string | null
+          office_id?: string
           other_social_url?: string | null
           phone?: string | null
           preferred_channel_id?: string | null
@@ -358,6 +412,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -375,6 +436,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -382,6 +444,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -389,9 +452,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "content_pillars_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feed_events: {
         Row: {
@@ -401,6 +473,7 @@ export type Database = {
           kind: string
           lead_id: string | null
           meeting_id: string | null
+          office_id: string
           opportunity_id: string | null
           post_id: string | null
           subject_user_id: string | null
@@ -414,6 +487,7 @@ export type Database = {
           kind: string
           lead_id?: string | null
           meeting_id?: string | null
+          office_id?: string
           opportunity_id?: string | null
           post_id?: string | null
           subject_user_id?: string | null
@@ -427,6 +501,7 @@ export type Database = {
           kind?: string
           lead_id?: string | null
           meeting_id?: string | null
+          office_id?: string
           opportunity_id?: string | null
           post_id?: string | null
           subject_user_id?: string | null
@@ -453,6 +528,13 @@ export type Database = {
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_events_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -492,6 +574,7 @@ export type Database = {
           connected_at: string
           google_email: string
           last_error: string | null
+          office_id: string
           refresh_token_enc: string
           scopes: string[]
           status: Database["public"]["Enums"]["google_connection_status"]
@@ -504,6 +587,7 @@ export type Database = {
           connected_at?: string
           google_email: string
           last_error?: string | null
+          office_id?: string
           refresh_token_enc: string
           scopes?: string[]
           status?: Database["public"]["Enums"]["google_connection_status"]
@@ -516,6 +600,7 @@ export type Database = {
           connected_at?: string
           google_email?: string
           last_error?: string | null
+          office_id?: string
           refresh_token_enc?: string
           scopes?: string[]
           status?: Database["public"]["Enums"]["google_connection_status"]
@@ -523,6 +608,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "google_connections_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "google_connections_user_id_fkey"
             columns: ["user_id"]
@@ -549,6 +641,7 @@ export type Database = {
           imported_at: string | null
           imported_rows: number
           invalid_rows: number
+          office_id: string
           rows: Json | null
           status: string
           total_rows: number
@@ -571,6 +664,7 @@ export type Database = {
           imported_at?: string | null
           imported_rows?: number
           invalid_rows?: number
+          office_id?: string
           rows?: Json | null
           status: string
           total_rows?: number
@@ -593,6 +687,7 @@ export type Database = {
           imported_at?: string | null
           imported_rows?: number
           invalid_rows?: number
+          office_id?: string
           rows?: Json | null
           status?: string
           total_rows?: number
@@ -614,6 +709,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_import_batches_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_owner_events: {
@@ -623,6 +725,7 @@ export type Database = {
           from_owner: string | null
           id: number
           lead_id: string
+          office_id: string
           to_owner: string
         }
         Insert: {
@@ -631,6 +734,7 @@ export type Database = {
           from_owner?: string | null
           id?: never
           lead_id: string
+          office_id?: string
           to_owner: string
         }
         Update: {
@@ -639,6 +743,7 @@ export type Database = {
           from_owner?: string | null
           id?: never
           lead_id?: string
+          office_id?: string
           to_owner?: string
         }
         Relationships: [
@@ -664,6 +769,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_owner_events_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_owner_events_to_owner_fkey"
             columns: ["to_owner"]
             isOneToOne: false
@@ -678,6 +790,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -685,6 +798,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -692,9 +806,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lead_sources_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
@@ -724,6 +847,7 @@ export type Database = {
           niche_id: string
           notes: string | null
           offer: string | null
+          office_id: string
           owner_id: string
           pain_point: string | null
           priority: Database["public"]["Enums"]["lead_priority"]
@@ -763,6 +887,7 @@ export type Database = {
           niche_id: string
           notes?: string | null
           offer?: string | null
+          office_id?: string
           owner_id: string
           pain_point?: string | null
           priority?: Database["public"]["Enums"]["lead_priority"]
@@ -802,6 +927,7 @@ export type Database = {
           niche_id?: string
           notes?: string | null
           offer?: string | null
+          office_id?: string
           owner_id?: string
           pain_point?: string | null
           priority?: Database["public"]["Enums"]["lead_priority"]
@@ -851,6 +977,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -872,6 +1005,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -879,6 +1013,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -886,9 +1021,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lost_reasons_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meetings: {
         Row: {
@@ -911,6 +1055,7 @@ export type Database = {
           invite_contact: boolean
           lead_id: string
           location: string | null
+          office_id: string
           opportunity_id: string | null
           owner_id: string
           reminder_minutes: number[]
@@ -942,6 +1087,7 @@ export type Database = {
           invite_contact?: boolean
           lead_id: string
           location?: string | null
+          office_id?: string
           opportunity_id?: string | null
           owner_id: string
           reminder_minutes?: number[]
@@ -973,6 +1119,7 @@ export type Database = {
           invite_contact?: boolean
           lead_id?: string
           location?: string | null
+          office_id?: string
           opportunity_id?: string | null
           owner_id?: string
           reminder_minutes?: number[]
@@ -1021,6 +1168,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "meetings_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "meetings_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -1042,6 +1196,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -1049,6 +1204,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           sort_order?: number
         }
         Update: {
@@ -1056,30 +1212,49 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "niches_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_prefs: {
         Row: {
           browser: boolean
           in_app: boolean
           kind_group: string
+          office_id: string
           user_id: string
         }
         Insert: {
           browser?: boolean
           in_app?: boolean
           kind_group: string
+          office_id?: string
           user_id: string
         }
         Update: {
           browser?: boolean
           in_app?: boolean
           kind_group?: string
+          office_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notification_prefs_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notification_prefs_user_id_fkey"
             columns: ["user_id"]
@@ -1101,6 +1276,7 @@ export type Database = {
           lead_id: string | null
           link: string | null
           meeting_id: string | null
+          office_id: string
           opportunity_id: string | null
           post_id: string | null
           priority: string
@@ -1120,6 +1296,7 @@ export type Database = {
           lead_id?: string | null
           link?: string | null
           meeting_id?: string | null
+          office_id?: string
           opportunity_id?: string | null
           post_id?: string | null
           priority?: string
@@ -1139,6 +1316,7 @@ export type Database = {
           lead_id?: string | null
           link?: string | null
           meeting_id?: string | null
+          office_id?: string
           opportunity_id?: string | null
           post_id?: string | null
           priority?: string
@@ -1177,6 +1355,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notifications_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "notifications_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -1206,6 +1391,39 @@ export type Database = {
           },
         ]
       }
+      offices: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          seat_limit: number | null
+          status: Database["public"]["Enums"]["office_status"]
+          suspended_at: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          seat_limit?: number | null
+          status?: Database["public"]["Enums"]["office_status"]
+          suspended_at?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          seat_limit?: number | null
+          status?: Database["public"]["Enums"]["office_status"]
+          suspended_at?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           contract_ended_at: string | null
@@ -1221,6 +1439,7 @@ export type Database = {
           lost_reason_id: string | null
           monthly_amount: number
           notes: string | null
+          office_id: string
           owner_id: string
           stage_changed_at: string
           stage_key: string
@@ -1243,6 +1462,7 @@ export type Database = {
           lost_reason_id?: string | null
           monthly_amount?: number
           notes?: string | null
+          office_id?: string
           owner_id: string
           stage_changed_at?: string
           stage_key?: string
@@ -1265,6 +1485,7 @@ export type Database = {
           lost_reason_id?: string | null
           monthly_amount?: number
           notes?: string | null
+          office_id?: string
           owner_id?: string
           stage_changed_at?: string
           stage_key?: string
@@ -1296,6 +1517,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "opportunities_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "opportunities_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -1304,10 +1532,10 @@ export type Database = {
           },
           {
             foreignKeyName: "opportunities_stage_key_fkey"
-            columns: ["stage_key"]
+            columns: ["office_id", "stage_key"]
             isOneToOne: false
             referencedRelation: "stages"
-            referencedColumns: ["key"]
+            referencedColumns: ["office_id", "key"]
           },
         ]
       }
@@ -1317,6 +1545,7 @@ export type Database = {
           changed_by: string | null
           from_stage: string | null
           id: number
+          office_id: string
           opportunity_id: string
           owner_id: string
           to_stage: string
@@ -1326,6 +1555,7 @@ export type Database = {
           changed_by?: string | null
           from_stage?: string | null
           id?: never
+          office_id?: string
           opportunity_id: string
           owner_id: string
           to_stage: string
@@ -1335,6 +1565,7 @@ export type Database = {
           changed_by?: string | null
           from_stage?: string | null
           id?: never
+          office_id?: string
           opportunity_id?: string
           owner_id?: string
           to_stage?: string
@@ -1349,10 +1580,17 @@ export type Database = {
           },
           {
             foreignKeyName: "opportunity_stage_events_from_stage_fkey"
-            columns: ["from_stage"]
+            columns: ["office_id", "from_stage"]
             isOneToOne: false
             referencedRelation: "stages"
-            referencedColumns: ["key"]
+            referencedColumns: ["office_id", "key"]
+          },
+          {
+            foreignKeyName: "opportunity_stage_events_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "opportunity_stage_events_opportunity_id_fkey"
@@ -1370,10 +1608,10 @@ export type Database = {
           },
           {
             foreignKeyName: "opportunity_stage_events_to_stage_fkey"
-            columns: ["to_stage"]
+            columns: ["office_id", "to_stage"]
             isOneToOne: false
             referencedRelation: "stages"
-            referencedColumns: ["key"]
+            referencedColumns: ["office_id", "key"]
           },
         ]
       }
@@ -1385,6 +1623,7 @@ export type Database = {
           is_reply: boolean
           key: string
           label: string
+          office_id: string
           sort_order: number
         }
         Insert: {
@@ -1394,6 +1633,7 @@ export type Database = {
           is_reply: boolean
           key: string
           label: string
+          office_id?: string
           sort_order: number
         }
         Update: {
@@ -1403,9 +1643,80 @@ export type Database = {
           is_reply?: boolean
           key?: string
           label?: string
+          office_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outcomes_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          office_id: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          office_id?: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          office_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_members_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_members_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_comments: {
         Row: {
@@ -1414,6 +1725,7 @@ export type Database = {
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["post_comment_kind"]
+          office_id: string
           post_id: string
         }
         Insert: {
@@ -1422,6 +1734,7 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["post_comment_kind"]
+          office_id?: string
           post_id: string
         }
         Update: {
@@ -1430,6 +1743,7 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["post_comment_kind"]
+          office_id?: string
           post_id?: string
         }
         Relationships: [
@@ -1438,6 +1752,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -1455,6 +1776,7 @@ export type Database = {
           changed_by: string | null
           from_status: Database["public"]["Enums"]["post_status"] | null
           id: number
+          office_id: string
           post_id: string
           to_status: Database["public"]["Enums"]["post_status"]
         }
@@ -1463,6 +1785,7 @@ export type Database = {
           changed_by?: string | null
           from_status?: Database["public"]["Enums"]["post_status"] | null
           id?: never
+          office_id?: string
           post_id: string
           to_status: Database["public"]["Enums"]["post_status"]
         }
@@ -1471,6 +1794,7 @@ export type Database = {
           changed_by?: string | null
           from_status?: Database["public"]["Enums"]["post_status"] | null
           id?: never
+          office_id?: string
           post_id?: string
           to_status?: Database["public"]["Enums"]["post_status"]
         }
@@ -1480,6 +1804,13 @@ export type Database = {
             columns: ["changed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_status_events_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -1504,6 +1835,7 @@ export type Database = {
           is_active: boolean
           local_time: string
           needs_approval: boolean
+          office_id: string
           pillar_id: string | null
           starts_on: string
           timezone: string
@@ -1521,6 +1853,7 @@ export type Database = {
           is_active?: boolean
           local_time: string
           needs_approval?: boolean
+          office_id?: string
           pillar_id?: string | null
           starts_on?: string
           timezone: string
@@ -1538,6 +1871,7 @@ export type Database = {
           is_active?: boolean
           local_time?: string
           needs_approval?: boolean
+          office_id?: string
           pillar_id?: string | null
           starts_on?: string
           timezone?: string
@@ -1563,6 +1897,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posting_schedules_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -1594,6 +1935,7 @@ export type Database = {
           impressions: number | null
           media_links: string[]
           needs_approval: boolean
+          office_id: string
           pillar_id: string | null
           post_url: string | null
           posted_at: string | null
@@ -1626,6 +1968,7 @@ export type Database = {
           impressions?: number | null
           media_links?: string[]
           needs_approval?: boolean
+          office_id?: string
           pillar_id?: string | null
           post_url?: string | null
           posted_at?: string | null
@@ -1658,6 +2001,7 @@ export type Database = {
           impressions?: number | null
           media_links?: string[]
           needs_approval?: boolean
+          office_id?: string
           pillar_id?: string | null
           post_url?: string | null
           posted_at?: string | null
@@ -1701,6 +2045,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "posts_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "posts_pillar_id_fkey"
             columns: ["pillar_id"]
             isOneToOne: false
@@ -1726,6 +2077,7 @@ export type Database = {
           id: string
           is_active: boolean
           meeting_reminders: number[]
+          office_id: string
           primary_niche_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           timezone: string
@@ -1740,6 +2092,7 @@ export type Database = {
           id: string
           is_active?: boolean
           meeting_reminders?: number[]
+          office_id?: string
           primary_niche_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           timezone?: string
@@ -1754,12 +2107,20 @@ export type Database = {
           id?: string
           is_active?: boolean
           meeting_reminders?: number[]
+          office_id?: string
           primary_niche_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           timezone?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_primary_niche_fk"
             columns: ["primary_niche_id"]
@@ -1776,6 +2137,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          office_id: string
           platform: Database["public"]["Enums"]["social_platform"]
           profile_url: string | null
           sort_order: number
@@ -1786,6 +2148,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          office_id?: string
           platform: Database["public"]["Enums"]["social_platform"]
           profile_url?: string | null
           sort_order?: number
@@ -1796,17 +2159,27 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          office_id?: string
           platform?: Database["public"]["Enums"]["social_platform"]
           profile_url?: string | null
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stages: {
         Row: {
           is_open: boolean
           key: string
           label: string
+          office_id: string
           probability: number
           sort_order: number
         }
@@ -1814,6 +2187,7 @@ export type Database = {
           is_open: boolean
           key: string
           label: string
+          office_id?: string
           probability: number
           sort_order: number
         }
@@ -1821,15 +2195,25 @@ export type Database = {
           is_open?: boolean
           key?: string
           label?: string
+          office_id?: string
           probability?: number
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stages_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       targets: {
         Row: {
           id: string
           metric: Database["public"]["Enums"]["target_metric"]
+          office_id: string
           updated_at: string
           user_id: string
           weekly_value: number
@@ -1837,6 +2221,7 @@ export type Database = {
         Insert: {
           id?: string
           metric: Database["public"]["Enums"]["target_metric"]
+          office_id?: string
           updated_at?: string
           user_id: string
           weekly_value: number
@@ -1844,11 +2229,19 @@ export type Database = {
         Update: {
           id?: string
           metric?: Database["public"]["Enums"]["target_metric"]
+          office_id?: string
           updated_at?: string
           user_id?: string
           weekly_value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "targets_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "targets_user_id_fkey"
             columns: ["user_id"]
@@ -1870,6 +2263,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["task_kind"]
           metric: Database["public"]["Enums"]["task_metric"] | null
           note: string | null
+          office_id: string
           starts_on: string
           target_count: number | null
           title: string
@@ -1885,6 +2279,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["task_kind"]
           metric?: Database["public"]["Enums"]["task_metric"] | null
           note?: string | null
+          office_id?: string
           starts_on?: string
           target_count?: number | null
           title: string
@@ -1900,6 +2295,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["task_kind"]
           metric?: Database["public"]["Enums"]["task_metric"] | null
           note?: string | null
+          office_id?: string
           starts_on?: string
           target_count?: number | null
           title?: string
@@ -1933,6 +2329,13 @@ export type Database = {
             referencedRelation: "niches"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "task_templates_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tasks: {
@@ -1949,6 +2352,7 @@ export type Database = {
           lead_id: string | null
           metric: Database["public"]["Enums"]["task_metric"] | null
           note: string | null
+          office_id: string
           opportunity_id: string | null
           target_count: number | null
           template_id: string | null
@@ -1967,6 +2371,7 @@ export type Database = {
           lead_id?: string | null
           metric?: Database["public"]["Enums"]["task_metric"] | null
           note?: string | null
+          office_id?: string
           opportunity_id?: string | null
           target_count?: number | null
           template_id?: string | null
@@ -1985,6 +2390,7 @@ export type Database = {
           lead_id?: string | null
           metric?: Database["public"]["Enums"]["task_metric"] | null
           note?: string | null
+          office_id?: string
           opportunity_id?: string | null
           target_count?: number | null
           template_id?: string | null
@@ -2027,6 +2433,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -2048,6 +2461,21 @@ export type Database = {
     }
     Functions: {
       active_mrr: { Args: { p_user?: string }; Returns: number }
+      admin_office_summary: {
+        Args: never
+        Returns: {
+          active_members: number
+          created_at: string
+          founder_email: string
+          id: string
+          last_activity_at: string
+          leads_count: number
+          name: string
+          seat_limit: number
+          status: Database["public"]["Enums"]["office_status"]
+          timezone: string
+        }[]
+      }
       book_meeting: {
         Args: {
           p_activity_type_id: string
@@ -2085,10 +2513,21 @@ export type Database = {
         }
         Returns: number
       }
+      create_office: {
+        Args: {
+          p_founder_email: string
+          p_name: string
+          p_seat_limit: number
+          p_timezone: string
+        }
+        Returns: string
+      }
+      current_office_id: { Args: never; Returns: string }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      discard_empty_office: { Args: { p_office: string }; Returns: undefined }
       ensure_post_slots: {
         Args: { p_from: string; p_to: string }
         Returns: number
@@ -2107,7 +2546,9 @@ export type Database = {
       import_lead_batch: { Args: { p_batch: string }; Returns: number }
       is_active_user: { Args: never; Returns: boolean }
       is_founder: { Args: never; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_system: { Args: never; Returns: boolean }
+      is_trusted_context: { Args: never; Returns: boolean }
       log_activity: {
         Args: {
           p_activity_type_id: string
@@ -2180,6 +2621,7 @@ export type Database = {
           won_revenue: number
         }[]
       }
+      my_account_state: { Args: never; Returns: string }
       my_google_token: {
         Args: never
         Returns: {
@@ -2189,6 +2631,10 @@ export type Database = {
         }[]
       }
       notification_group: { Args: { p_kind: string }; Returns: string }
+      office_seat_error: {
+        Args: { p_adding: number; p_office: string }
+        Returns: string
+      }
       pipeline_summary: {
         Args: { p_niche?: string; p_stuck_days?: number; p_user?: string }
         Returns: {
@@ -2215,9 +2661,14 @@ export type Database = {
         Args: { p_email: string; p_scopes: string[]; p_token_enc: string }
         Returns: undefined
       }
+      seed_office_defaults: { Args: { p_office: string }; Returns: undefined }
       set_meeting_gcal: {
         Args: { p_fields: Json; p_meeting: string; p_sync_version: number }
         Returns: boolean
+      }
+      setup_first_office: {
+        Args: { p_founder_email: string; p_name: string; p_timezone: string }
+        Returns: string
       }
       social_daily: {
         Args: { p_from: string; p_to: string; p_tz: string; p_user?: string }
@@ -2336,6 +2787,7 @@ export type Database = {
         | "not_interested"
         | "bad_fit"
       meeting_status: "scheduled" | "held" | "no_show" | "cancelled"
+      office_status: "active" | "suspended"
       post_comment_kind:
         | "comment"
         | "change_request"
@@ -2549,6 +3001,7 @@ export const Constants = {
         "bad_fit",
       ],
       meeting_status: ["scheduled", "held", "no_show", "cancelled"],
+      office_status: ["active", "suspended"],
       post_comment_kind: [
         "comment",
         "change_request",

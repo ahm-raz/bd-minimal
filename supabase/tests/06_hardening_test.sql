@@ -5,6 +5,12 @@
 -- Hardening (migration 20261001000000_hardening.sql). Run on a fresh database by scripts/db-test.sh.
 -- Lines ending in _SHOULD_FAIL are followed by exactly one statement that must raise an ERROR.
 
+-- M16: the office and its reservations come first (docs/11 section 5)
+do $$ begin
+  perform setup_first_office('Test office', 'Asia/Karachi', 'zain@x.com');
+  insert into pending_members (email, office_id, role)
+  select e, (select id from offices), 'bd' from unnest(array['ahmed@x.com', 'sara@x.com', 'hina@x.com']) e;
+end $$;
 insert into auth.users (id,email,raw_user_meta_data) values
  ('00000000-0000-0000-0000-00000000000f','zain@x.com','{"full_name":"Zain"}'),
  ('00000000-0000-0000-0000-00000000000a','ahmed@x.com','{"full_name":"Ahmed"}'),
