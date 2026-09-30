@@ -10,11 +10,11 @@ test("signed out, / is the public homepage and /terms loads; signed in, / goes t
   await page.goto("/");
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1, name: "Client Acquisition OS" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
-  await expect(page.getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
-  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
+  await expect(page.getByRole("link", { name: "Log in" }).first()).toHaveAttribute("href", "/login");
+  await expect(page.getByRole("contentinfo").getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+  await expect(page.getByRole("contentinfo").getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
 
-  await page.getByRole("link", { name: "Terms" }).click();
+  await page.getByRole("contentinfo").getByRole("link", { name: "Terms" }).click();
   await expect(page).toHaveURL(/\/terms$/);
   await expect(page.getByRole("heading", { level: 1, name: "Terms" })).toBeVisible();
 
