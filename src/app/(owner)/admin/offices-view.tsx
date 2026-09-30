@@ -7,7 +7,6 @@ import { MoreHorizontal, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { useRouter } from "@/components/app/nav-progress";
-import { useProfile } from "@/components/app/profile-provider";
 import { RelativeTime } from "@/components/common/relative-time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,17 +46,12 @@ const STATUS_CHIP = {
   suspended: { tone: "bad", label: "Suspended" },
 } as const;
 
-export function OfficesView({
-  offices,
-  myOfficeId,
-  emailInvites,
-}: {
-  offices: OfficeRow[];
-  myOfficeId: string;
-  emailInvites: boolean;
-}) {
+/** The owner has no office or profile time zone; dates follow this browser. */
+const browserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+export function OfficesView({ offices, emailInvites }: { offices: OfficeRow[]; emailInvites: boolean }) {
   const router = useRouter();
-  const { timezone } = useProfile();
+  const timezone = browserTimezone();
   const [, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -136,7 +130,6 @@ export function OfficesView({
                   <TableRow key={o.id} data-testid={`office-${o.name}`}>
                     <TableCell className="font-medium text-ink">
                       {o.name}
-                      {o.id === myOfficeId && <span className="ml-2 text-small text-ink-muted">(yours)</span>}
                     </TableCell>
                     <TableCell>
                       <Chip tone={chip.tone}>{chip.label}</Chip>
@@ -162,17 +155,13 @@ export function OfficesView({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onSelect={() => setEditing(o)}>Edit</DropdownMenuItem>
-                          {o.id !== myOfficeId && (
-                            <>
-                              <DropdownMenuSeparator />
-                              {o.status === "suspended" ? (
-                                <DropdownMenuItem onSelect={() => changeStatus(o, "active")}>Reactivate</DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem variant="destructive" onSelect={() => setSuspending(o)}>
-                                  Suspend
-                                </DropdownMenuItem>
-                              )}
-                            </>
+                          <DropdownMenuSeparator />
+                          {o.status === "suspended" ? (
+                            <DropdownMenuItem onSelect={() => changeStatus(o, "active")}>Reactivate</DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem variant="destructive" onSelect={() => setSuspending(o)}>
+                              Suspend
+                            </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

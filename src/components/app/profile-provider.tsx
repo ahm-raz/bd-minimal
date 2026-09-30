@@ -14,7 +14,6 @@ export type ProfileContextValue = {
   officeId: string;
   officeName: string;
   officeTimezone: string;
-  isPlatformAdmin: boolean;
 };
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);

@@ -18,7 +18,7 @@ Everything in docs 01–10 describes **one office**. Wherever they say "the foun
 |---|---|
 | **Office** | One customer. Has a name, a default time zone, a status and a seat limit. Everything else belongs to exactly one office. |
 | **Member** | A profile in an office: its founder, a BD or an SMM. A person (email) belongs to **one** office only. |
-| **Platform admin** | You, the app's owner. Creates offices, suspends and reactivates them, changes seat limits. **Cannot see any office's data** (leads, contacts, activities, deals, posts, tasks, feed, notifications, metrics), only the office list in section 6. A platform admin is also a normal member of their own office. |
+| **Platform admin** | You, the app's owner. Creates offices, suspends and reactivates them, changes seat limits. **Cannot see any office's data** (leads, contacts, activities, deals, posts, tasks, feed, notifications, metrics), only the office list in section 6. From M19 the platform admin is the **platform owner**: a separate account that belongs to **no office** and has no profile. It sees only the Offices dashboard. An office member can never be an owner. |
 
 ## 3. Data model changes
 
@@ -33,7 +33,7 @@ Everything in docs 01–10 describes **one office**. Wherever they say "the foun
 | suspended_at, created_at, updated_at | |
 
 ### platform_admins (new)
-`user_id` (primary key, references profiles). Changed by SQL only; there's no screen for it. The migration makes the existing founder a platform admin.
+`user_id` (primary key, references `auth.users`). The owner has no profile, so RLS gives them no office's data. Owners are created with `pnpm owner:add <email> [--cloud]` (`scripts/platform-owner.ts`): it reserves the email in `pending_platform_admins` (service-role only), then creates the account, and the sign-up trigger adds the `platform_admins` row. M14 made the existing founder an admin; M19 (`20261003000000_platform_owner.sql`) removed that.
 
 ### pending_members (new)
 A reservation made **before** an auth user is created, so the sign-up trigger knows which office and role the new person joins. Invite calls can't carry trusted data, so this table is how the office is passed.
@@ -97,7 +97,7 @@ RLS is still the only security boundary (docs/03). Migration `20261002000100_off
 - **A short, reviewed list of functions stays owned by `postgres`.** These read only the caller's own profile, are the platform admin's, or are sign-up and setup:
   - `current_office_id`, `is_active_user`, `is_founder`, `current_user_role`, `can_import_leads`, `my_account_state`
   - `is_platform_admin`, `admin_office_summary`, `create_office`, `discard_empty_office`, `setup_first_office`, `seed_office_defaults`
-  - `handle_new_user`, `office_refs`, `office_seat_error`, `trg_first_founder_is_admin`, `trg_pending_member_insert`, `trg_profile_seats`
+  - `handle_new_user`, `office_refs`, `office_seat_error`, `trg_pending_member_insert`, `trg_platform_admin_not_member`, `trg_profile_seats`
 
   `supabase/tests/07_offices_test.sql` fails if this list changes. A new function added without review is caught.
 - **Joins inside functions** also match on office (stage and outcome lookups), because trusted contexts see every office.
@@ -140,13 +140,13 @@ Every member's data access stops (section 4). Signing in is refused, and an open
 
 > "Your office's access is paused. Contact us to turn it back on."
 
-`my_account_state()` tells the app why a signed-in user can't read anything: `deactivated` or `suspended`. Reactivating restores everything; nothing is deleted. A platform admin can't suspend their own office.
+`my_account_state()` tells the app why a signed-in user can't read anything: `deactivated` or `suspended`. Reactivating restores everything; nothing is deleted. `my_account_state()` returns `owner` for the platform owner, whose home is `/admin`.
 
 ## 6. Screens
 
 ### `/setup` (fresh install only)
 Only when **no office exists**. Fields: office name, your name, email, password, time zone.
-- Creates the first office, its founder, and makes that person a platform admin.
+- Creates the first office and its founder. (Until M19 it also made that person a platform admin; now owners are separate accounts.)
 - Returns 404 once any office exists.
 
 ### Sidebar
@@ -155,8 +155,8 @@ Shows the office name above the navigation. The founder's department switcher (d
 ### Settings → Office (founder)
 Office name and default time zone, each saved with **Save**. The seat limit is shown read-only: "{active} of {limit} seats used", or "{active} members" when there's no limit.
 
-### `/admin` (platform admins only)
-Nav item **Offices**, visible only to platform admins. Everyone else gets 404.
+### `/admin` (platform owner only)
+The owner's whole app: route group `(owner)`, with its own header (product name, "Owner", the owner's email, **Sign out**) and no sidebar. Signing in as the owner lands here; any other app page sends them back here. Everyone else gets 404, and office members never see an Offices link.
 
 **Table:** office name, status chip (Active / Suspended), founder email, members "{active} / {limit}", leads count, last activity (latest feed event, relative), created. Sorted by name. Search by office name.
 
@@ -172,7 +172,7 @@ The **Create office** button calls `create_office(name, timezone, seat_limit, fo
 - **Suspend**: confirmation: "Suspend {name}? Its members lose access until you reactivate it. Nothing is deleted." Button **Suspend office**.
 - **Reactivate**.
 
-**Acceptance:** a platform admin opens `/admin` but gets "not found" on a lead URL from another office. A founder who isn't a platform admin gets 404 on `/admin`.
+**Acceptance:** the owner lands on `/admin` and sees no office's data. Founders and BDs get 404 on `/admin`.
 
 ## 7. Service-role key
 
@@ -186,7 +186,7 @@ It is still used only in `src/lib/supabase/admin.ts`. Two kinds of caller may us
 In one migration:
 1. Create office #1 named **"My office"** with time zone `Asia/Karachi` and no seat limit.
 2. Set `office_id` on every existing row, then make the column `not null`.
-3. Make the existing founder a platform admin.
+3. Make the existing founder a platform admin (M14; removed by M19, where the owner is a separate account).
 
 The founder renames the office in Settings → Office. Test this migration on a copy of production before running it there.
 

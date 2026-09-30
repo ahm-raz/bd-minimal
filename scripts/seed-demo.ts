@@ -51,6 +51,9 @@ function workTime(daysAgo: number, tz: string): Date {
   return d > new Date() ? new Date(Date.now() - Math.floor(rand() * 3600_000)) : d;
 }
 
+/** The platform owner's demo account (no office). */
+const OWNER_EMAIL = CLOUD ? "owner@bd-minimal.example.com" : "owner@example.com";
+
 /** The demo office, set when main() creates it. */
 let OFFICE_ID = "";
 
@@ -766,11 +769,17 @@ async function main() {
   // A second, independent office: it never sees BlueBugs' data and BlueBugs never sees its (docs/11).
   const second = await seedSecondOffice(db);
 
+  // The platform owner: a separate account in no office that manages offices on /admin (docs/11 section 2).
+  must(await db.from("pending_platform_admins").upsert({ email: OWNER_EMAIL }).select("email"), "owner reservation");
+  const owner = await db.auth.admin.createUser({ email: OWNER_EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "Owner" } });
+  if (owner.error) throw new Error(`owner: ${owner.error.message}`);
+
   console.log(`Done: ${seeded.length} leads, ${plan.length} opportunities, ${meetingRows.length} meetings.`);
-  console.log(`Sign in at ${appUrl}/login with any of (BlueBugs Agency; Zain is also the platform admin):`);
+  console.log(`Sign in at ${appUrl}/login with any of (BlueBugs Agency):`);
   for (const m of TEAM) console.log(`  ${emailOf(m)} / ${PASSWORD}  (${ROLE_OF[m.key] ?? "BD"})`);
   console.log(`Second office, ${second.name}:`);
   for (const m of second.members) console.log(`  ${m.email} / ${PASSWORD}  (${m.role})`);
+  console.log(`Platform owner (Offices dashboard only): ${OWNER_EMAIL} / ${PASSWORD}`);
 }
 
 // ---------- Social media module ------------------------------------------------------------

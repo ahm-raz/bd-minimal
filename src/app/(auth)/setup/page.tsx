@@ -14,7 +14,7 @@ export default async function SetupPage() {
       <div>
         <h1 className="text-title text-ink">Create your office</h1>
         <p className="mt-1 text-small text-ink-muted">
-          This page works once. You become the office&apos;s founder and can add more offices later.
+          This page works once. You become the office&apos;s founder and add your team from Team.
         </p>
       </div>
       <SetupForm />

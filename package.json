@@ -27,7 +27,8 @@
     "cloud:seed-more": "tsx scripts/seed-more.ts --cloud",
     "cloud:reset": "tsx scripts/test-users.ts --cloud",
     "cloud:users": "tsx scripts/test-users.ts --cloud --ensure",
-    "cloud:reset-lead": "tsx scripts/test-lead.ts --cloud"
+    "cloud:reset-lead": "tsx scripts/test-lead.ts --cloud",
+    "owner:add": "tsx scripts/platform-owner.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

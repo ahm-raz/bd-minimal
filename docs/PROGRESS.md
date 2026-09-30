@@ -269,3 +269,9 @@ pnpm dev             # http://localhost:3000
 - [x] Unit tests 255 (new `offices-schema.test.ts`), lint (0 errors), typecheck, build
 - [ ] Full E2E suite not run in this pass (run only with the owner's go-ahead)
 - [x] Deploy runbook: docs/DEPLOY.md section 10
+
+### M19: Separate platform owner
+- [x] Migration `20261003000000_platform_owner.sql`: platform_admins point at auth users with no profile; `pending_platform_admins`; `is_platform_admin()` excludes office members; founders no longer admins; `my_account_state()` returns `owner`; `create_office` works for an owner without a profile
+- [x] `(owner)` route group: `/admin` with its own header and sign out; the owner lands there on sign-in and every app page sends them back; Offices link removed from the office sidebar
+- [x] `pnpm owner:add <email> [--cloud] [--reset]`; seed:demo adds owner@example.com
+- [x] SQL `07_offices_test.sql` (owner sees 0 office rows, founder can't create offices, owner email can't join an office): 20 expected errors; E2E 15-offices 6/6, 01-auth-team 8/8

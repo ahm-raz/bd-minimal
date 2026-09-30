@@ -1695,6 +1695,21 @@ export type Database = {
           },
         ]
       }
+      pending_platform_admins: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       platform_admins: {
         Row: {
           created_at: string
@@ -1708,15 +1723,7 @@ export type Database = {
           created_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "platform_admins_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       post_comments: {
         Row: {

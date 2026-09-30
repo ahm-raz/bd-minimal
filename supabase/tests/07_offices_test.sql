@@ -4,7 +4,8 @@
 \pset footer off
 -- Offices (docs/11-offices.md; migrations 20261002000000..0200). Run on a fresh database by scripts/db-test.sh.
 -- Lines ending in _SHOULD_FAIL are followed by exactly one statement that must raise an ERROR.
--- Office A: Zain (founder, platform admin), Ahmed (BD). Office B: Omar (founder), Bilal (BD); 3 seats.
+-- Office A: Zain (founder), Ahmed (BD). Office B: Omar (founder), Bilal (BD); 3 seats.
+-- The platform owner (owner@z.com) is a separate account in no office (M19).
 
 create or replace function as_user(u text) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub',u)::text, false), null::void $$;
@@ -38,8 +39,13 @@ insert into auth.users (id,email,raw_user_meta_data) values
  ('00000000-0000-0000-0000-00000000000f','zain@x.com','{"full_name":"Zain"}'),
  ('00000000-0000-0000-0000-00000000000a','ahmed@x.com','{"full_name":"Ahmed","role":"founder"}');
 select 'A_ROLES', string_agg(full_name||':'||role, ', ' order by full_name) from profiles;
-select 'A_ADMIN', count(*) from platform_admins where user_id = '00000000-0000-0000-0000-00000000000f';
+select 'A_ADMIN', count(*) from platform_admins;
 insert into test_ids select 'A', id from offices;
+
+-- The owner: reserved with the service-role key, then the account. No profile, no office.
+insert into pending_platform_admins (email) values ('owner@z.com');
+insert into auth.users (id,email) values ('00000000-0000-0000-0000-0000000000ff','owner@z.com');
+select 'OWNER', (select count(*) from platform_admins), (select count(*) from profiles where email = 'owner@z.com');
 
 select 'STRAY_SIGNUP_SHOULD_FAIL';
 insert into auth.users (id,email) values ('00000000-0000-0000-0000-000000000099','stray@z.com');
@@ -49,6 +55,12 @@ select 'BD_CREATE_OFFICE_SHOULD_FAIL'; select create_office('Nope', 'UTC', null,
 reset role;
 
 select as_user('00000000-0000-0000-0000-00000000000f'); set role authenticated;
+select 'FOUNDER_CREATE_OFFICE_SHOULD_FAIL'; select create_office('Nope', 'UTC', null, 'n2@n.com');
+select 'FOUNDER_IS_ADMIN', is_platform_admin(), my_account_state();
+reset role;
+
+select as_user('00000000-0000-0000-0000-0000000000ff'); set role authenticated;
+select 'OWNER_STATE', is_platform_admin(), my_account_state();
 select 'CREATE_B', create_office('Beta Group', 'Europe/Berlin', 3, 'Omar@Y.com') is not null;
 reset role;
 insert into test_ids select 'B', id from offices where name = 'Beta Group';
@@ -65,6 +77,7 @@ select 'PENDING_OTHER_OFFICE_SHOULD_FAIL';
 insert into pending_members (email, office_id, role) values ('x1@y.com', (select v from test_ids where k='A'), 'bd');
 select 'PENDING_FOUNDER_SHOULD_FAIL'; insert into pending_members (email, role) values ('x2@y.com', 'founder');
 select 'PENDING_TAKEN_EMAIL_SHOULD_FAIL'; insert into pending_members (email, role) values ('ahmed@x.com', 'bd');
+select 'PENDING_OWNER_EMAIL_SHOULD_FAIL'; insert into pending_members (email, role) values ('owner@z.com', 'bd');
 reset role;
 insert into auth.users (id,email,raw_user_meta_data) values
  ('00000000-0000-0000-0000-0000000000b1','bilal@y.com','{"full_name":"Bilal"}');
@@ -132,6 +145,13 @@ select 'A_FOUNDER_FOREIGN', foreign_rows();
 select 'A_FOUNDER_SEES', (select count(*) from leads), (select count(*) from profiles), (select count(*) from offices);
 select 'A_SCORE', count(*) from metrics_scoreboard(now() - interval '1 day', now() + interval '1 day');
 select 'A_NOTIFS_FROM_B', count(*) from notifications n join profiles p on p.id = n.actor_id where p.full_name in ('Omar','Bilal');
+select 'A_SUMMARY_SHOULD_FAIL'; select * from admin_office_summary();
+reset role;
+
+-- The owner sees the office list (counts only) and no office's data.
+select as_user('00000000-0000-0000-0000-0000000000ff'); set role authenticated;
+select 'OWNER_SEES', (select count(*) from leads), (select count(*) from profiles), (select count(*) from feed_events),
+                     (select count(*) from niches), (select count(*) from offices);
 select 'SUMMARY', string_agg(name||':'||status||':'||active_members||':'||leads_count||':'||coalesce(seat_limit::text,'-'), ', ') from admin_office_summary();
 reset role;
 
@@ -157,8 +177,8 @@ select 'REACTIVATE_FULL_SHOULD_FAIL'; update profiles set is_active = true where
 select 'B_ACTIVE', count(*) from profiles where is_active;
 reset role;
 
--- ---------- Suspend ----------
-select as_user('00000000-0000-0000-0000-00000000000f'); set role authenticated;
+-- ---------- Suspend (the owner) ----------
+select as_user('00000000-0000-0000-0000-0000000000ff'); set role authenticated;
 update offices set status = 'suspended' where id = (select v from test_ids where k='B');
 reset role;
 select as_user('00000000-0000-0000-0000-0000000000b0'); set role authenticated;
@@ -166,7 +186,7 @@ select 'SUSPENDED', my_account_state(), (select count(*) from leads), (select co
 select 'SUSPENDED_WRITE_SHOULD_FAIL';
 insert into leads (owner_id,company_name,niche_id,channel_id) values (auth.uid(), 'x', null, null);
 reset role;
-select as_user('00000000-0000-0000-0000-00000000000f'); set role authenticated;
+select as_user('00000000-0000-0000-0000-0000000000ff'); set role authenticated;
 update offices set status = 'active' where id = (select v from test_ids where k='B');
 reset role;
 select as_user('00000000-0000-0000-0000-0000000000b0'); set role authenticated;

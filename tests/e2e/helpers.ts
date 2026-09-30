@@ -59,6 +59,27 @@ export async function teamOfficeId(): Promise<string> {
   return id;
 }
 
+/** The platform owner (docs/11 section 2): a separate account in no office. Created once; safe to repeat. */
+export const OWNER = { email: "owner@example.com" };
+export async function ensureOwner(): Promise<void> {
+  const { data } = await admin().auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (data?.users.some((u) => u.email === OWNER.email)) return;
+  const { error: reserveErr } = await admin().from("pending_platform_admins").upsert({ email: OWNER.email });
+  if (reserveErr) throw new Error(`reserve owner: ${reserveErr.message}`);
+  const { error } = await admin().auth.admin.createUser({ email: OWNER.email, password: PASSWORD, email_confirm: true });
+  if (error) throw new Error(`create owner: ${error.message}`);
+}
+
+/** Sign in as the owner: they land on the Offices dashboard, not My Day. */
+export async function signInOwner(page: Page) {
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(OWNER.email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL(/\/admin/);
+}
+
 /** Reserve a place in an office before creating an account for this email (docs/11 section 5). */
 export async function reserveMember(email: string, role: "bd" | "social" | "founder" = "bd", officeId?: string) {
   const office = officeId ?? (await teamOfficeId());

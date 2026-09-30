@@ -105,11 +105,7 @@ export async function updateOffice(input: OfficeEditInput): Promise<ActionResult
 export async function setOfficeStatus(input: { id: string; status: "active" | "suspended" }): Promise<ActionResult> {
   const parsed = parseInput(officeStatusSchema, input);
   if (!parsed.ok) return parsed;
-  const admin = await requirePlatformAdmin();
-  if (!admin) return fail(PLATFORM_ADMIN_ONLY);
-  if (parsed.data.status === "suspended" && parsed.data.id === admin.officeId) {
-    return fail("You can't suspend your own office.");
-  }
+  if (!(await requirePlatformAdmin())) return fail(PLATFORM_ADMIN_ONLY);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("offices")

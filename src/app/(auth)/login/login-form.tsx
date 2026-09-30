@@ -102,7 +102,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError: 
           }
           // Inside the transition, so the button keeps spinning until My Day has rendered.
           startTransition(() => {
-            router.replace(safeNextPath(next));
+            router.replace(res.data.home ?? safeNextPath(next));
             router.refresh();
           });
         }),

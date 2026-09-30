@@ -20,11 +20,12 @@ test("the first office and its founder are created via /setup, and /setup then r
   await page.getByRole("button", { name: "Create office" }).click();
   await page.waitForURL(/\/my-day/);
   await expect(page.getByRole("heading", { name: "My Day" })).toBeVisible();
-  // The office name heads the sidebar; the first founder is the platform admin (docs/11 section 6).
+  // The office name heads the sidebar. The founder isn't the platform owner: no Offices, and /admin is 404.
   await expect(page.getByTestId("office-name")).toHaveText("Test Agency");
-  await expect(page.getByRole("link", { name: /Offices/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Offices/ })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Team/ })).toBeVisible();
 
+  expect((await page.goto("/admin"))?.status()).toBe(404);
   const res = await page.goto("/setup");
   expect(res?.status()).toBe(404);
   await page.context().clearCookies();

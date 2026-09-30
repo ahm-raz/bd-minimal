@@ -1,7 +1,7 @@
-import { PASSWORD, TEAM, admin, clientAs, ensureTeam, expect, signIn, test } from "./helpers";
+import { PASSWORD, TEAM, admin, clientAs, ensureOwner, ensureTeam, expect, signIn, signInOwner, test } from "./helpers";
 
-// Many offices in one app (docs/11). The team's office is the first one (Zain is its founder and the platform
-// admin). This spec creates a second office from /admin and checks the wall between them from the UI.
+// Many offices in one app (docs/11). The team's office is the first one (Zain is its founder). The platform owner
+// is a separate account in no office; it creates a second office on /admin, and the spec checks the wall.
 // Runs last: after it, the database has two offices.
 test.describe.configure({ mode: "serial" });
 
@@ -14,6 +14,7 @@ let teamLeadId = "";
 
 test.beforeAll(async () => {
   const ids = await ensureTeam();
+  await ensureOwner();
   const ahmed = await clientAs("ahmed");
   const { data: niche } = await ahmed.from("niches").select("id").eq("name", "Dental").single();
   const { data: channel } = await ahmed.from("channels").select("id").eq("name", "LinkedIn").single();
@@ -26,10 +27,13 @@ test.beforeAll(async () => {
   teamLeadId = data.id;
 });
 
-test("the platform admin creates an office with its founder on /admin", async ({ page }) => {
-  await signIn(page, "zain");
-  await page.getByRole("link", { name: /Offices/ }).click();
+test("the platform owner lands on Offices and creates an office with its founder", async ({ page }) => {
+  await signInOwner(page);
   await expect(page.getByRole("heading", { name: "Offices" })).toBeVisible();
+  // The owner has no office: no sales pages, and the app's pages send them back to Offices.
+  await expect(page.getByTestId("owner-email")).toHaveText("owner@example.com");
+  await page.goto("/leads");
+  await page.waitForURL(/\/admin/);
 
   await page.getByRole("button", { name: "Create office" }).click();
   const sheet = page.getByRole("dialog", { name: "Create office" });
@@ -117,10 +121,12 @@ test("the founder renames their office in Settings", async ({ page }) => {
   await rename(OFFICE);
 });
 
-test("a BD of another office can't open /admin", async ({ page }) => {
-  await signIn(page, "ahmed");
-  await expect(page.getByRole("link", { name: /Offices/ })).toHaveCount(0);
-  expect((await page.goto("/admin"))?.status()).toBe(404);
+test("founders and BDs can't open /admin", async ({ page }) => {
+  for (const who of ["zain", "ahmed"] as const) {
+    await signIn(page, who);
+    await expect(page.getByRole("link", { name: /Offices/ })).toHaveCount(0);
+    expect((await page.goto("/admin"))?.status()).toBe(404);
+  }
 });
 
 test("suspending an office stops its members until it's reactivated", async ({ page, browser }) => {
@@ -128,8 +134,7 @@ test("suspending an office stops its members until it's reactivated", async ({ p
   const omar = await ctx.newPage();
   await signIn(omar, { email: OMAR.email, password: PASSWORD });
 
-  await signIn(page, "zain");
-  await page.goto("/admin");
+  await signInOwner(page);
   const row = page.getByTestId(`office-${OFFICE}`);
   await row.getByRole("button", { name: `Actions for ${OFFICE}` }).click();
   await page.getByRole("menuitem", { name: "Suspend" }).click();

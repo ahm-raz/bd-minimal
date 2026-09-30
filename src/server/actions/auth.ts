@@ -20,7 +20,8 @@ function siteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
-export async function signIn(input: LoginInput): Promise<ActionResult> {
+/** Where to go after signing in: the platform owner's home is /admin; everyone else follows `next`. */
+export async function signIn(input: LoginInput): Promise<ActionResult<{ home: string | null }>> {
   const parsed = parseInput(loginSchema, input);
   if (!parsed.ok) return parsed;
   const supabase = await createClient();
@@ -32,11 +33,12 @@ export async function signIn(input: LoginInput): Promise<ActionResult> {
   }
   // A session for a deactivated member or a suspended office reads nothing; don't let it in (docs/11 section 5).
   const { data: state } = await supabase.rpc("my_account_state");
+  if (state === "owner") return ok({ home: "/admin" });
   if (state !== "active") {
     await supabase.auth.signOut();
     return fail(state === "suspended" ? SUSPENDED_MESSAGE : DEACTIVATED);
   }
-  return ok();
+  return ok({ home: null });
 }
 
 export async function requestPasswordReset(input: { email: string }): Promise<ActionResult> {

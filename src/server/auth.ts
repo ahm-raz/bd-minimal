@@ -18,9 +18,10 @@ export type Viewer = {
   officeName: string;
   /** The office's default time zone for new members. */
   officeTimezone: string;
-  /** The app's owner: may open /admin (docs/11 section 6). Never sees other offices' data. */
-  isPlatformAdmin: boolean;
 };
+
+/** The platform owner (docs/11 section 2): a separate account in no office, which manages offices on /admin. */
+export type PlatformOwner = { id: string; email: string };
 
 /**
  * The signed-in user's profile, loaded once per request.
@@ -31,14 +32,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const { data: claims } = await supabase.auth.getClaims();
   const userId = claims?.claims?.sub;
   if (!userId) return null;
-  const [{ data }, { data: isPlatformAdmin }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, email, full_name, role, timezone, primary_niche_id, is_active, can_import_leads, office_id, offices(name, timezone)")
-      .eq("id", userId)
-      .maybeSingle(),
-    supabase.rpc("is_platform_admin"),
-  ]);
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, email, full_name, role, timezone, primary_niche_id, is_active, can_import_leads, office_id, offices(name, timezone)")
+    .eq("id", userId)
+    .maybeSingle();
   if (!data || !data.is_active || !data.offices) return null;
   return {
     id: data.id,
@@ -51,7 +49,6 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     officeId: data.office_id,
     officeName: data.offices.name,
     officeTimezone: data.offices.timezone,
-    isPlatformAdmin: isPlatformAdmin === true,
   };
 });
 
@@ -69,14 +66,21 @@ export async function requireViewer(): Promise<Viewer> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims?.sub) redirect("/login");
-  redirect((await accountState()) === "suspended" ? "/auth/signout?reason=suspended" : "/auth/signout?reason=deactivated");
+  const state = await accountState();
+  // The platform owner has no office: their home is the Offices dashboard.
+  if (state === "owner") redirect("/admin");
+  redirect(state === "suspended" ? "/auth/signout?reason=suspended" : "/auth/signout?reason=deactivated");
 }
 
-/** For /admin and its server actions: the viewer when they're a platform admin (docs/11 section 6). */
-export async function requirePlatformAdmin(): Promise<Viewer | null> {
-  const viewer = await getViewer();
-  return viewer?.isPlatformAdmin ? viewer : null;
-}
+/** The signed-in platform owner, or null. For /admin and its server actions (docs/11 section 6). */
+export const requirePlatformAdmin = cache(async (): Promise<PlatformOwner | null> => {
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const id = claims?.claims?.sub;
+  if (!id) return null;
+  const { data: isOwner } = await supabase.rpc("is_platform_admin");
+  return isOwner === true ? { id, email: String(claims.claims.email ?? "") } : null;
+});
 
 export const PLATFORM_ADMIN_ONLY = "Only the app's owner can do that.";
 

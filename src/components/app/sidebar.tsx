@@ -10,7 +10,6 @@ import {
   Activity,
   BarChart3,
   Bell,
-  Building,
   Building2,
   ChevronsUpDown,
   Columns3,
@@ -44,7 +43,7 @@ import { useApp } from "./app-provider";
 import { DepartmentSwitcher } from "./department-switcher";
 import { pathInDepartment, type Department } from "@/lib/department";
 
-type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[]; shortcut?: string; platformAdmin?: true };
+type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[]; shortcut?: string };
 
 const ALL: Role[] = ["founder", "bd", "social"];
 
@@ -60,25 +59,21 @@ const NAV: NavItem[] = [
   { href: "/performance", label: "Performance", icon: BarChart3, roles: ALL },
   { href: "/team", label: "Team", icon: Users, roles: ["founder"] },
   { href: "/settings", label: "Settings", icon: Settings, roles: ["founder"] },
-  // The app owner's office list (docs/11 section 6), whatever their role in their own office.
-  { href: "/admin", label: "Offices", icon: Building, roles: ALL, platformAdmin: true },
 ];
 
 /** The role's pages, minus the other department's when the founder views one department. */
-export function navFor(role: Role, department: Department = "all", isPlatformAdmin = false) {
-  return NAV.filter(
-    (n) => n.roles.includes(role) && pathInDepartment(n.href, department) && (!n.platformAdmin || isPlatformAdmin),
-  );
+export function navFor(role: Role, department: Department = "all") {
+  return NAV.filter((n) => n.roles.includes(role) && pathInDepartment(n.href, department));
 }
 
 function NavLinks({ onNavigate, reviewCount }: { onNavigate?: () => void; reviewCount: number }) {
   const pathname = usePathname();
-  const { role, isPlatformAdmin } = useProfile();
+  const { role } = useProfile();
   const { department } = useApp();
   const { unread } = useNotifications();
   return (
     <nav aria-label="Main" className="flex flex-col gap-0.5 px-3">
-      {navFor(role, department, isPlatformAdmin).map((item) => {
+      {navFor(role, department).map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
         return (
