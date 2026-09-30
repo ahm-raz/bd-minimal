@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = { title: "Privacy | Client Acquisition OS" };
 
@@ -8,7 +9,13 @@ export default function PrivacyPage() {
     <main className="min-h-screen bg-canvas px-6 py-12">
       <article className="mx-auto flex max-w-2xl flex-col gap-4 text-ink">
         <h1 className="text-title">Privacy</h1>
-        <p className="text-ink-muted">Client Acquisition OS is an internal sales tool used only by our own team. It isn&apos;t offered to the public.</p>
+        <p className="text-ink-muted">
+          Client Acquisition OS is a sales tool offered to offices and agencies. Each office&apos;s data is private to that office. See also our{" "}
+          <Link href="/terms" className="text-accent-strong underline-offset-4 hover:underline">
+            terms
+          </Link>
+          .
+        </p>
 
         <h2 className="mt-4 text-section">What we store</h2>
         <p>Team members&apos; names, work emails and time zones, and the sales data they enter: leads, contacts, activities, meetings, deals, tasks and posts.</p>

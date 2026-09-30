@@ -4,7 +4,7 @@ import type { Database } from "@/lib/database.types";
 import { DEPARTMENT_COOKIE, parseDepartment, pathInDepartment } from "@/lib/department";
 
 // Pages anyone may open without a session.
-const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz", "/privacy"];
+const PUBLIC_PREFIXES = ["/login", "/accept-invite", "/reset-password", "/setup", "/auth", "/healthz", "/privacy", "/terms"];
 // Pages only the founder may open (docs/03, Sessions).
 const FOUNDER_PREFIXES = ["/feed", "/team", "/settings", "/content/schedules"];
 // Pages outside a role's work (docs/09 section 1): social media managers never see sales pages,
@@ -63,7 +63,8 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!userId) {
-    if (matches(pathname, PUBLIC_PREFIXES)) return response;
+    // The public homepage is "/" exactly; a prefix match here would make every route public.
+    if (pathname === "/" || matches(pathname, PUBLIC_PREFIXES)) return response;
     const params: Record<string, string> = {};
     if (pathname !== "/" && pathname !== "/my-day") params.next = pathname + request.nextUrl.search;
     return redirect("/login", params);

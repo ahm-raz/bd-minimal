@@ -36,6 +36,14 @@ Opening a page of the other department (a bookmark, a link) goes to My Day (sett
 
 ---
 
+## 0. Public pages: Home `/`, Privacy `/privacy`, Terms `/terms`
+
+Anyone can open these without signing in. They exist so Google can verify the OAuth app (Google Calendar sync).
+
+- **Home `/`**: signed out, a short page with the title "Client Acquisition OS" (must match Google's consent screen), one paragraph on what the app does, a Google Calendar section (what we do with calendars; disconnect from Profile), a **Log in** button and footer links to Privacy and Terms. Signed in, `/` goes to My Day. Its metadata carries the Search Console tag from `GOOGLE_SITE_VERIFICATION`.
+- **Terms `/terms`**: who can use it, your data, acceptable use, Google Calendar (links to Privacy), no warranty, changes, contact, and a "Last updated" date.
+- Only `/` exactly is public; every other route still needs a session.
+
 ## 1. Login `/login`, Accept invite `/accept-invite`, Reset password `/reset-password`
 
 - **Login:** email, password, **Sign in**, "Forgot password?".

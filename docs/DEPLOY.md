@@ -196,6 +196,8 @@ Supabase → Authentication → **URL Configuration**:
 4. Each person: Profile → **Connect Google Calendar**. Google says it hasn't verified the app: **Advanced** → **Go to Client Acquisition OS**.
 5. Changing `GOOGLE_TOKEN_KEY` later makes stored tokens unreadable: everyone sees **Reconnect**.
 
+6. **Google verification.** Google's OAuth verification needs a public homepage (`/`), privacy (`/privacy`) and terms (`/terms`) on the verified domain. Verify the domain in Google Search Console with the **HTML tag** method: copy only the `content` value into the Vercel env var `GOOGLE_SITE_VERIFICATION`, redeploy, and the homepage renders the tag. No code change needed.
+
 Notifications need nothing extra: they use Supabase Realtime, which is already on.
 
 ---
